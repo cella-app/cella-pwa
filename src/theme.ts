@@ -105,18 +105,28 @@ export default createTheme({
 				filledSuccess: {
 					backgroundColor: '#3B9C7A',
 					color: '#fff',
+					borderRadius: '16px',
+					width: "200px"
 				},
 				filledError: {
 					backgroundColor: '#D14343',
 					color: '#fff',
+					borderRadius: '16px',
+					width: "200px"
 				},
 				filledWarning: {
 					backgroundColor: '#FFB020',
 					color: '#000',
+					borderRadius: '16px',
+					width: '200px',
+
 				},
 				filledInfo: {
 					backgroundColor: '#2F80ED',
 					color: '#fff',
+					borderRadius: '16px',
+					width: '200px',
+
 				},
 			},
 		},

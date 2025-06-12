@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig, AxiosHeaders } from 'axios';
-import { getToken, removeToken } from '@/shared/utils/auth';
+import { getToken, clearAuth } from '@/shared/utils/auth';
+
+import { useAuthStore } from '@/features/auth/stores/auth.store';
 
 const axiosInstance: AxiosInstance = axios.create({
 	baseURL: process.env.NODE_ENV === 'development'
@@ -32,12 +34,31 @@ axiosInstance.interceptors.response.use(
 	(response: AxiosResponse) => {
 		return response;
 	},
-	(error) => {
-		if (error.response?.status === 401) {
-			removeToken();
+	async (error) => {
+		const { user, logout } = useAuthStore();
 
-			if (typeof window !== 'undefined') {
-				window.location.href = '/login';
+		const originalRequest = error.config;
+
+		if (
+			error.response?.status === 401 && 
+			!originalRequest._retry
+		) {
+			originalRequest._retry = true;
+
+			if (!user) {
+				clearAuth();
+				logout();
+				return Promise.reject(error);
+			}
+
+			try {
+				const newToken = getToken();
+				originalRequest.headers.Authorization = `Bearer ${newToken}`;
+				return axiosInstance.request(originalRequest);
+			} catch (err) {
+				clearAuth();
+				logout();
+				return Promise.reject(err);
 			}
 		}
 

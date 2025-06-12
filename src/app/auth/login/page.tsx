@@ -20,6 +20,8 @@ import { rootStyle } from '@/theme';
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { userAlertStore, SERVERIFY_ALERT} from '@/features/alert/stores/alert.store';
+
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -29,12 +31,16 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+
+const TIMEOUT_REDIRECT_LOGIN = 1000
+
 export default function LoginPage() {
 	const theme = useTheme();
 	const router = useRouter();
 	const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
+	const { addAlert } = userAlertStore();
 
 	const {
 		register,
@@ -57,9 +63,19 @@ export default function LoginPage() {
 	const onSubmit = async (data: LoginFormData) => {
 		try {
 			await loginAction(data.email, data.password);
-			router.push('/');
+			addAlert({
+				severity: SERVERIFY_ALERT.SUCCESS,
+				message: "Login successfully!"
+			})
+			setTimeout(() => {
+				router.push('/');
+			}, TIMEOUT_REDIRECT_LOGIN);
 		} catch (err) {
 			console.error('Login failed:', err);
+			addAlert({
+				severity: SERVERIFY_ALERT.ERROR,
+				message: "Login error!"
+			})
 		}
 	};
 
@@ -131,7 +147,7 @@ export default function LoginPage() {
 					justifyContent: 'center',
 				}}
 			>
-				<form onSubmit={handleSubmit(onSubmit)} noValidate>
+				<form method='POST' onSubmit={handleSubmit(onSubmit)} noValidate>
 					<FormControl sx={{ width: '100%' }}>
 						<TextField
 							fullWidth
