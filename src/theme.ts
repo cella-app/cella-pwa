@@ -103,8 +103,9 @@ export default createTheme({
 		MuiAlert: {
 			styleOverrides: {
 				filledSuccess: {
-					backgroundColor: '#3B9C7A',
-					color: '#fff',
+					backgroundColor: '#0C3E2E4D',
+					color: '#000000',
+					opacity: "0.3",
 					borderRadius: '16px',
 					width: "200px"
 				},

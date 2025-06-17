@@ -3,20 +3,20 @@ import BaseApi from './base';
 import { AxiosInstance } from 'axios';
 import { User } from "@/shared/data/models/User"
 
-export interface LoginRequest {
+interface AuthResponse {
+	expires: number;
+	refresh_token: string;
+	access_token: string;
+}
+
+interface LoginRequest {
 	email: string;
 	password: string;
 }
 
-export interface RegisterRequest {
+interface RegisterRequest {
 	email: string;
 	password: string;
-}
-
-export interface AuthResponse {
-	token: string;
-	user: User;
-	message?: string;
 }
 
 class AuthApi extends BaseApi {
@@ -26,8 +26,8 @@ class AuthApi extends BaseApi {
 	// Login
 	async login(data: LoginRequest): Promise<AuthResponse> {
 		try {
-			const response = await this.apiInstance.post<AuthResponse>('/auth/login', data);
-			return response.data;
+			const { data: responseData } = await this.apiInstance.post<{ data: AuthResponse }>('/auth/login', data);
+			return responseData.data;
 		} catch (error: unknown) {
 			throw this.handleApiError(error, 'Login failed', 500);
 		}
@@ -36,8 +36,8 @@ class AuthApi extends BaseApi {
 	// Register
 	async register(data: RegisterRequest): Promise<AuthResponse> {
 		try {
-			const response = await this.apiInstance.post<AuthResponse>('/auth/register', data);
-			return response.data;
+			const { data: responseData } = await this.apiInstance.post<{ data: AuthResponse }>('/users/register', data);
+			return responseData.data;
 		} catch (error: unknown) {
 			throw this.handleApiError(error, 'Registration failed', 500);
 		}
@@ -46,7 +46,8 @@ class AuthApi extends BaseApi {
 	// Logout (if needed to call API)
 	async logout(): Promise<void> {
 		try {
-			await this.apiInstance.post('/auth/logout');
+			const { data } = await this.apiInstance.post('/auth/logout');
+			return data;
 		} catch (error: unknown) {
 			// Ignore logout errors, clear local storage anyway
 			console.warn('Logout API call failed:', error);
@@ -81,6 +82,17 @@ class AuthApi extends BaseApi {
 		} catch {
 			return false;
 		}
+	}
+
+	async setCookie(token: string | null) {
+		const response = await fetch('/api/auth/set-cookie', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ token })
+		});
+		return response.json();
 	}
 }
 

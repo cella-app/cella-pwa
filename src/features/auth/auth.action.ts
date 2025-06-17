@@ -1,26 +1,31 @@
-"use server";
-// auth.actions.ts
-import { setToken, setUser, clearAuth } from '@/shared/utils/auth';
+"use client";
+
 import { useAuthStore } from './stores/auth.store';
-import { authApi, LoginRequest, RegisterRequest } from '@/shared/api/auth.api';
+import { authApi } from '@/shared/api/auth.api';
+import { meApi } from '@/shared/api/me.api';
 
 export async function loginAction(email: string, password: string) {
-	const { setAuth, setLoading, setError } = useAuthStore.getState();
+	const { setAuth, setLoading, setError, setUser } = useAuthStore.getState();
 
 	setLoading(true);
 	setError(null);
 
 	try {
-		const { token, user } = await authApi.login({
-			email,
-			password
-		} as LoginRequest)
+		const data = await authApi.login({ email, password });
 		
+		if (!data.access_token) {
+			throw new Error('No token received');
+		}
 
-		setToken(token);
-		setUser(user);
+		await authApi.setCookie(data.access_token);
 
-		setAuth(user, token);
+		setAuth(data.refresh_token, data.access_token);
+		
+		setTimeout(async () => {
+			const user = await meApi.get();
+			setUser(user)
+		}, 1500)
+	
 	} catch (err) {
 		setError(err instanceof Error ? err.message : 'Login failed');
 		throw err;
@@ -29,22 +34,19 @@ export async function loginAction(email: string, password: string) {
 	}
 }
 
-export async function registerAction(email: string, password: string) {
-	const { setAuth, setLoading, setError } = useAuthStore.getState();
+import { useRouter } from 'next/navigation';
+type NextRouter = ReturnType<typeof useRouter>;
+
+export async function registerAction(email: string, password: string, router: NextRouter) {
+	const { setLoading, setError } = useAuthStore.getState();
+
 
 	setLoading(true);
 	setError(null);
 
 	try {
-		const { token, user } = await authApi.register({
-			email,
-			password
-		} as RegisterRequest)
-
-		setToken(token);
-		setUser(user);
-
-		setAuth(user, token);
+		await authApi.register({ email, password });
+		router.push('/auth/login');
 	} catch (err) {
 		setError(err instanceof Error ? err.message : 'Registration failed');
 		throw err;
@@ -54,14 +56,20 @@ export async function registerAction(email: string, password: string) {
 }
 
 export async function logOutAction() {
-	const { logout, setError } = useAuthStore.getState();
+	const { setAuth, setError } = useAuthStore.getState();
 
 	setError(null);
 	try {
-		clearAuth();
-		logout();
+		// 1. Gọi API logout
+		await authApi.logout();
+		
+		// 2. Xóa cookie
+		await authApi.setCookie(null);
+		
+		// 3. Reset auth state
+		setAuth(null, null);
 	} catch(err) {
-		setError(err instanceof Error ? err.message : 'Registration failed');
+		setError(err instanceof Error ? err.message : 'Logout failed');
 		throw err;
 	}
 }

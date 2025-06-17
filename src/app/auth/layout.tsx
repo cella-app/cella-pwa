@@ -11,7 +11,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 	const router = useRouter();
 	const { isAuthenticated, initializeAuth } = useAuthStore();
 	const { clearAlerts } = userAlertStore()
-	// clearAlerts();
 	
 
 	useEffect(() => {

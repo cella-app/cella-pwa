@@ -1,48 +1,46 @@
 import {User} from "@/shared/data/models/User"
 
-const TOKEN_KEY = 'auth_token';
-const USER_KEY = 'auth_user';
+const USER_STORAGE_KEY = 'me';
 
-// Token management
 export const getToken = (): string | null => {
 	if (typeof window === 'undefined') return null;
-	return localStorage.getItem(TOKEN_KEY);
+	return localStorage.getItem('authToken');
 };
 
-export const setToken = (token: string): void => {
+export const setToken = (token: string | null): void => {
 	if (typeof window === 'undefined') return;
-	localStorage.setItem(TOKEN_KEY, token);
+	localStorage.setItem("authToken", token ?? "");
 };
 
-export const removeToken = (): void => {
+export const setRefreshToken = (token: string | null): void => {
 	if (typeof window === 'undefined') return;
-	localStorage.removeItem(TOKEN_KEY);
-	localStorage.removeItem(USER_KEY);
+	localStorage.setItem("refreshToken", token ?? "");
 };
 
-// User management
+export const getRefreshToken = (): string | null => {
+	if (typeof window === 'undefined') return null;
+	return localStorage.getItem('refreshToken');
+}
+
 export const getUser = (): User | null => {
 	if (typeof window === 'undefined') return null;
-	const userStr = localStorage.getItem(USER_KEY);
-	return userStr ? JSON.parse(userStr) : null;
+	const userData = localStorage.getItem(USER_STORAGE_KEY);
+	return userData ? JSON.parse(userData) : null;
 };
 
 export const setUser = (user: User): void => {
 	if (typeof window === 'undefined') return;
-	localStorage.setItem(USER_KEY, JSON.stringify(user));
+	localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
 };
 
-// Auth status check
 export const isLoggedIn = (): boolean => {
+	if (typeof window === 'undefined') return false;
 	return !!getToken();
 };
 
 // Clear all auth data
 export const clearAuth = (): void => {
-	removeToken();
-};
-
-export const requireAuth = (): boolean => {
-	const token = getToken();
-	return !!token;
+	if (typeof window === 'undefined') return;
+	localStorage.removeItem('authToken');
+	localStorage.removeItem(USER_STORAGE_KEY);
 };

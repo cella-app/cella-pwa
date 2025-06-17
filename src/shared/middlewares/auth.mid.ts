@@ -4,13 +4,14 @@ export function middleware(req: NextRequest) {
 	const token = req.cookies.get('accessToken')?.value;
 
 	const isAuthPage = req.nextUrl.pathname.startsWith('/auth');
-	const isProtectedRoute = req.nextUrl.pathname.startsWith('/dashboard');
+	const isLoginPage = req.nextUrl.pathname === '/auth/login';
+	const isProtectedRoute = req.nextUrl.pathname.startsWith('/[auth]/dashboard');
 
 	if (!token && isProtectedRoute) {
 		return NextResponse.redirect(new URL('/auth/login', req.url));
 	}
 
-	if (token && isAuthPage) {
+	if (token && isAuthPage && !isLoginPage) {
 		return NextResponse.redirect(new URL('/', req.url));
 	}
 
@@ -19,8 +20,7 @@ export function middleware(req: NextRequest) {
 
 export const config = {
 	matcher: [
-		'/dashboard/:path*',
 		'/auth/:path*',
-		'/', // hoặc thêm các route bạn muốn kiểm tra
+		'/map',
 	],
 };

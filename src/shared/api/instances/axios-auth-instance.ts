@@ -1,28 +1,40 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig, AxiosHeaders } from 'axios';
-import { getToken, clearAuth } from '@/shared/utils/auth';
+import { getToken, clearAuth, getRefreshToken } from '@/shared/utils/auth';
+import { ENV } from '@/shared/config/env';
+import { authApi } from '@/shared/api/auth.api';
 
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 
+const authStore = {
+	getState: useAuthStore.getState,
+	setState: useAuthStore.setState,
+	subscribe: useAuthStore.subscribe,
+};
+interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
+	_retry?: boolean;
+}
+
 const axiosInstance: AxiosInstance = axios.create({
-	baseURL: process.env.NODE_ENV === 'development'
-		? 'http://localhost:3000/api'
-		: '/api',
+	baseURL: ENV.API_URL,
 	timeout: 10000,
 	headers: {
 		'Content-Type': 'application/json',
 	},
+	withCredentials: true
 });
 
 axiosInstance.interceptors.request.use(
 	(config) => {
 		const token = getToken();
-		const internalConfig = config as unknown as InternalAxiosRequestConfig;
+		const internalConfig = config as InternalAxiosRequestConfig;
+
 		if (token && internalConfig.headers) {
 			internalConfig.headers = new AxiosHeaders({
 				...internalConfig.headers,
 				Authorization: `Bearer ${token}`,
 			});
 		}
+
 		return config;
 	},
 	(error) => {
@@ -31,34 +43,45 @@ axiosInstance.interceptors.request.use(
 );
 
 axiosInstance.interceptors.response.use(
-	(response: AxiosResponse) => {
-		return response;
-	},
+	(response: AxiosResponse) => response,
 	async (error) => {
-		const { user, logout } = useAuthStore();
+		const originalRequest = error.config as CustomAxiosRequestConfig;
 
-		const originalRequest = error.config;
+		if (typeof originalRequest._retry === 'undefined') {
+			originalRequest._retry = false;
+		}
+		
 
-		if (
-			error.response?.status === 401 && 
-			!originalRequest._retry
-		) {
+		if (error.response?.status === 401 && !originalRequest._retry) {
 			originalRequest._retry = true;
 
-			if (!user) {
+			const refreshToken = getRefreshToken();
+
+			console.log("refreshToken", refreshToken)
+			if (!refreshToken) {
 				clearAuth();
-				logout();
+				authStore.getState().logout();
 				return Promise.reject(error);
 			}
 
 			try {
-				const newToken = getToken();
-				originalRequest.headers.Authorization = `Bearer ${newToken}`;
-				return axiosInstance.request(originalRequest);
-			} catch (err) {
+				const { data } = await axiosInstance.post('/auth/refresh-token', {
+					refresh_token: refreshToken,
+				});
+
+				const newAccessToken = data.data.access_token;
+				const newRefreshToken = data.data.refresh_token;
+
+				authStore.getState().setAuth(newRefreshToken, newAccessToken);
+				await authApi.setCookie(newAccessToken);
+
+				(originalRequest.headers as AxiosHeaders).set('Authorization', `Bearer ${newAccessToken}`);
+
+				return axiosInstance(originalRequest);
+			} catch (refreshError) {
 				clearAuth();
-				logout();
-				return Promise.reject(err);
+				authStore.getState().logout();
+				return Promise.reject(refreshError);
 			}
 		}
 

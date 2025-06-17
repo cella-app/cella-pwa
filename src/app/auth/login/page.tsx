@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
 	Box,
 	TextField,
@@ -17,11 +17,10 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { loginAction } from '@/features/auth/auth.action';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 import { rootStyle } from '@/theme';
+import { userAlertStore, SERVERIFY_ALERT} from '@/features/alert/stores/alert.store';
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { userAlertStore, SERVERIFY_ALERT} from '@/features/alert/stores/alert.store';
-
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -37,6 +36,7 @@ const TIMEOUT_REDIRECT_LOGIN = 1000
 export default function LoginPage() {
 	const theme = useTheme();
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
@@ -56,7 +56,7 @@ export default function LoginPage() {
 
 	useEffect(() => {
 		if (isAuthenticated) {
-			router.push('/');
+			router.push('/map');
 		}
 	}, [isAuthenticated]);
 
@@ -68,13 +68,14 @@ export default function LoginPage() {
 				message: "Login successfully!"
 			})
 			setTimeout(() => {
-				router.push('/');
+				const from = searchParams.get('from') || '/map';
+				router.push(from);
 			}, TIMEOUT_REDIRECT_LOGIN);
 		} catch (err) {
 			console.error('Login failed:', err);
 			addAlert({
 				severity: SERVERIFY_ALERT.ERROR,
-				message: "Login error!"
+				message: (err instanceof Error ? err.message : 'An unknown error occurred')
 			})
 		}
 	};
@@ -87,7 +88,6 @@ export default function LoginPage() {
 
 	return (
 		<>
-			{/* Welcome Section */}
 			<Box
 				sx={{
 					flex: 1,

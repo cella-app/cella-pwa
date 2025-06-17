@@ -1,17 +1,19 @@
-// auth.store.ts
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { User } from '@/shared/data/models/User';
+import { getToken, getRefreshToken, getUser, setToken, setRefreshToken } from '@/shared/utils/auth';
 
 interface AuthState {
-	user: User | null;
+	user: User | null | undefined;
+	refreshToken: string | null;
 	token: string | null;
 	isAuthenticated: boolean;
 	isLoading: boolean;
 	error: string | null;
 
 	// Sync actions
-	setAuth: (user: User, token: string) => void;
+	setAuth: (refreshToken: string | null, token: string | null) => void;
+	setUser: (user: User) => void;
 	logout: () => void;
 	setLoading: (loading: boolean) => void;
 	setError: (error: string | null) => void;
@@ -21,24 +23,30 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
 	devtools(
 		(set) => ({
-			user: null,
+			refreshToken: null,
 			token: null,
 			isAuthenticated: false,
 			isLoading: false,
 			error: null,
-
-			setAuth: (user, token) =>
+			user: null,
+			setUser: (user) => set({
+				user
+				}),
+			setAuth: (refreshToken, token) => {
+				setRefreshToken(refreshToken);
+				setToken(token)
 				set({
-					user,
+					refreshToken,
 					token,
-					isAuthenticated: true,
+					isAuthenticated: !!refreshToken && !!token,
 					isLoading: false,
 					error: null,
-				}),
+				})
+			},
 
 			logout: () =>
 				set({
-					user: null,
+					refreshToken: null,
 					token: null,
 					isAuthenticated: false,
 					error: null,
@@ -49,13 +57,15 @@ export const useAuthStore = create<AuthState>()(
 
 			initializeAuth: () => {
 				if (typeof window !== 'undefined') {
-					const token = localStorage.getItem('token');
-					const user = localStorage.getItem('user');
-					if (token && user) {
+					const token = getToken();
+					const refreshToken = getRefreshToken();
+					const user = getUser();
+					if (token && refreshToken) {
 						set({
 							token,
-							user: JSON.parse(user),
+							refreshToken,
 							isAuthenticated: true,
+							user,
 						});
 					}
 				}

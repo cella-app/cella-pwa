@@ -1,0 +1,70 @@
+.user-location-marker {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-location-marker::before {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 123, 255, 0.3);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.user-location-marker::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #007bff;
+  border-radius: 50%;
+}
+
+.pod-marker {
+  background: none;
+  border: none;
+}
+
+.pod-marker-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.pod-marker-icon.available {
+  --pod-marker-color: #28a745; /* Green for available */
+}
+
+.pod-marker-icon.unavailable {
+  --pod-marker-color: #dc3545; /* Red for unavailable */
+}
+
+.pod-marker-icon.closed {
+  --pod-marker-color: #6c757d; /* Grey for closed */
+}
+
+.pod-marker-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+} 

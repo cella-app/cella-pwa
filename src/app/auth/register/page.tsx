@@ -58,7 +58,7 @@ export default function RegisterPage() {
 
 	const onSubmit = async (data: RegisterFormData) => {
 		try {
-			await registerAction(data.email, data.password);
+			await registerAction(data.email, data.password, router);
 			router.push('/');
 		} catch (err) {
 			console.error('Login failed:', err);
