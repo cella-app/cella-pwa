@@ -3,7 +3,6 @@ export interface Pod {
 	status: PodStatus;
 	name: string;
 	address: string;
-	accompanying_services: Array<AccompanyingService>;
 	price_on_min: number;
 }
 
@@ -12,6 +11,8 @@ export interface PodList {
 	status: PodStatus;
 	location: number[];
 	name: string;
+	price_on_min: number;
+	accompanying_services: Array<AccompanyingService>;
 	distance_meters: number;
 }
 

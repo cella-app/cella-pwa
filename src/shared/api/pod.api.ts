@@ -28,7 +28,7 @@ class PodApi extends BaseApi {
 
 	async getPod(podId: string): Promise<Pod> {
 		try {
-			const { data: responseData } = await this.apiInstance.get<{ data: Pod }>(`/pods/${podId}`);
+			const { data: responseData } = await this.apiInstance.get<{ data: Pod }>(`/items/workspace_pods/${podId}`);
 
 			return responseData.data;
 		} catch (error: unknown) {

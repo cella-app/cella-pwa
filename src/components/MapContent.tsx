@@ -3,12 +3,14 @@
 import { useEffect, useState, useRef, memo } from 'react';
 import { MapContainer } from 'react-leaflet';
 import L, { Map as LeafletMapType } from 'leaflet';
+
 import { MapLayersAndControls } from '@/components/MapLayersAndControls';
 import WorkspacePopup from '@/components/WorkspacePopup';
 import { PodList } from '@/shared/data/models/Pod';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
 import 'leaflet/dist/leaflet.css';
 import '@/styles/map.css';
+import LocateControl from './LocateControl';
 
 const DEFAULT_CENTER: [number, number] = [21.0285, 105.8542];
 
@@ -47,11 +49,12 @@ export default memo(function MapContent() {
     <>
       <MapContainer
         center={center}
-        zoom={15}
+        zoom={25}
         scrollWheelZoom={true}
         style={{ height: '100vh', width: '100%' }}
         ref={mapRef}
       >
+        <LocateControl />
         {mapRef.current && (
           <MapLayersAndControls
             map={mapRef.current}
@@ -78,6 +81,7 @@ export default memo(function MapContent() {
             name={selectedPod.name || 'Unnamed Pod'}
             status={selectedPod.status}
             distance={`${selectedPod.distance_meters}m`}
+            accompanying_services={selectedPod.accompanying_services}
           />
         </div>
       )}

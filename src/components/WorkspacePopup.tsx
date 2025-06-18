@@ -78,6 +78,7 @@ interface WorkspacePopupProps {
   name: string;
   status: PodStatus;
   distance: string;
+  accompanying_services: AccompanyingService[],
 }
 
 const serviceIcons: Record<string, React.ComponentType<{ width: string; height: string; fill: string }>> = {
@@ -90,9 +91,9 @@ export default function WorkspacePopup({
   id,
   name,
   distance,
+  accompanying_services,
 }: WorkspacePopupProps) {
   const [price, setPrice] = useState<number | null>(null);
-  const [accompanying_services, setServices] = useState<AccompanyingService[]>([]);
   const [status, setStatus] = useState<PodStatus>();
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -102,7 +103,6 @@ export default function WorkspacePopup({
     getPodDetail(id)
       .then((pod: Pod) => {
         setPrice(pod.price_on_min);
-        setServices(pod.accompanying_services || []);
         setStatus(pod.status);
       })
       .catch((err) => {
@@ -112,6 +112,8 @@ export default function WorkspacePopup({
         setLoading(false);
       });
   }, [id]);
+
+  console.log(distance)
 
   const getStatusLabel = (currentStatus: PodStatus) => {
     switch (currentStatus) {
@@ -141,7 +143,7 @@ export default function WorkspacePopup({
 
       <Box sx={{ marginLeft: '64px', marginBottom: 2 }}>
         <StatusChip
-          label={getStatusLabel(status)}
+          label={getStatusLabel(status || PodStatus.unavailable)}
           size="small"
           className={status}
         />

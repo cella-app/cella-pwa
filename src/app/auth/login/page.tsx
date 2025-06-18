@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
 	Box,
@@ -30,10 +30,9 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-
 const TIMEOUT_REDIRECT_LOGIN = 1000
 
-export default function LoginPage() {
+function LoginForm() {
 	const theme = useTheme();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -52,13 +51,13 @@ export default function LoginPage() {
 
 	useEffect(() => {
 		initializeAuth();
-	}, []);
+	}, [initializeAuth]);
 
 	useEffect(() => {
 		if (isAuthenticated) {
 			router.push('/map');
 		}
-	}, [isAuthenticated]);
+	}, [isAuthenticated, router]);
 
 	const onSubmit = async (data: LoginFormData) => {
 		try {
@@ -214,5 +213,13 @@ export default function LoginPage() {
 				</form>
 			</Box>
 		</>
+	);
+}
+
+export default function LoginPage() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<LoginForm />
+		</Suspense>
 	);
 }

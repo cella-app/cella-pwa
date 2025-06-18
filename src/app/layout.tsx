@@ -1,5 +1,6 @@
 import ThemeProviderWrapper from '@/components/ThemeProviderWrapper';
 import { Metadata } from 'next';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 export const metadata: Metadata = {
   title: 'Cella',

@@ -1,29 +1,31 @@
+.leaflet-control-locate {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 1000 !important;
+}
+
 .user-location-marker {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.user-location-marker::before {
-  content: '';
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 123, 255, 0.3);
-  border-radius: 50%;
+.user-location-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   animation: pulse 2s infinite;
 }
 
-.user-location-marker::after {
-  content: '';
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: #007bff;
-  border-radius: 50%;
+.user-location-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .pod-marker {
@@ -64,7 +66,7 @@
     opacity: 1;
   }
   100% {
-    transform: scale(2);
-    opacity: 0;
+    transform: scale(1.5);
+    opacity: 0.5;
   }
 } 

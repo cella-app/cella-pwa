@@ -2,6 +2,10 @@
 
 import createCache from '@emotion/cache';
 
-export default function createEmotionCache() {
-	return createCache({ key: 'css', prepend: true });
+export default function createEmotionCache(nonce?: string) {
+	return createCache({
+		key: 'css',
+		prepend: true,
+		nonce,
+	});
 }
