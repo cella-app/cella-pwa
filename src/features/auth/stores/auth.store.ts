@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { User } from '@/shared/data/models/User';
-import { getToken, getRefreshToken, getUser, setToken, setRefreshToken } from '@/shared/utils/auth';
+import { getToken, getRefreshToken, getUser, setToken, setRefreshToken, setUser } from '@/shared/utils/auth';
 
 interface AuthState {
 	user: User | null | undefined;
@@ -13,7 +13,7 @@ interface AuthState {
 
 	// Sync actions
 	setAuth: (refreshToken: string | null, token: string | null) => void;
-	setUser: (user: User) => void;
+	setUser: (user: User | null) => void;
 	logout: () => void;
 	setLoading: (loading: boolean) => void;
 	setError: (error: string | null) => void;
@@ -29,12 +29,15 @@ export const useAuthStore = create<AuthState>()(
 			isLoading: false,
 			error: null,
 			user: null,
-			setUser: (user) => set({
-				user
-				}),
+			setUser: (user) => {
+				setUser(user);
+				set({
+					user
+				})
+			},
 			setAuth: (refreshToken, token) => {
 				setRefreshToken(refreshToken);
-				setToken(token)
+				setToken(token);
 				set({
 					refreshToken,
 					token,

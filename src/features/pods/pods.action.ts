@@ -1,13 +1,13 @@
 "use client";
 
-import { podApi, PodNearMeRequest } from '../../shared/api/pod.api';
+import { podApi, PodNearMeRequest, PodNearMeResponse } from '../../shared/api/pod.api';
 import { userAlertStore, SERVERIFY_ALERT } from '../alert/stores/alert.store';
 
 export async function getPodsNearMe(request: PodNearMeRequest = {
 	longitude: 0,
 	latitude: 0,
 	radius: 2000
-}) {
+}): Promise<PodNearMeResponse> {
 	const { addAlert } = userAlertStore.getState();
 
 	try {

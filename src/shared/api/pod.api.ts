@@ -1,10 +1,17 @@
 import axiosInstance from './instances/axios-auth-instance';
 import BaseApi from './base';
-import { AxiosInstance } from 'axios';
 import { Pod, PodList } from "@/shared/data/models/Pod"
 
 export interface PodNearMeResponse {
-	pods: PodList[];
+	data: {
+		pods: PodList[];
+	},
+	meta: {
+		total_count: number,
+		search_radius: number,
+		search_coordinates: number[],
+		centroid: [number, number]
+	}
 }
 
 export interface PodNearMeRequest {
@@ -15,12 +22,18 @@ export interface PodNearMeRequest {
 
 class PodApi extends BaseApi {
 
-	apiInstance: AxiosInstance = axiosInstance;
+	constructor() {
+		super(axiosInstance)
+	}
 
 	async getPodsNearMe(data: PodNearMeRequest): Promise<PodNearMeResponse> {
 		try {
-			const { data: responseData } = await this.apiInstance.post<{ data: PodNearMeResponse }>('/pods', data);
-			return responseData.data;
+			const { data: responseData } = await this.apiInstance.post<PodNearMeResponse>('/pods', data);
+			const result: PodNearMeResponse = {
+				data: responseData.data,
+				meta: responseData.meta
+			}
+			return result
 		} catch (error: unknown) {
 			throw this.handleApiError(error, 'getPodsNearMe', 500);
 		}

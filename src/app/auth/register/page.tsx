@@ -17,6 +17,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 import { rootStyle } from '@/theme';
 import { registerAction } from '@/features/auth/auth.action';
+import { userAlertStore, SERVERIFY_ALERT } from '@/features/alert/stores/alert.store';
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,6 +33,8 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
 	const theme = useTheme();
 	const router = useRouter();
+	const { addAlert } = userAlertStore();
+
 	const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
@@ -52,16 +55,23 @@ export default function RegisterPage() {
 
 	useEffect(() => {
 		if (mounted && isAuthenticated) {
-			router.push('/');
+			router.push('/map');
 		}
 	}, [isAuthenticated, router, mounted]);
 
 	const onSubmit = async (data: RegisterFormData) => {
 		try {
 			await registerAction(data.email, data.password, router);
-			router.push('/');
-		} catch (err) {
-			console.error('Login failed:', err);
+			addAlert({
+				severity: SERVERIFY_ALERT.SUCCESS,
+				message: "Create account successfully!"
+			})
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} catch (err: any) {
+			addAlert({
+				severity: SERVERIFY_ALERT.ERROR,
+				message: (err.message ?? 'An unknown error occurred')
+			})
 		}
 	};
 

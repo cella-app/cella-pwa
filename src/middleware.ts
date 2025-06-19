@@ -11,13 +11,20 @@ export function middleware(request: NextRequest) {
     pathname === '/auth/login' ||
     pathname === '/auth/register';
 
+
   if (isPublicPath && token) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
   if (!isPublicPath && !token) {
     const loginUrl = new URL('/auth/login', request.url);
-    loginUrl.searchParams.set('from', pathname);
+    if ("/" != pathname) {
+      loginUrl.searchParams.set('from', pathname);
+    } else {
+      loginUrl.searchParams.set('from', "/map");
+    }
+
+    console.log(pathname,loginUrl)
     return NextResponse.redirect(loginUrl);
   }
 

@@ -3,6 +3,7 @@
 import { useAuthStore } from './stores/auth.store';
 import { authApi } from '@/shared/api/auth.api';
 import { meApi } from '@/shared/api/me.api';
+import { clearAuth, getRefreshToken } from '@/shared/utils/auth';
 
 export async function loginAction(email: string, password: string) {
 	const { setAuth, setLoading, setError, setUser } = useAuthStore.getState();
@@ -46,7 +47,9 @@ export async function registerAction(email: string, password: string, router: Ne
 
 	try {
 		await authApi.register({ email, password });
-		router.push('/auth/login');
+		setTimeout(() => {
+			router.push('/auth/login');
+		}, 1500)
 	} catch (err) {
 		setError(err instanceof Error ? err.message : 'Registration failed');
 		throw err;
@@ -55,19 +58,24 @@ export async function registerAction(email: string, password: string, router: Ne
 	}
 }
 
-export async function logOutAction() {
-	const { setAuth, setError } = useAuthStore.getState();
+export async function logOutAction(router: NextRouter) {
+	const { setAuth, setError, setUser } = useAuthStore.getState();
 
 	setError(null);
 	try {
-		// 1. Gọi API logout
-		await authApi.logout();
+		const refreshToken = getRefreshToken()
+		if (refreshToken) {
+			await authApi.logout(refreshToken);
+		}
 		
-		// 2. Xóa cookie
 		await authApi.setCookie(null);
 		
-		// 3. Reset auth state
 		setAuth(null, null);
+		setUser(null);
+		clearAuth();
+		setTimeout(() => {
+			router.push('/auth/login');
+		})
 	} catch(err) {
 		setError(err instanceof Error ? err.message : 'Logout failed');
 		throw err;

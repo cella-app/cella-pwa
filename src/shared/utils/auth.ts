@@ -28,9 +28,13 @@ export const getUser = (): User | null => {
 	return userData ? JSON.parse(userData) : null;
 };
 
-export const setUser = (user: User): void => {
+export const setUser = (user: User | null): void => {
 	if (typeof window === 'undefined') return;
-	localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+	if (!user) {
+		localStorage.removeItem(USER_STORAGE_KEY);
+	} else {
+		localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+	}
 };
 
 export const isLoggedIn = (): boolean => {
@@ -42,5 +46,6 @@ export const isLoggedIn = (): boolean => {
 export const clearAuth = (): void => {
 	if (typeof window === 'undefined') return;
 	localStorage.removeItem('authToken');
+	localStorage.removeItem('refreshToken');
 	localStorage.removeItem(USER_STORAGE_KEY);
 };

@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Box, Typography, Button, Chip } from '@mui/material';
+import { Box, Typography, Button} from '@mui/material';
+import TimelineSeparator from '@mui/lab/TimelineSeparator';
+import TimelineContent from '@mui/lab/TimelineContent';
+import TimelineDot from '@mui/lab/TimelineDot';
 import { styled } from '@mui/material/styles';
 import WifiIcon from '@/components/icons/WifiIcon';
 import ElectricIcon from '@/components/icons/ElectricIcon';
@@ -18,6 +21,8 @@ const PopupContainer = styled(Box)(({ theme }) => ({
   maxWidth: '400px',
   boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
   minWidth: "308px",
+  marginBottom: "50px",
+  border: `1px solid ${rootStyle.borderColorMain}` ,
 }));
 
 const PopupHeader = styled(Box)(({ theme }) => ({
@@ -27,50 +32,39 @@ const PopupHeader = styled(Box)(({ theme }) => ({
   marginBottom: "0",
 }));
 
-const StatusChip = styled(Chip)(({ theme }) => ({
-  '&.available': {
-    backgroundColor: theme.palette.success.main,
-    color: theme.palette.success.contrastText,
-  },
-  '&.unavailable': {
-    backgroundColor: theme.palette.error.main,
-    color: theme.palette.error.contrastText,
-  },
-  '&.closed': {
-    backgroundColor: theme.palette.grey[500],
-    color: theme.palette.grey[100],
-  },
-}));
 
 const PriceServicesRow = styled(Box)(({ theme }) => ({
   display: 'flex',
-  justifyContent: 'space-between',
+  justifyContent: 'space-around',
   alignItems: 'center',
   marginTop: theme.spacing(2),
   marginBottom: theme.spacing(2),
 }));
 
 const PriceBox = styled(Box)(({ theme }) => ({
-  backgroundColor: theme.palette.grey[100],
   borderRadius: '20px',
   padding: `${theme.spacing(1)} ${theme.spacing(2)}`,
   display: 'inline-block',
+  border: `1px solid`,
+  borderColor: rootStyle.borderColorMain,
+  height: 36,
 }));
 
 const ServicesContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   gap: theme.spacing(1),
   alignItems: 'center',
+  borderRadius: '20px',
+  border: `1px solid`,
+  borderColor: rootStyle.borderColorMain,
+  height: 36,
 }));
 
-const ServiceIconBox = styled(Box)(({ theme }) => ({
+const ServiceIconBox = styled(Box)(() => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: 40,
-  height: 40,
-  borderRadius: '50%',
-  backgroundColor: theme.palette.grey[100],
+  padding: `${theme.spacing(1)} ${theme.spacing(1)}`,
 }));
 
 interface WorkspacePopupProps {
@@ -126,32 +120,50 @@ export default function WorkspacePopup({
   return (
     <PopupContainer>
       <PopupHeader>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48 }}>
-          <Image src="/icon_pod.png" alt="Pod icon" width={60} height={60} />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="h6" component="h4" sx={{
-            fontFamily: rootStyle.titleFontFamily,
-            fontSize: "20px",
-            fontWeight: 700,
-            marginBottom: 0.5
-          }}>
-            {name}
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+          <Box sx={{ width: 80, height: 80, mr: 2 }}>
+            <Image rel="preload" src="/icon_pod.png" alt="Pod icon" width={80} height={80} />
+          </Box>
+
+          <Box sx={{ flex: 1 }}>
+            {/* Tiêu đề */}
+            <Typography
+              variant="h6"
+              component="h4"
+              sx={{
+                fontFamily: rootStyle.titleFontFamily,
+                fontSize: "24px",
+                fontWeight: 700,
+                mb: 0.5
+              }}
+            >
+              {name}
+            </Typography>
+
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <TimelineSeparator sx={{ display: 'flex', alignItems: 'center' }}>
+                <TimelineDot sx={{
+                  backgroundColor: theme.palette.primary.main
+                }} />
+              </TimelineSeparator>
+
+              <TimelineContent
+                sx={{
+                  ml: 1,
+                  fontSize: "20px",
+                  fontWeight: 700,
+                }}
+              >
+                {getStatusLabel(status || PodStatus.unavailable)}
+              </TimelineContent>
+            </Box>
+          </Box>
         </Box>
       </PopupHeader>
 
-      <Box sx={{ marginLeft: '64px', marginBottom: 2 }}>
-        <StatusChip
-          label={getStatusLabel(status || PodStatus.unavailable)}
-          size="small"
-          className={status}
-        />
-      </Box>
-
       <PriceServicesRow>
         <PriceBox>
-          <Typography variant="body1" sx={{ fontWeight: 600 }}>
+          <Typography variant="body1" sx={{ fontWeight: 600, margin: "-2px" }}>
             {loading ? 'Loading price...' : `${price ?? 'N/A'}€/min`}
           </Typography>
         </PriceBox>
@@ -163,7 +175,7 @@ export default function WorkspacePopup({
 
             return (
               <ServiceIconBox key={service.id}>
-                <Icon width="20" height="20" fill="#4a5568" />
+                <Icon width="24" height="24" fill="#4a5568" />
               </ServiceIconBox>
             );
           })}
@@ -176,8 +188,8 @@ export default function WorkspacePopup({
         disabled={!isAvailable}
         sx={{
           backgroundColor: isAvailable ? theme.palette.primary.main : 'grey.500',
+          maxWidth: "200px",
           color: 'white',
-          borderRadius: '12px',
           py: 1.5,
           fontWeight: 600,
           '&:hover': {

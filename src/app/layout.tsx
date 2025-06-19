@@ -1,19 +1,22 @@
 import ThemeProviderWrapper from '@/components/ThemeProviderWrapper';
+import EmotionRegistry from '@/components/EmotionRegistry';
 import { Metadata } from 'next';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 export const metadata: Metadata = {
   title: 'Cella',
-  description: 'Created with Next.js',
+  description: 'Discovery Workspace',
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body suppressHydrationWarning>
-        <ThemeProviderWrapper>
-          {children}
-        </ThemeProviderWrapper>
+        <EmotionRegistry>
+          <ThemeProviderWrapper>
+            {children}
+          </ThemeProviderWrapper>
+        </EmotionRegistry>
       </body>
     </html>
   );

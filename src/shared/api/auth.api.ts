@@ -1,6 +1,5 @@
 import axiosInstance from './instances/axios-normal-instance';
 import BaseApi from './base';
-import { AxiosInstance } from 'axios';
 import { User } from "@/shared/data/models/User"
 
 interface AuthResponse {
@@ -8,7 +7,6 @@ interface AuthResponse {
 	refresh_token: string;
 	access_token: string;
 }
-
 interface LoginRequest {
 	email: string;
 	password: string;
@@ -21,8 +19,9 @@ interface RegisterRequest {
 
 class AuthApi extends BaseApi {
 
-	apiInstance: AxiosInstance = axiosInstance;
-
+	constructor() {
+		super(axiosInstance)
+	}
 	// Login
 	async login(data: LoginRequest): Promise<AuthResponse> {
 		try {
@@ -44,12 +43,13 @@ class AuthApi extends BaseApi {
 	}
 
 	// Logout (if needed to call API)
-	async logout(): Promise<void> {
+	async logout(refreshToken: string): Promise<void> {
 		try {
-			const { data } = await this.apiInstance.post('/auth/logout');
-			return data;
+			await this.apiInstance.post('auth/logout', {
+				refresh_token: refreshToken
+			}, );
+
 		} catch (error: unknown) {
-			// Ignore logout errors, clear local storage anyway
 			console.warn('Logout API call failed:', error);
 		}
 	}
@@ -65,9 +65,11 @@ class AuthApi extends BaseApi {
 	}
 
 	// Refresh token
-	async refreshToken(): Promise<AuthResponse> {
+	async refreshToken(refreshToken: string): Promise<AuthResponse> {
 		try {
-			const response = await this.apiInstance.post<AuthResponse>('/auth/refresh');
+			const response = await this.apiInstance.post<AuthResponse>('/auth/refresh', {
+				refresh_token: refreshToken,
+			});
 			return response.data;
 		} catch (error: unknown) {
 			throw this.handleApiError(error, 'Token refresh failed', 500);

@@ -12,14 +12,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 	const { isAuthenticated, initializeAuth } = useAuthStore();
 	const { clearAlerts } = userAlertStore()
 	
-
 	useEffect(() => {
 		initializeAuth();
 		clearAlerts();
 
 		const token = getToken();
 		if (token || isAuthenticated) {
-			router.replace(`/ft/discovery-pod`);
+			router.push(`/map`);
 		}
 	}, [clearAlerts, initializeAuth, isAuthenticated, router]);
 

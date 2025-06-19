@@ -30,7 +30,7 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-const TIMEOUT_REDIRECT_LOGIN = 1000
+const TIMEOUT_REDIRECT_LOGIN = 2000
 
 function LoginForm() {
 	const theme = useTheme();
@@ -70,11 +70,11 @@ function LoginForm() {
 				const from = searchParams.get('from') || '/map';
 				router.push(from);
 			}, TIMEOUT_REDIRECT_LOGIN);
-		} catch (err) {
-			console.error('Login failed:', err);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} catch (err: any) {
 			addAlert({
 				severity: SERVERIFY_ALERT.ERROR,
-				message: (err instanceof Error ? err.message : 'An unknown error occurred')
+				message: (err.message ?? 'An unknown error occurred')
 			})
 		}
 	};

@@ -8,7 +8,8 @@ export const rootStyle = {
 	textColor: "#333",
 	descriptionColor: "#6B6B6B",
 	titleFontFamily: "Georgia, serif",
-	mainFontFamily: "Inter, sans-serif"
+	mainFontFamily: "Inter, sans-serif",
+	borderColorMain: "#c8c6c3"
 }
 
 export default createTheme({
@@ -103,8 +104,8 @@ export default createTheme({
 		MuiAlert: {
 			styleOverrides: {
 				filledSuccess: {
-					backgroundColor: '#0C3E2E4D',
-					color: '#000000',
+					backgroundColor: '#0C3E2E4',
+					color: 'white',
 					opacity: "0.3",
 					borderRadius: '16px',
 					width: "200px"
