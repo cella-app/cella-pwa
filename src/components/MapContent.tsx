@@ -14,6 +14,7 @@ import '@/styles/map.css';
 import LocateControl from './LocateControl';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
+import Image from 'next/image';
 
 const DEFAULT_CENTER: [number, number] = [21.0285, 105.8542];
 
@@ -99,7 +100,7 @@ export default memo(function MapContent() {
           onClick={() => router.push('/profile')}
         >
           {user.avatar ? (
-            <img
+            <Image
               src={user.avatar}
               alt="User Avatar"
               style={{
