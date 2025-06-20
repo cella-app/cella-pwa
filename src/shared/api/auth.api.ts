@@ -47,7 +47,7 @@ class AuthApi extends BaseApi {
 		try {
 			await this.apiInstance.post('auth/logout', {
 				refresh_token: refreshToken
-			}, );
+			});
 
 		} catch (error: unknown) {
 			console.warn('Logout API call failed:', error);
@@ -67,10 +67,10 @@ class AuthApi extends BaseApi {
 	// Refresh token
 	async refreshToken(refreshToken: string): Promise<AuthResponse> {
 		try {
-			const response = await this.apiInstance.post<AuthResponse>('/auth/refresh', {
+			const { data: responseData } = await this.apiInstance.post<{ data: AuthResponse }>('/auth/refresh', {
 				refresh_token: refreshToken,
 			});
-			return response.data;
+			return responseData.data;
 		} catch (error: unknown) {
 			throw this.handleApiError(error, 'Token refresh failed', 500);
 		}

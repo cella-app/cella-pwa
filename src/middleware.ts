@@ -7,6 +7,10 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const token = request.cookies.get('authToken')?.value;
 
+  if (pathname === '/') {
+    return NextResponse.redirect(new URL('/map', request.url));
+  }
+
   const isPublicPath =
     pathname === '/auth/login' ||
     pathname === '/auth/register';

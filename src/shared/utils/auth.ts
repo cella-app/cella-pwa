@@ -11,11 +11,19 @@ export const getToken = (): string | null => {
 
 export const setToken = (token: string | null): void => {
 	if (typeof window === 'undefined') return;
+	if (!token) {
+		localStorage.removeItem(ACCESS_TOKEN_KEY);
+		return;
+	}
 	localStorage.setItem(ACCESS_TOKEN_KEY, token ?? "");
 };
 
 export const setRefreshToken = (token: string | null): void => {
 	if (typeof window === 'undefined') return;
+	if (!token) {
+		localStorage.removeItem(REFRESH_TOKEN_KEY);
+		return;
+	}
 	localStorage.setItem(REFRESH_TOKEN_KEY, token ?? "");
 };
 
@@ -34,9 +42,9 @@ export const setUser = (user: User | null): void => {
 	if (typeof window === 'undefined') return;
 	if (!user) {
 		localStorage.removeItem(USER_STORAGE_KEY);
-	} else {
-		localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+		return;
 	}
+	localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
 };
 
 export const isLoggedIn = (): boolean => {
