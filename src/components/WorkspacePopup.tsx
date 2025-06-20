@@ -100,6 +100,8 @@ export default function WorkspacePopup({
   const isAvailable = status === 'available';
 
   useEffect(() => {
+    console.log('WorkspacePopup mounted', id);
+    setLoading(true);
     getPodDetail(id)
       .then((pod: Pod) => {
         setPrice(pod.price_on_min);
@@ -111,6 +113,9 @@ export default function WorkspacePopup({
       .finally(() => {
         setLoading(false);
       });
+    return () => {
+      console.log('WorkspacePopup unmounted', id);
+    };
   }, [id]);
 
   console.log(distance)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import type { Map as LeafletMapType, DivIcon, Icon } from 'leaflet';
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
@@ -38,6 +38,7 @@ export const MapLayersAndControls = ({
   const [myLocationIcon, setMyLocationIcon] = useState<DivIcon | null>(null);
   const [podIcon, setPodIcon] = useState<Icon | null>(null);
   const { currentLocation, pods } = useLocationTrackingContext();
+  const clickLock = useRef(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -85,6 +86,15 @@ export const MapLayersAndControls = ({
     }
   }, [map, currentLocation, mapLoaded, onMapLoad, isClient]);
 
+  const handleMarkerClick = (pod: PodList) => {
+    if (clickLock.current) return;
+    clickLock.current = true;
+    onPodSelect?.(pod);
+    setTimeout(() => {
+      clickLock.current = false;
+    }, 300);
+  };
+
   if (!isClient) {
     return null;
   }
@@ -124,10 +134,7 @@ export const MapLayersAndControls = ({
             position={position}
             icon={podIcon}
             eventHandlers={{
-              click: () => {
-                console.log('Pod clicked, calling onPodSelect with:', pod);
-                onPodSelect?.(pod);
-              }
+              click: () => handleMarkerClick(pod)
             }}
           />
         );
