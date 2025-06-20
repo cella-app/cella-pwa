@@ -66,7 +66,7 @@ axiosInstance.interceptors.response.use(
 
 			try {
 				const { access_token: newAccessToken, refresh_token: newRefreshToken } = await authApi.refreshToken(refreshToken);
-
+				console.log(newAccessToken, newRefreshToken)
 				authStore.getState().setAuth(newRefreshToken, newAccessToken);
 				await authApi.setCookie(newAccessToken);
 

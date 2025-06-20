@@ -3,7 +3,7 @@ export interface User {
 	email: string;
 	first_name: string | null;
 	last_name: string | null;
-	avatar: string | null;
+	avatar: string;
 	location: string | null;
 	title: string | null;
 	description: string | null;

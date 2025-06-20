@@ -14,18 +14,22 @@ import '@/styles/map.css';
 import LocateControl from './LocateControl';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
-import Image from 'next/image';
-
-const DEFAULT_CENTER: [number, number] = [21.0285, 105.8542];
+import {
+  Avatar,
+} from "@mui/material";
+import { DEFAULT_CENTER } from '@/shared/config/env';
 
 export default memo(function MapContent() {
   const [selectedPod, setSelectedPod] = useState<PodList | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const { lastSearchCenter } = useLocationTracking(5000);
   const router = useRouter();
-  const user = useAuthStore(state => state.user);
+
+  // Get user và loading state từ store
+  const { user, isLoading, initializeAuth } = useAuthStore();
 
   useOutsideClick(popupRef, () => {
     if (selectedPod) {
@@ -33,6 +37,12 @@ export default memo(function MapContent() {
     }
   });
 
+  // Initialize auth on component mount
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
+  // Map initialization effect
   useEffect(() => {
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: '/point.png',
@@ -40,21 +50,36 @@ export default memo(function MapContent() {
       shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
       iconSize: [32, 32],
       iconAnchor: [16, 32],
-      });
-    setMapLoaded(true); 
+    });
+    setMapLoaded(true);
   }, []);
 
+  // Map center update effect
   useEffect(() => {
     if (mapRef.current && lastSearchCenter) {
       mapRef.current.flyTo([lastSearchCenter[1], lastSearchCenter[0]], 15, { duration: 2 });
     }
   }, [lastSearchCenter]);
 
-  if (!mapLoaded) {
-    return null; 
+  // Don't render until both map and auth are ready
+  if (!mapLoaded || isLoading) {
+    return (
+      <div
+        style={{
+          height: '100vh',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f5f5f5'
+        }}
+      >
+        <div>Loading...</div>
+      </div>
+    );
   }
 
-  const center = lastSearchCenter 
+  const center = lastSearchCenter
     ? [lastSearchCenter[1], lastSearchCenter[0]] as [number, number]
     : DEFAULT_CENTER;
 
@@ -62,11 +87,16 @@ export default memo(function MapContent() {
     <>
       <MapContainer
         center={center}
-        zoom={25}
+        zoom={15}
+        minZoom={2}
+        maxZoom={18}
         scrollWheelZoom={true}
         style={{ height: '100vh', width: '100%' }}
         ref={mapRef}
         attributionControl={false}
+        worldCopyJump={false}
+        maxBounds={[[-85, -180], [85, 180]]}
+        maxBoundsViscosity={1.0}
       >
         <LocateControl />
         {mapRef.current && (
@@ -78,7 +108,7 @@ export default memo(function MapContent() {
         )}
       </MapContainer>
 
-      {/* Avatar Overlay */}
+      {/* Avatar Overlay - Only show if user exists */}
       {user && (
         <div
           style={{
@@ -99,35 +129,20 @@ export default memo(function MapContent() {
           }}
           onClick={() => router.push('/profile')}
         >
-          {user.avatar ? (
-            <Image
-              src={user.avatar}
-              alt="User Avatar"
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                objectFit: 'cover',
-              }}
-            />
-          ) : (
-            <span
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: '#ccc',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: 22,
-              }}
-            >
-              {user.first_name ? user.first_name[0].toUpperCase() : 'U'}
-            </span>
-          )}
+          <Avatar
+            alt="User Avatar"
+            src={user?.avatar}
+            sx={{
+              width: 44, height: 44, mx: "auto", fontSize: 36, borderRadius: '50%',
+              objectFit: 'cover',
+            }}
+          >
+            {user?.avatar
+              ? ""
+              : user?.first_name
+                ? user.first_name[0].toUpperCase()
+                : user.email[0].toUpperCase()}
+          </Avatar>
         </div>
       )}
 
@@ -144,7 +159,8 @@ export default memo(function MapContent() {
             justifyContent: 'center',
             width: '100%',
             maxWidth: '400px',
-        }}>
+          }}
+        >
           <WorkspacePopup
             id={selectedPod.id}
             name={selectedPod.name || 'Unnamed Pod'}

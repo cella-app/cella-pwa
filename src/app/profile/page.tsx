@@ -38,12 +38,10 @@ export default function ProfilePage() {
   }
 
   const handleEdit = () => {
-    // Chuyển sang trang chỉnh sửa (nếu có)
     alert("Edit profile feature coming soon!");
   };
 
   const handleAvatarClick = () => {
-    // Mở chọn file ảnh mới (chưa xử lý upload)
     fileInputRef.current?.click();
   };
 
@@ -89,7 +87,7 @@ export default function ProfilePage() {
       </IconButton>
       <Box
         sx={{
-          width: 350,
+          maxWidth: 500,
           borderRadius: 3,
           p: 4,
           textAlign: "center",
@@ -104,7 +102,8 @@ export default function ProfilePage() {
         </Typography>
         <Box sx={{ position: "relative", display: "inline-block", mb: 1 }}>
           <Avatar
-            src={user?.avatar || undefined}
+            alt="User Avatar"
+            src={user?.avatar}
             sx={{ width: 72, height: 72, mx: "auto", fontSize: 36, bgcolor: "#E0E0E0" }}
             onClick={handleAvatarClick}
           >
@@ -112,7 +111,7 @@ export default function ProfilePage() {
               ? ""
               : user?.first_name
               ? user.first_name[0].toUpperCase()
-              : "M"}
+              : user?.email[0].toUpperCase() }
           </Avatar>
           <input
             type="file"
@@ -155,7 +154,6 @@ export default function ProfilePage() {
             boxShadow: "none",
             mb: 2,
             background: "transparent",
-            width: "310px"
           }}
         >
           <CardContent>

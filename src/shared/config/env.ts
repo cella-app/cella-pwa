@@ -6,5 +6,10 @@ export const ENV = {
   IS_TEST: process.env.NODE_ENV === 'test'
 } as const;
 
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'My App';
+export const DEFAULT_CENTER: [number, number] = [
+  parseFloat(process.env.NEXT_PUBLIC_MAP_CENTER_LAT || '52.52'),
+  parseFloat(process.env.NEXT_PUBLIC_MAP_CENTER_LNG || '13.405')
+];
+
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Cella';
 

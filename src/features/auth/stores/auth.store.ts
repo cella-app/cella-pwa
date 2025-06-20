@@ -26,15 +26,17 @@ export const useAuthStore = create<AuthState>()(
 			refreshToken: null,
 			token: null,
 			isAuthenticated: false,
-			isLoading: false,
+			isLoading: true,
 			error: null,
 			user: null,
+
 			setUser: (user) => {
 				setUser(user);
 				set({
 					user
 				})
 			},
+
 			setAuth: (refreshToken, token) => {
 				setRefreshToken(refreshToken);
 				setToken(token);
@@ -47,30 +49,65 @@ export const useAuthStore = create<AuthState>()(
 				})
 			},
 
-			logout: () =>
+			logout: () => {
+				setRefreshToken(null);
+				setToken(null);
+				setUser(null);
+
 				set({
 					refreshToken: null,
 					token: null,
+					user: null,
 					isAuthenticated: false,
 					error: null,
-				}),
+					isLoading: false,
+				})
+			},
 
 			setLoading: (loading) => set({ isLoading: loading }),
 			setError: (error) => set({ error }),
 
 			initializeAuth: () => {
 				if (typeof window !== 'undefined') {
-					const token = getToken();
-					const refreshToken = getRefreshToken();
-					const user = getUser();
-					if (token && refreshToken) {
+					try {
+						const token = getToken();
+						const refreshToken = getRefreshToken();
+						const user = getUser();
+
+						if (token && refreshToken) {
+							set({
+								token,
+								refreshToken,
+								user,
+								isAuthenticated: true,
+								isLoading: false,
+								error: null,
+							});
+						} else {
+							set({
+								token: null,
+								refreshToken: null,
+								user: null,
+								isAuthenticated: false,
+								isLoading: false,
+								error: null,
+							});
+						}
+					} catch (error) {
+						console.error('Error initializing auth:', error);
 						set({
-							token,
-							refreshToken,
-							isAuthenticated: true,
-							user,
+							token: null,
+							refreshToken: null,
+							user: null,
+							isAuthenticated: false,
+							isLoading: false,
+							error: 'Failed to initialize authentication',
 						});
 					}
+				} else {
+					set({
+						isLoading: false,
+					});
 				}
 			},
 		}),

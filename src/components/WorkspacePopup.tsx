@@ -50,9 +50,8 @@ const PriceBox = styled(Box)(({ theme }) => ({
   height: 36,
 }));
 
-const ServicesContainer = styled(Box)(({ theme }) => ({
+const ServicesContainer = styled(Box)(() => ({
   display: 'flex',
-  gap: theme.spacing(1),
   alignItems: 'center',
   borderRadius: '20px',
   border: `1px solid`,
@@ -61,6 +60,13 @@ const ServicesContainer = styled(Box)(({ theme }) => ({
 }));
 
 const ServiceIconBox = styled(Box)(() => ({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: `${theme.spacing(1)} ${theme.spacing(1)}`,
+}));
+
+const ButtonBox = styled(Box)(() => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -134,7 +140,6 @@ export default function WorkspacePopup({
                 fontFamily: rootStyle.titleFontFamily,
                 fontSize: "24px",
                 fontWeight: 700,
-                mb: 0.5
               }}
             >
               {name}
@@ -181,24 +186,25 @@ export default function WorkspacePopup({
           })}
         </ServicesContainer>
       </PriceServicesRow>
-
-      <Button
-        variant="contained"
-        fullWidth
-        disabled={!isAvailable}
-        sx={{
-          backgroundColor: isAvailable ? theme.palette.primary.main : 'grey.500',
-          maxWidth: "200px",
-          color: 'white',
-          py: 1.5,
-          fontWeight: 600,
-          '&:hover': {
-            backgroundColor: isAvailable ? '#1b5e20' : 'grey.600',
-          },
-        }}
-      >
-        {isAvailable ? 'Reserve Now' : 'View Details'}
-      </Button>
+      <ButtonBox>
+        <Button
+          variant="contained"
+          fullWidth
+          disabled={!isAvailable}
+          sx={{
+            backgroundColor: isAvailable ? theme.palette.primary.main : 'grey.500',
+            maxWidth: "200px",
+            color: 'white',
+            py: 1.5,
+            fontWeight: 600,
+            '&:hover': {
+              backgroundColor: isAvailable ? '#1b5e20' : 'grey.600',
+            },
+          }}
+        >
+          {isAvailable ? 'Reserve Now' : 'View Details'}
+        </Button>
+      </ButtonBox>
     </PopupContainer>
   );
 }

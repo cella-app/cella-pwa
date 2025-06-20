@@ -7,6 +7,14 @@ interface LocationData {
   longitude: number;
 }
 
+// Constants for better maintainability
+const EARTH_RADIUS_METERS = 6371e3;
+const FETCH_DEBOUNCE_DELAY = 500;
+const RETRY_DELAY = 5000;
+const HIGH_ACCURACY_THRESHOLD = 20;
+const WIFI_ACCURACY_THRESHOLD = 100;
+const CELL_TOWER_ACCURACY_THRESHOLD = 1000;
+
 export const useLocationTracking = (radius: number = 1000) => {
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [pods, setPods] = useState<PodList[]>([]);
@@ -14,49 +22,175 @@ export const useLocationTracking = (radius: number = 1000) => {
   const [error, setError] = useState<string | null>(null);
   const [centroid, setCentroid] = useState<[number, number] | null>(null);
   const [lastLocation, setLastLocation] = useState<LocationData | null>(null);
+
+  // Refs for cleanup
   const watchIdRef = useRef<number | null>(null);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const logCountRef = useRef(0);
 
+  // Utility function to calculate distance between two points using Haversine formula
+  const calculateDistance = useCallback((
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
+  ): number => {
+    // Convert degrees to radians
+    const lat1Rad = (lat1 * Math.PI) / 180;
+    const lat2Rad = (lat2 * Math.PI) / 180;
+    const latDiff = ((lat2 - lat1) * Math.PI) / 180;
+    const lngDiff = ((lng2 - lng1) * Math.PI) / 180;
+
+    // Haversine formula
+    const a = Math.sin(latDiff / 2) ** 2 +
+      Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.sin(lngDiff / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return EARTH_RADIUS_METERS * c;
+  }, []);
+
+  // Enhanced logging function
+  const logPosition = useCallback((position: GeolocationPosition) => {
+    const { latitude, longitude, accuracy } = position.coords;
+    const timestamp = new Date(position.timestamp).toLocaleTimeString();
+
+    let source = 'Unknown';
+    if (accuracy < HIGH_ACCURACY_THRESHOLD) {
+      source = '🚀 GPS or GPS + WiFi';
+    } else if (accuracy < WIFI_ACCURACY_THRESHOLD) {
+      source = '📶 WiFi or Cell Tower';
+    } else if (accuracy < CELL_TOWER_ACCURACY_THRESHOLD) {
+      source = '📡 Cell tower (low-res)';
+    } else {
+      source = '🌍 IP-based or Estimated';
+    }
+
+    console.log(`[${++logCountRef.current}] @${timestamp}`);
+    console.log(`- Location: (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`);
+    console.log(`- Accuracy: ~${accuracy.toFixed(1)} meters`);
+    console.log(`- Source: ${source}`);
+    console.log('---------------------------');
+  }, []);
+
+  // Optimized fetch function with better error handling
   const fetchPods = useCallback(async (lat: number, lng: number) => {
     try {
       setLoading(true);
-      const response = await getPodsNearMe({ latitude: lat, longitude: lng, radius });
+      setError(null); // Clear previous errors
 
-      if (response) {
+      const response = await getPodsNearMe({
+        latitude: lat,
+        longitude: lng,
+        radius
+      });
+
+      if (response?.data?.pods) {
         setPods(response.data.pods);
         setLastLocation({ latitude: lat, longitude: lng });
 
-        if (Array.isArray(response.meta?.centroid)) {
+        // More robust centroid handling
+        if (Array.isArray(response.meta?.centroid) && response.meta.centroid.length >= 2) {
           setCentroid([response.meta.centroid[0], response.meta.centroid[1]]);
         }
+      } else {
+        console.warn('Invalid response format:', response);
+        setError('Invalid response from server');
       }
     } catch (err) {
       console.error('Error fetching pods:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch pods');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch pods';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   }, [radius]);
 
-  const shouldFetch = useCallback((newLoc: LocationData) => {
-    if (!lastLocation || !centroid) return true;
+  const shouldFetch = useCallback((newLoc: LocationData): boolean => {
+    if (!lastLocation || !centroid) {
+      return true;
+    }
 
-    const moved = newLoc.latitude !== lastLocation.latitude || newLoc.longitude !== lastLocation.longitude;
-    if (!moved) return false;
+    const latChanged = Math.abs(newLoc.latitude - lastLocation.latitude) > 0.000001;
+    const lngChanged = Math.abs(newLoc.longitude - lastLocation.longitude) > 0.000001;
 
-    // Tính khoảng cách giữa newLoc và centroid
-    const R = 6371e3; // Earth radius in meters
-    const φ1 = (centroid[1] * Math.PI) / 180;
-    const φ2 = (newLoc.latitude * Math.PI) / 180;
-    const Δφ = ((newLoc.latitude - centroid[1]) * Math.PI) / 180;
-    const Δλ = ((newLoc.longitude - centroid[0]) * Math.PI) / 180;
+    if (!latChanged && !lngChanged) {
+      return false;
+    }
 
-    const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c;
+    const distance = calculateDistance(
+      centroid[1], // centroid lat
+      centroid[0], // centroid lng
+      newLoc.latitude,
+      newLoc.longitude
+    );
 
     return distance > radius;
-  }, [lastLocation, centroid, radius]);
+  }, [lastLocation, centroid, radius, calculateDistance]);
+
+  const handleGeolocationError = useCallback((error: GeolocationPositionError) => {
+    console.error('Geolocation error:', error);
+
+    let errorMessage = 'Error tracking location';
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        errorMessage = 'Location access denied by user';
+        break;
+      case error.POSITION_UNAVAILABLE:
+        errorMessage = 'Location information unavailable';
+        break;
+      case error.TIMEOUT:
+        errorMessage = 'Location request timed out';
+        // Retry on timeout
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+        }
+        retryTimeoutRef.current = setTimeout(() => {
+          navigator.geolocation.getCurrentPosition(
+            handleLocationSuccess,
+            (retryError) => {
+              console.error('Retry geolocation error:', retryError);
+              setError('Failed to get location after retry');
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 30000,
+            }
+          );
+        }, RETRY_DELAY);
+        break;
+    }
+
+    setError(errorMessage);
+  }, []);
+
+  const handleLocationSuccess = useCallback((position: GeolocationPosition) => {
+    const newLocation: LocationData = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+
+    logPosition(position);
+    console.log('[watchPosition] New location:', newLocation);
+
+    setCurrentLocation(newLocation);
+    setError(null); 
+
+    if (shouldFetch(newLocation)) {
+      console.log('[shouldFetch] Calling API...');
+
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchPods(newLocation.latitude, newLocation.longitude);
+      }, FETCH_DEBOUNCE_DELAY);
+    } else {
+      console.log('[shouldFetch] Inside radius, skipping API call');
+    }
+  }, [logPosition, shouldFetch, fetchPods]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -64,69 +198,54 @@ export const useLocationTracking = (radius: number = 1000) => {
       return;
     }
 
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-    }
-
-    const handleSuccess = (position: GeolocationPosition) => {
-      const newLocation = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      };
-
-      setCurrentLocation(newLocation);
-
-      if (shouldFetch(newLocation)) {
-        if (fetchTimeoutRef.current) {
-          clearTimeout(fetchTimeoutRef.current);
-        }
-        fetchTimeoutRef.current = setTimeout(() => {
-          fetchPods(newLocation.latitude, newLocation.longitude);
-        }, 500);
-      }
-    };
-
-    const handleError = (error: GeolocationPositionError) => {
-      console.error('Geolocation error:', error);
-      setError('Error tracking location');
-
-      // Retry nếu lỗi là timeout
-      if (error.code === 3) {
-        setTimeout(() => {
-          navigator.geolocation.getCurrentPosition(
-            handleSuccess,
-            (err) => console.error('Retry geolocation error:', err),
-            {
-              enableHighAccuracy: true,
-              timeout: 10000,
-            }
-          );
-        }, 5000);
-      }
-    };
-
-    const watchId = navigator.geolocation.watchPosition(
-      handleSuccess,
-      handleError,
-      {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 30000,
-      }
-    );
-
-    watchIdRef.current = watchId;
-
-    return () => {
+    const cleanup = () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
       }
       if (fetchTimeoutRef.current) {
         clearTimeout(fetchTimeoutRef.current);
+        fetchTimeoutRef.current = null;
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
       }
     };
-  }, [fetchPods, shouldFetch]);
+
+    cleanup();
+
+    navigator.geolocation.getCurrentPosition(
+      handleLocationSuccess,
+      handleGeolocationError,
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+
+    const watchId = navigator.geolocation.watchPosition(
+      handleLocationSuccess,
+      handleGeolocationError,
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 5000,
+      }
+    );
+
+    watchIdRef.current = watchId;
+
+    return cleanup;
+  }, [handleLocationSuccess, handleGeolocationError]);
+
+  useEffect(() => {
+    if (currentLocation && lastLocation) {
+      setCentroid(null);
+      setLastLocation(null);
+    }
+  }, [radius, currentLocation, lastLocation]);
 
   return {
     currentLocation,
