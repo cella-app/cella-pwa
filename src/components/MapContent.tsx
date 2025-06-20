@@ -37,7 +37,6 @@ export default memo(function MapContent() {
     }
   });
 
-  // Initialize auth on component mount
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
