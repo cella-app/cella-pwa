@@ -3,11 +3,11 @@
 import { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { useLocationTracking } from '@/hooks/useLocationTracking';
+import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 
 export default function LocateControl() {
 	const map = useMap();
-	const { currentLocation } = useLocationTracking(1000);
+	const { currentLocation } = useLocationTrackingContext();
 
 	useEffect(() => {
 		if (!map) return;

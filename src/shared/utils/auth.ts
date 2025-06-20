@@ -1,25 +1,27 @@
 import {User} from "@/shared/data/models/User"
 
 const USER_STORAGE_KEY = 'me';
+const REFRESH_TOKEN_KEY = "refreshToken";
+const ACCESS_TOKEN_KEY = "authToken";
 
 export const getToken = (): string | null => {
 	if (typeof window === 'undefined') return null;
-	return localStorage.getItem('authToken');
+	return localStorage.getItem(ACCESS_TOKEN_KEY);
 };
 
 export const setToken = (token: string | null): void => {
 	if (typeof window === 'undefined') return;
-	localStorage.setItem("authToken", token ?? "");
+	localStorage.setItem(ACCESS_TOKEN_KEY, token ?? "");
 };
 
 export const setRefreshToken = (token: string | null): void => {
 	if (typeof window === 'undefined') return;
-	localStorage.setItem("refreshToken", token ?? "");
+	localStorage.setItem(REFRESH_TOKEN_KEY, token ?? "");
 };
 
 export const getRefreshToken = (): string | null => {
 	if (typeof window === 'undefined') return null;
-	return localStorage.getItem('refreshToken');
+	return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 export const getUser = (): User | null => {
@@ -44,7 +46,7 @@ export const isLoggedIn = (): boolean => {
 
 export const clearAuth = (): void => {
 	if (typeof window === 'undefined') return;
-	localStorage.removeItem('authToken');
-	localStorage.removeItem('refreshToken');
+	localStorage.removeItem(ACCESS_TOKEN_KEY);
+	localStorage.removeItem(REFRESH_TOKEN_KEY);
 	localStorage.removeItem(USER_STORAGE_KEY);
 };

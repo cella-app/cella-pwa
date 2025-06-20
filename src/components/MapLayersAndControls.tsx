@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import type { Map as LeafletMapType, DivIcon, Icon } from 'leaflet';
-import { useLocationTracking } from '@/hooks/useLocationTracking';
-import { PodList } from '@/shared/data/models/Pod';
+import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 import UserLocalPointIcon from '@/components/icons/UserLocalPointIcon';
 import { renderToString } from 'react-dom/server';
+import { PodList } from '@/shared/data/models/Pod';
 
 // Dynamically import Leaflet components with no SSR
 const TileLayer = dynamic(
@@ -37,7 +37,7 @@ export const MapLayersAndControls = ({
   const [isClient, setIsClient] = useState(false);
   const [myLocationIcon, setMyLocationIcon] = useState<DivIcon | null>(null);
   const [podIcon, setPodIcon] = useState<Icon | null>(null);
-  const { currentLocation, pods, error } = useLocationTracking(1000);
+  const { currentLocation, pods } = useLocationTrackingContext();
 
   useEffect(() => {
     setIsClient(true);
@@ -87,10 +87,6 @@ export const MapLayersAndControls = ({
 
   if (!isClient) {
     return null;
-  }
-
-  if (error) {
-    console.error('Location error:', error);
   }
 
   return (

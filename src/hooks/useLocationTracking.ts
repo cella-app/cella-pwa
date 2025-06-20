@@ -124,7 +124,7 @@ export const useLocationTracking = (radius: number = 1000) => {
       newLoc.latitude,
       newLoc.longitude
     );
-
+    console.debug("loginfo", newLoc, centroid, distance);
     return distance > radius;
   }, [lastLocation, centroid, radius, calculateDistance]);
 
@@ -215,16 +215,6 @@ export const useLocationTracking = (radius: number = 1000) => {
 
     cleanup();
 
-    navigator.geolocation.getCurrentPosition(
-      handleLocationSuccess,
-      handleGeolocationError,
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-
     const watchId = navigator.geolocation.watchPosition(
       handleLocationSuccess,
       handleGeolocationError,
@@ -241,11 +231,9 @@ export const useLocationTracking = (radius: number = 1000) => {
   }, [handleLocationSuccess, handleGeolocationError]);
 
   useEffect(() => {
-    if (currentLocation && lastLocation) {
-      setCentroid(null);
-      setLastLocation(null);
-    }
-  }, [radius, currentLocation, lastLocation]);
+    setCentroid(null);
+    setLastLocation(null);
+  }, [radius]);
 
   return {
     currentLocation,

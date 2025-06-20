@@ -7,7 +7,7 @@ import L, { Map as LeafletMapType } from 'leaflet';
 import { MapLayersAndControls } from '@/components/MapLayersAndControls';
 import WorkspacePopup from '@/components/WorkspacePopup';
 import { PodList } from '@/shared/data/models/Pod';
-import { useLocationTracking } from '@/hooks/useLocationTracking';
+import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 import { useOutsideClick } from '@/hooks/useOutsideClick'
 import 'leaflet/dist/leaflet.css';
 import '@/styles/map.css';
@@ -18,6 +18,7 @@ import {
   Avatar,
 } from "@mui/material";
 import { DEFAULT_CENTER } from '@/shared/config/env';
+import { LocationTrackingProvider } from '@/hooks/LocationTrackingContext';
 
 export default memo(function MapContent() {
   const [selectedPod, setSelectedPod] = useState<PodList | null>(null);
@@ -25,7 +26,7 @@ export default memo(function MapContent() {
 
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const { lastSearchCenter } = useLocationTracking(5000);
+  const { lastSearchCenter } = useLocationTrackingContext();
   const router = useRouter();
 
   // Get user và loading state từ store
@@ -83,92 +84,95 @@ export default memo(function MapContent() {
     : DEFAULT_CENTER;
 
   return (
-    <>
-      <MapContainer
-        center={center}
-        zoom={15}
-        minZoom={2}
-        maxZoom={18}
-        scrollWheelZoom={true}
-        style={{ height: '100vh', width: '100%' }}
-        ref={mapRef}
-        attributionControl={false}
-        worldCopyJump={false}
-        maxBounds={[[-85, -180], [85, 180]]}
-        maxBoundsViscosity={1.0}
-      >
-        <LocateControl />
-        {mapRef.current && (
-          <MapLayersAndControls
-            map={mapRef.current}
-            onMapLoad={() => console.log('Map loaded')}
-            onPodSelect={setSelectedPod}
-          />
-        )}
-      </MapContainer>
-
-      {/* Avatar Overlay - Only show if user exists */}
-      {user && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 24,
-            right: 24,
-            zIndex: 2000,
-            cursor: 'pointer',
-            background: 'white',
-            borderRadius: '50%',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            padding: 2,
-            width: 48,
-            height: 48,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          onClick={() => router.push('/profile')}
+    <LocationTrackingProvider radius={1000}>
+      {/* Bọc toàn bộ nội dung trong provider */}
+      <>
+        <MapContainer
+          center={center}
+          zoom={15}
+          minZoom={2}
+          maxZoom={18}
+          scrollWheelZoom={true}
+          style={{ height: '100vh', width: '100%' }}
+          ref={mapRef}
+          attributionControl={false}
+          worldCopyJump={false}
+          maxBounds={[[-85, -180], [85, 180]]}
+          maxBoundsViscosity={1.0}
         >
-          <Avatar
-            alt="User Avatar"
-            src={user?.avatar}
-            sx={{
-              width: 44, height: 44, mx: "auto", fontSize: 36, borderRadius: '50%',
-              objectFit: 'cover',
+          <LocateControl />
+          {mapRef.current && (
+            <MapLayersAndControls
+              map={mapRef.current}
+              onMapLoad={() => console.log('Map loaded')}
+              onPodSelect={setSelectedPod}
+            />
+          )}
+        </MapContainer>
+
+        {/* Avatar Overlay - Only show if user exists */}
+        {user && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 24,
+              right: 24,
+              zIndex: 2000,
+              cursor: 'pointer',
+              background: 'white',
+              borderRadius: '50%',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              padding: 2,
+              width: 48,
+              height: 48,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => router.push('/profile')}
+          >
+            <Avatar
+              alt="User Avatar"
+              src={user?.avatar}
+              sx={{
+                width: 44, height: 44, mx: "auto", fontSize: 36, borderRadius: '50%',
+                objectFit: 'cover',
+              }}
+            >
+              {user?.avatar
+                ? ""
+                : user?.first_name
+                  ? user.first_name[0].toUpperCase()
+                  : user.email[0].toUpperCase()}
+            </Avatar>
+          </div>
+        )}
+
+        {selectedPod && (
+          <div
+            ref={popupRef}
+            style={{
+              position: 'absolute',
+              bottom: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1000,
+              display: 'flex',
+              justifyContent: 'center',
+              width: '100%',
+              maxWidth: '400px',
             }}
           >
-            {user?.avatar
-              ? ""
-              : user?.first_name
-                ? user.first_name[0].toUpperCase()
-                : user.email[0].toUpperCase()}
-          </Avatar>
-        </div>
-      )}
-
-      {selectedPod && (
-        <div
-          ref={popupRef}
-          style={{
-            position: 'absolute',
-            bottom: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            display: 'flex',
-            justifyContent: 'center',
-            width: '100%',
-            maxWidth: '400px',
-          }}
-        >
-          <WorkspacePopup
-            id={selectedPod.id}
-            name={selectedPod.name || 'Unnamed Pod'}
-            status={selectedPod.status}
-            distance={`${selectedPod.distance_meters}m`}
-            accompanying_services={selectedPod.accompanying_services}
-          />
-        </div>
-      )}
-    </>
+            <WorkspacePopup
+              id={selectedPod.id}
+              name={selectedPod.name || 'Unnamed Pod'}
+              status={selectedPod.status}
+              distance={`${selectedPod.distance_meters}m`}
+              accompanying_services={selectedPod.accompanying_services}
+            />
+          </div>
+        )}
+      </>
+    </LocationTrackingProvider>
   );
 });
