@@ -42,7 +42,6 @@ export const isLoggedIn = (): boolean => {
 	return !!getToken();
 };
 
-// Clear all auth data
 export const clearAuth = (): void => {
 	if (typeof window === 'undefined') return;
 	localStorage.removeItem('authToken');
