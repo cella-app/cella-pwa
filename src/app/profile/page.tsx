@@ -18,15 +18,25 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LogoutIcon from '@mui/icons-material/Logout';
 import { rootStyle } from '@/theme';
 import { logOutAction } from "@/features/auth/auth.action"
+import { paymentApi } from '@/shared/api/payment.api';
+import { PaymentMethod } from '@/shared/data/models/Payment';
 
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   useEffect(() => {
     setUser(getUser());
+    paymentApi.getPaymentMethod().then((data) => {
+      if (Array.isArray(data)) {
+        setPaymentMethods(data);
+      } else if (data) {
+        setPaymentMethods([data]);
+      }
+    }).catch(() => setPaymentMethods([]));
   }, []);
 
   const handleDeleteAccount = async () => {
@@ -38,7 +48,7 @@ export default function ProfilePage() {
   }
 
   const handleEdit = () => {
-    alert("Edit profile feature coming soon!");
+    router.push('/payment/add-to-card?frm=/profile')
   };
 
   const handleAvatarClick = () => {
@@ -59,7 +69,7 @@ export default function ProfilePage() {
     >
       {/* Nút Back trên góc trái, không background */}
       <IconButton
-        onClick={() => router.push('/map')}
+        onClick={() => router.push('/workspace/discovery')}
         sx={{
           position: 'absolute',
           top: 24,
@@ -143,7 +153,15 @@ export default function ProfilePage() {
           }}
         >
           <CreditCardIcon fontSize="small" />
-          <Typography variant="body2">Visa •••• 422</Typography>
+          {paymentMethods.length > 0 ? paymentMethods.map(pm => (
+            <Typography key={pm.pm_id} variant="body2">
+              {pm.type} •••• {pm.last4} (exp: {pm.exp_month}/{pm.exp_year})
+            </Typography>
+          )) : (
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              No card added yet.
+            </Typography>
+          )}
           <IconButton size="small" onClick={handleEdit}>
             <EditIcon fontSize="small" />
           </IconButton>

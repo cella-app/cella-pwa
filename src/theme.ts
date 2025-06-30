@@ -45,6 +45,25 @@ export default createTheme({
 						fontFamily: rootStyle.mainFontFamily,
 					},
 				},
+				contained: {
+					color: 'white',
+					'&:hover': {
+						backgroundColor: 'transparent',
+						border: "1px solid",
+						borderColor: rootStyle.elementColor,
+						color: rootStyle.elementColor
+					},
+				},
+				outlined: {
+					backgroundColor: 'transparent',
+					border: "1px solid",
+					borderColor: rootStyle.elementColor,
+					color: rootStyle.elementColor,
+					'&:hover': {
+						backgroundColor: rootStyle.elementColor,
+						color: "white"
+					},
+				}
 			},
 		},
 		MuiTextField: {
@@ -105,29 +124,29 @@ export default createTheme({
 			styleOverrides: {
 				filledSuccess: {
 					backgroundColor: '#0C3E2E4',
-					color: 'white',
+					color: rootStyle.elementColor,
 					opacity: "0.3",
 					borderRadius: '16px',
-					width: "200px"
+					width: "250px"
 				},
 				filledError: {
 					backgroundColor: '#D14343',
 					color: '#fff',
 					borderRadius: '16px',
-					width: "200px"
+					width: "250px"
 				},
 				filledWarning: {
 					backgroundColor: '#FFB020',
 					color: '#000',
 					borderRadius: '16px',
-					width: '200px',
+					width: '250px',
 
 				},
 				filledInfo: {
 					backgroundColor: '#2F80ED',
 					color: '#fff',
 					borderRadius: '16px',
-					width: '200px',
+					width: '250px',
 
 				},
 			},

@@ -4,8 +4,8 @@ import { useEffect, useState, useRef, memo } from 'react';
 import { MapContainer } from 'react-leaflet';
 import L, { Map as LeafletMapType } from 'leaflet';
 
-import { MapLayersAndControls } from '@/components/MapLayersAndControls';
-import WorkspacePopup from '@/components/WorkspacePopup';
+import { MapLayersAndControls } from '@/features/pods/MapLayersAndControls';
+import WorkspacePopup from '@/features/pods/WorkspacePopup';
 import { PodList } from '@/shared/data/models/Pod';
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 import { useOutsideClick } from '@/hooks/useOutsideClick'
@@ -18,8 +18,10 @@ import {
   Avatar,
 } from "@mui/material";
 import { DEFAULT_CENTER } from '@/shared/config/env';
+import { useReservationStore } from '@/features/reservation/stores/reservation.store';
 
 export default memo(function MapContent() {
+  const { current: currentReservation } = useReservationStore();
   const [selectedPod, setSelectedPod] = useState<PodList | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
@@ -172,6 +174,7 @@ export default memo(function MapContent() {
             status={selectedPod.status}
             distance={`${selectedPod.distance_meters}m`}
             accompanying_services={selectedPod.accompanying_services}
+            currentReservation={currentReservation}
           />
         </div>
       )}

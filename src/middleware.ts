@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('authToken')?.value;
 
   if (pathname === '/') {
-    return NextResponse.redirect(new URL('/map', request.url));
+    return NextResponse.redirect(new URL('/workspace/discovery', request.url));
   }
 
   const isPublicPath =
@@ -25,7 +25,7 @@ export function middleware(request: NextRequest) {
     if ("/" != pathname) {
       loginUrl.searchParams.set('from', pathname);
     } else {
-      loginUrl.searchParams.set('from', "/map");
+      loginUrl.searchParams.set('from', "/workspace/discovery");
     }
 
     console.log(pathname,loginUrl)
@@ -39,7 +39,7 @@ export const config = {
   matcher: [
     '/',
     '/profile/:path*',
-    '/map',
+    '/workspace/discovery',
     '/auth/login',
     '/auth/register'
   ],

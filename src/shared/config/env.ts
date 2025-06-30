@@ -13,3 +13,5 @@ export const DEFAULT_CENTER: [number, number] = [
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Cella';
 
+export const STRIPE_PUBLIC_KEY_APP = process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY_APP || "";
+

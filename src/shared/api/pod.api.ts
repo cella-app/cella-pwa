@@ -48,6 +48,10 @@ class PodApi extends BaseApi {
 			throw this.handleApiError(error, 'getPod', 500);
 		}
 	}
+
+	// async reversePod(podId: string): Promise<Pod> {
+		
+	// }
 }
 
 export const podApi = new PodApi();

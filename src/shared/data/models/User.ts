@@ -11,4 +11,6 @@ export interface User {
 	email_notifications: boolean;
 	status: string;
 	role: string;
+	stripe_customer_id: string;
+	payment_method: string[];
 }

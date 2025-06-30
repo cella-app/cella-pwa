@@ -55,7 +55,7 @@ export default function RegisterPage() {
 
 	useEffect(() => {
 		if (mounted && isAuthenticated) {
-			router.push('/map');
+			router.push('/workspace/discovery');
 		}
 	}, [isAuthenticated, router, mounted]);
 

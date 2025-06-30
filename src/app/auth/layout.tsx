@@ -18,7 +18,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
 		const token = getToken();
 		if (token || isAuthenticated) {
-			router.push(`/map`);
+			router.push(`/workspace/discovery`);
 		}
 	}, [clearAlerts, initializeAuth, isAuthenticated, router]);
 

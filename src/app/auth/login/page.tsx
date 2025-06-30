@@ -17,15 +17,14 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { loginAction } from '@/features/auth/auth.action';
 import { useAuthStore } from '@/features/auth/stores/auth.store';
 import { rootStyle } from '@/theme';
-import { userAlertStore, SERVERIFY_ALERT} from '@/features/alert/stores/alert.store';
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 const loginSchema = z.object({
-	email: z.string().email({ message: 'Email Invalid' }),
-	password: z.string().min(6, { message: 'Password minimum 6 characters' }),
+	email: z.string().email({ message: 'Please enter a valid email address' }),
+	password: z.string({ message: "“Password is required"}).min(6, { message: 'Password minimum 6 characters' }),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -39,7 +38,6 @@ function LoginForm() {
 	const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
-	const { addAlert } = userAlertStore();
 
 	const {
 		register,
@@ -55,27 +53,20 @@ function LoginForm() {
 
 	useEffect(() => {
 		if (isAuthenticated) {
-			router.push('/map');
+			router.push('/workspace/discovery');
 		}
 	}, [isAuthenticated, router]);
 
 	const onSubmit = async (data: LoginFormData) => {
 		try {
 			await loginAction(data.email, data.password);
-			addAlert({
-				severity: SERVERIFY_ALERT.SUCCESS,
-				message: "Login successfully!"
-			})
 			setTimeout(() => {
-				const from = searchParams.get('from') || '/map';
+				const from = searchParams.get('from') || '/workspace/discovery';
 				router.push(from);
 			}, TIMEOUT_REDIRECT_LOGIN);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {
-			addAlert({
-				severity: SERVERIFY_ALERT.ERROR,
-				message: (err.message ?? 'An unknown error occurred')
-			})
+			throw err			
 		}
 	};
 
