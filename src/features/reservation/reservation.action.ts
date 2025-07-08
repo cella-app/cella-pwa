@@ -66,3 +66,18 @@ export async function cancelReserve(reserveId: string) {
     throw err;
   }
 }
+
+export async function feedbackReserve(reserveId: string, star: number, content: string | null) {
+  const { addAlert } = userAlertStore.getState();
+
+  try {
+    const data = await reservationApi.feeback(reserveId, star, content);
+    return data;
+  } catch (err) {
+    addAlert({
+      severity: SERVERIFY_ALERT.ERROR,
+      message: err instanceof Error ? err.message : 'An unknown error occurred',
+    });
+    throw err;
+  }
+}

@@ -13,7 +13,7 @@ export interface Session {
 }
 
 export enum SessionStatusEnum {
-	ENDING = "ending",
+	ENDED = "ended",
 	RUNNING = "running",
 	PAUSING = "pausing",
 }
@@ -61,4 +61,21 @@ export interface Billing {
 	amount: number;
 	status: string;
 	date_created: Date;
+}
+
+export interface BillingSession {
+	total_cost: number;
+	payment_card: string;
+	status: string;
+	focus_time: number;
+}
+
+export interface BillingSummarySession {
+	total_time_run: number;
+	paused_time: number;
+	active_time: number;
+	extra_paused_minutes: number
+	pause_allowance: number;
+	price_per_minute: number;
+	total_fee: number;
 }

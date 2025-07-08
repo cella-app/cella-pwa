@@ -12,7 +12,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import { rootStyle } from "@/theme";
 import { useParams, useRouter } from 'next/navigation';
-import { useSessionStore } from '@/features/reservation/stores/session.store';
+import { useSessionStore } from '@/features/session/stores/session.store';
 import { useEffect, useState } from 'react';
 import { sessionApi } from '@/shared/api/session.api';
 import { Session, SessionStatusEnum } from "@/shared/data/models/Session";
@@ -42,7 +42,7 @@ const checklistItems = [
 
 export default function SessionCheckoutPage() {
   const params = useParams();
-  const sessionId = params.sessionId as string;
+  const sessionId = params?.sessionId as string;
   const router = useRouter();
   // const { current: currentSession, checkSession } = useSessionStore();
   // const [sessionDetails, setSessionDetails] = useState<Session | null>(null);

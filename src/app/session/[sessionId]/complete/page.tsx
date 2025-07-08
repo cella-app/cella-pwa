@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -10,120 +9,131 @@ import {
   CircularProgress,
   TextField,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { rootStyle } from "@/theme";
-import { useSessionStore } from '@/features/reservation/stores/session.store';
-import { Session } from '@/shared/data/models/Session';
+import { BillingSession, BillingSummarySession, Session, SessionStatusEnum } from '@/shared/data/models/Session';
 import { sessionApi } from '@/shared/api/session.api';
+import { feedbackReserve } from '@/features/reservation/reservation.action';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import EuroIcon from '@mui/icons-material/Euro';
-import CreditCardIcon from '@mui/icons-material/CreditCard';
-import EditIcon from '@mui/icons-material/Edit';
 import StarIcon from '@mui/icons-material/Star';
+import Pause from '@mui/icons-material/Pause';
+import PlayArrow from '@mui/icons-material/PlayArrow';
+import LockOpen from '@mui/icons-material/LockOpen';
 
 export default function SessionCompletePage() {
   const params = useParams();
   const router = useRouter();
-  const sessionId = params.sessionId as string;
-
-  const { current: currentSession, checkSession, clearSession } = useSessionStore();
+  const sessionId = params?.sessionId as string;
 
   const [sessionDetails, setSessionDetails] = useState<Session | null>(null);
+  const [billing, setBilling] = useState<BillingSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fake data for demo
-  const paymentMethod = {
-    type: 'Visa',
-    last4: '4224',
-  };
-
-
-  const [focusTime, setFocusTime] = useState('57:42');
-  const [status, setStatus] = useState('Locked');
-  const [totalCost, setTotalCost] = useState('€ 13,11');
   const [rating, setRating] = useState(0);
   const [note, setNote] = useState('');
 
-  useEffect(() => {
-    checkSession();
-  }, [checkSession]);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summary, setSummary] = useState<BillingSummarySession | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
-    if (!currentSession) {
-      // If no current session, try to get session details from API
-      sessionApi.getSessionById(sessionId)
-        .then((session) => {
-          if (session && session.id === sessionId) {
-            setSessionDetails(session);
-          }
-        })
-        .catch(() => {
-          // Session might be ended, that's okay
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    } else {
-      if (currentSession.id !== sessionId) {
-        router.replace('/not-found');
-      } else {
-        setSessionDetails(currentSession);
+    async function fetchSessionAndBilling() {
+      setIsLoading(true);
+      try {
+        const session = await sessionApi.getSessionById(sessionId);
+        if (!session) {
+          router.replace('/');
+        } else if (session.status !== SessionStatusEnum.ENDED) {
+          router.replace(`/session/${session.id}/progress`);
+        } else {
+          setSessionDetails(session);
+          // Gọi API lấy billing
+          const billingRes = await sessionApi.getBilling(sessionId);
+          setBilling(billingRes);
+        }
+      } catch {
+        router.replace('/');
+      } finally {
         setIsLoading(false);
       }
     }
-  }, [currentSession, sessionId, router]);
+    if (sessionId) fetchSessionAndBilling();
+  }, [sessionId, router]);
 
-  const calculateSessionDuration = (session: Session) => {
-    const startTime = new Date(session.start_time);
-    const endTime = session.end_time ? new Date(session.end_time) : new Date();
-    const durationMs = endTime.getTime() - startTime.getTime();
-    const durationMinutes = Math.ceil(durationMs / (1000 * 60));
-    return durationMinutes;
-  };
-
-  const calculateTotalAmount = (session: Session) => {
-    const durationMinutes = calculateSessionDuration(session);
-    const pricePerMin = typeof session.price_on_min === 'string' ? parseFloat(session.price_on_min) : session.price_on_min;
-    return durationMinutes * pricePerMin;
-  };
-
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   const handleGoHome = () => {
-    clearSession();
     router.push('/workspace/discovery');
-  };
-
-  const handleViewReceipt = () => {
-    // TODO: Implement receipt view functionality
-    console.log('View receipt for session:', sessionId);
   };
 
   const handleStarClick = (idx: number) => {
     setRating(idx + 1);
   };
 
-  const handleSubmit = () => {
-    // Xử lý gửi feedback ở đây
-    // alert(`Feedback: ${rating} sao, note: ${note}`);
-    handleGoHome();
+  const handleSubmit = async () => {
+    if (sessionDetails?.workspace_pod_reserve && rating > 0) {
+      try {
+        await feedbackReserve(sessionDetails.workspace_pod_reserve, rating, note || null);
+        handleGoHome();
+      } catch (error) {
+        console.error('Feedback submission failed:', error);
+        // Still go home even if feedback fails
+        handleGoHome();
+      }
+    } else {
+      handleGoHome();
+    }
   };
 
   const handleSkip = () => {
-    // Xử lý skip feedback ở đây
-    // alert('Skip feedback');
+    // Skip feedback - don't send anything
     handleGoHome();
   };
+
+  const handleOpenSummary = async () => {
+    setSummaryOpen(true);
+    setSummaryLoading(true);
+    try {
+      const res = await sessionApi.getBillingSummary(sessionId);
+      setSummary(res);
+    } catch (err) {
+      console.error(err)
+      setSummary(null);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handleCloseSummary = () => setSummaryOpen(false);
+
+  // Helper to format ms to 'X hour(s) Y min(s) Z s'
+  function formatMs(ms: number) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    let str = '';
+    if (hours > 0) str += `${hours} hour${hours > 1 ? 's' : ''} `;
+    if (minutes > 0 || hours > 0) str += `${minutes} min${minutes > 1 ? 's' : ''} `;
+    str += `${seconds} s`;
+    return str.trim();
+  }
+
+  // Helper for float minutes (extra_paused_minutes)
+  function formatFloatMin(min: number) {
+    const mins = Math.floor(min);
+    const secs = Math.round((min - mins) * 60);
+    let str = '';
+    if (mins > 0) str += `${mins} min${mins > 1 ? 's' : ''} `;
+    str += `${secs} s`;
+    return str.trim();
+  }
 
   if (isLoading) {
     return (
@@ -139,7 +149,7 @@ export default function SessionCompletePage() {
     );
   }
 
-  if (!sessionDetails) {
+  if (!sessionDetails || !billing) {
     return (
       <Box sx={{
         height: '100vh',
@@ -151,7 +161,7 @@ export default function SessionCompletePage() {
         gap: 2,
       }}>
         <Typography variant="h6" color="text.secondary">
-          Session not found
+          Billing info not found
         </Typography>
         <Button variant="contained" onClick={handleGoHome}>
           Go Home
@@ -160,9 +170,10 @@ export default function SessionCompletePage() {
     );
   }
 
-  const durationMinutes = calculateSessionDuration(sessionDetails);
-  const totalAmount = calculateTotalAmount(sessionDetails);
-  const pricePerMin = typeof sessionDetails.price_on_min === 'string' ? parseFloat(sessionDetails.price_on_min) : sessionDetails.price_on_min;
+  const totalMinutes = Math.round(Number(billing.focus_time));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const focusTimeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 
   return (
     <Box sx={{
@@ -189,7 +200,18 @@ export default function SessionCompletePage() {
         fontWeight: 600,
         mb: 3,
       }}>
-        Nice work - you stayed focused<br/>for {durationMinutes} minutes.
+        {(() => {
+          const totalMinutes = Math.ceil(Number(billing.focus_time) / 60);
+          if (totalMinutes >= 60) {
+            const totalHours = Math.ceil(totalMinutes / 60);
+            return (
+              <>Nice work – you stayed focused<br />for {totalHours} hour{totalHours > 1 ? 's' : ''}.</>
+            );
+          }
+          return (
+            <>Nice work – you stayed focused<br />for {totalMinutes} minute{totalMinutes > 1 ? 's' : ''}.</>
+          );
+        })()}
       </Typography>
 
       {/* Info Card */}
@@ -204,42 +226,23 @@ export default function SessionCompletePage() {
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <AccessTimeIcon sx={{ mr: 1, color: '#185C3C' }} />
-          <Typography sx={{
-            fontSize: "20px",
-            fontWeight: 600, flex: 1 }}>Focus Time</Typography>
-          <Typography sx={{
-            fontSize: "20px",
-            fontWeight: 600,
-          }}>{focusTime}</Typography>
+          <Typography sx={{ fontSize: "20px", fontWeight: 600, flex: 1 }}>Focus Time</Typography>
+          <Typography sx={{ fontSize: "20px", fontWeight: 600 }}>{focusTimeStr}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <LockIcon sx={{ mr: 1, color: '#185C3C' }} />
-          <Typography sx={{
-            fontSize: "20px",
-            fontWeight: 600, flex: 1 }}>Status</Typography>
-          <Typography sx={{
-            fontSize: "20px",
-            fontWeight: 600,
-          }}>{status}</Typography>
+          <Typography sx={{ fontSize: "20px", fontWeight: 600, flex: 1 }}>Status</Typography>
+          <Typography sx={{ fontSize: "20px", fontWeight: 600 }}>{billing.status == "available" ? "Locked" : "Unlocked"}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <EuroIcon sx={{ mr: 1, color: '#185C3C' }} />
-          <Typography sx={{
-            fontSize: "20px",
-            fontWeight: 600, flex: 1 }}>Total Cost</Typography>
-          <Typography sx={{
-            fontSize: "20px",
-            fontWeight: 600,
-          }}>{totalCost}</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <CreditCardIcon sx={{ mr: 1, color: '#185C3C' }} />
-          <Typography sx={{
-            fontSize: "20px",
-            fontWeight: 600, flex: 1 }}>{paymentMethod.type} •••• {paymentMethod.last4}</Typography>
-          <IconButton size="small" sx={{ ml: 1 }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
+          <Typography sx={{ fontSize: "20px", fontWeight: 600, flex: 1 }}>Total Cost</Typography>
+          <Typography
+            sx={{ fontSize: "20px", fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+            onClick={handleOpenSummary}
+          >
+            {Number(billing.total_cost).toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}
+          </Typography>
         </Box>
       </Box>
 
@@ -261,8 +264,13 @@ export default function SessionCompletePage() {
         onChange={e => setNote(e.target.value)}
         sx={{
           maxWidth: 340,
-          height: "52px !important",
+          minHeight: "48px !important",
           mb: 3,
+          '& .MuiInputBase-root': {
+            minHeight: "48px !important",
+            paddingY: 1.5,
+            alignItems: 'center',
+          },
         }}
         InputProps={{
           style: { fontSize: '1rem', padding: 8 },
@@ -295,6 +303,77 @@ export default function SessionCompletePage() {
       >
         Skip this time
       </Button>
+
+      <Dialog open={summaryOpen} onClose={handleCloseSummary} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{
+          background: rootStyle.elementColor,
+          color: 'white',
+          fontFamily: rootStyle.titleFontFamily,
+          fontWeight: 700,
+          fontSize: 22,
+          letterSpacing: 1,
+          textAlign: 'center',
+          py: 2,
+          mb: 1,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+        }}>
+          Session Billing Details
+        </DialogTitle>
+        <DialogContent dividers sx={{ background: rootStyle.backgroundColor, fontFamily: rootStyle.mainFontFamily }}>
+          {summaryLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 120 }}>
+              <CircularProgress size={32} sx={{ color: rootStyle.elementColor }} />
+            </Box>
+          ) : summary ? (
+            <Box sx={{ fontSize: 16, color: rootStyle.textColor }}>
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                <AccessTimeIcon sx={{ color: rootStyle.elementColor, mr: 1 }} />
+                <b>Total time run:</b>
+                <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{formatMs(summary.total_time_run)}</Box>
+              </Box>
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                <Pause sx={{ color: '#E0A800', mr: 1 }} />
+                <b>Paused time:</b>
+                <Box component="span" sx={{ ml: 1, color: '#E0A800', fontWeight: 700 }}>{formatMs(summary.paused_time)}</Box>
+              </Box>
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                <PlayArrow sx={{ color: '#20A48C', mr: 1 }} />
+                <b>Active (focus) time:</b>
+                <Box component="span" sx={{ ml: 1, color: '#20A48C', fontWeight: 700 }}>{formatMs(summary.active_time)}</Box>
+              </Box>
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                <LockIcon sx={{ color: rootStyle.elementColor, mr: 1 }} />
+                  <b>Free paused time:</b>
+                <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{summary.pause_allowance} min</Box>
+              </Box>
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                <LockOpen sx={{ color: '#BDBDBD', mr: 1 }} />
+                <b>Charged paused time:</b>
+                <Box component="span" sx={{ ml: 1, color: '#BDBDBD', fontWeight: 700 }}>{formatFloatMin(Number(summary.extra_paused_minutes))}</Box>
+              </Box>
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                <EuroIcon sx={{ color: rootStyle.elementColor, mr: 1 }} />
+                <b>Price per minute:</b>
+                <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{summary.price_per_minute} €</Box>
+                </Box>
+                <hr></hr>
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                  <EuroIcon sx={{ color: '#185C3C', mr: 1, fontSize: 24 }} />
+                  <b style={{ fontSize: 24 }}>Total fee:</b>
+                <Box component="span" sx={{ ml: 1, color: '#185C3C', fontWeight: 900, fontSize: 24 }}>{summary.total_fee.toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}</Box>
+              </Box>
+            </Box>
+          ) : (
+            <Typography color="error">No summary data found.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ background: rootStyle.backgroundColor, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, justifyContent: 'center' }}>
+          <Box sx={{ width: '100%' }}>
+            <Button onClick={handleCloseSummary} sx={{ color: rootStyle.elementColor, fontWeight: 700, width: '100%' }}>Close</Button>
+          </Box>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 } 

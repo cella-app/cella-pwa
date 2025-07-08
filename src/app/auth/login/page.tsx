@@ -54,6 +54,7 @@ function LoginForm() {
 	useEffect(() => {
 		if (isAuthenticated) {
 			router.push('/workspace/discovery');
+			router.push('/workspace/discovery');
 		}
 	}, [isAuthenticated, router]);
 
@@ -61,11 +62,12 @@ function LoginForm() {
 		try {
 			await loginAction(data.email, data.password);
 			setTimeout(() => {
-				const from = searchParams.get('from') || '/workspace/discovery';
+				const from = searchParams?.get('from') || '/workspace/discovery';
 				router.push(from);
 			}, TIMEOUT_REDIRECT_LOGIN);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {
+			throw err			
 			throw err			
 		}
 	};

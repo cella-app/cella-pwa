@@ -1,6 +1,6 @@
 import axiosInstance from './instances/axios-auth-instance';
 import BaseApi from './base';
-import { Session, SessionPause } from "@/shared/data/models/Session"
+import { Session, SessionPause, BillingSession, BillingSummarySession } from "@/shared/data/models/Session"
 
 export interface SessionCurrentRunningResponse {
 	session: Session;
@@ -11,12 +11,24 @@ export interface PauseSessionResponse {
 }
 
 
+export interface PauseSessionsResponse {
+	pauseLogs: SessionPause[];
+}
+
+export interface BillingResponse {
+	billing: BillingSession;
+}
+
+
+export interface BillingSummaryResponse {
+	billingSummary: BillingSummarySession;
+}
+
 class SessionApi extends BaseApi {
 
 	constructor() {
 		super(axiosInstance)
 	}
-
 
 	async getCurrentRunningSession(): Promise<Session> {
 		try {
@@ -72,6 +84,46 @@ class SessionApi extends BaseApi {
 			return responseData.data.session;
 		} catch (error: unknown) {
 			throw this.handleApiError(error, 'getSession', 500);
+		}
+	}
+
+	async getPauseLogs(sessionId: string): Promise<SessionPause[]> {
+		try {
+			const { data: responseData } = await this.apiInstance.get<{ data: PauseSessionsResponse }>(`/reserve/session/${sessionId}/pause-logs`);
+			return responseData.data.pauseLogs;
+		} catch (error: unknown) {
+			console.warn('Failed to get pause logs, returning empty array:', error);
+			return [];
+		}
+	}
+
+	async getCurrentPause(sessionId: string): Promise<SessionPause | null> {
+		try {
+			const { data: responseData } = await this.apiInstance.get<{ data: PauseSessionResponse }>(`/reserve/session/${sessionId}/current-pause`);
+			return responseData.data.pauseSession;
+		} catch (error: unknown) {
+			console.warn('Failed to get current pause, returning null:', error);
+			return null;
+		}
+	}
+
+	async getBilling(sessionId: string): Promise<BillingSession | null> {
+		try {
+			const { data: responseData } = await this.apiInstance.get<{ data: BillingResponse }>(`/reserve/session/${sessionId}/billing`);
+			return responseData.data.billing;
+		} catch (error: unknown) {
+			console.warn('Failed to get current pause, returning null:', error);
+			return null;
+		}
+	}
+
+	async getBillingSummary(sessionId: string): Promise<BillingSummarySession | null> {
+		try {
+			const { data: responseData } = await this.apiInstance.get<{ data: BillingSummaryResponse }>(`/reserve/session/${sessionId}/billing-summary`);
+			return responseData.data.billingSummary;
+		} catch (error: unknown) {
+			console.warn('Failed to get current pause, returning null:', error);
+			return null;
 		}
 	}
 }

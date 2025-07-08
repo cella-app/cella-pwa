@@ -15,7 +15,7 @@ const HIGH_ACCURACY_THRESHOLD = 20;
 const WIFI_ACCURACY_THRESHOLD = 100;
 const CELL_TOWER_ACCURACY_THRESHOLD = 1000;
 
-export const useLocationTracking = (radius: number = 1000) => {
+export const useLocationTracking = (radius: number = 600) => {
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [pods, setPods] = useState<PodList[]>([]);
   const [loading, setLoading] = useState(false);
@@ -175,7 +175,7 @@ export const useLocationTracking = (radius: number = 1000) => {
     console.log('[watchPosition] New location:', newLocation);
 
     setCurrentLocation(newLocation);
-    setError(null); 
+    setError(null);
 
     if (shouldFetch(newLocation)) {
       console.log('[shouldFetch] Calling API...');

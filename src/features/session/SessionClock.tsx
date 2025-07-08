@@ -7,12 +7,12 @@ import {
 	Typography,
 	Button,
 	SvgIcon,
-	Divider,
 } from "@mui/material";
 import { Pause, Play, Lock, LockOpen } from "lucide-react";
 import { rootStyle } from "@/theme";
 import { Session, SessionStatusEnum } from "@/shared/data/models/Session";
-import { tracking, pause, resume, end } from '@/features/reservation/session.action';
+import { tracking, pause, resume, end } from '@/features/session/session.action';
+import { useSessionStore } from '@/features/session/stores/session.store';
 import { useRouter } from 'next/navigation';
 
 interface SessionClockProps {
@@ -23,24 +23,48 @@ const TRACKING_TIME = 15 * 1000;
 
 const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 	const router = useRouter();
+	const { 
+		currentPause, 
+		pauseLogs, 
+		loadCurrentPause,
+		setCurrentPause,
+		loadPauseLogs
+	} = useSessionStore();
 
 	const [focusTime, setFocusTime] = useState(0);
 	const [pauseTime, setPauseTime] = useState(0);
 	const [isPaused, setIsPaused] = useState(false);
-	const [pauseLogs, setPauseLogs] = useState<number[]>([]);
 	const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
 
 	const focusInterval = useRef<NodeJS.Timeout | null>(null);
 	const pauseInterval = useRef<NodeJS.Timeout | null>(null);
 
 	useEffect(() => {
-		if (session?.start_time && session?.latest_tracking) {
+		if (session?.start_time) {
 			const start = new Date(session.start_time).getTime();
-			const latest = new Date(session.latest_tracking).getTime();
-			const secondsPassed = Math.floor((latest - start) / 1000);
-			setFocusTime(secondsPassed);
+			const now = Date.now();
+
+			// Tổng thời gian đã pause (ms)
+			let totalPauseMs = 0;
+			if (pauseLogs && pauseLogs.length > 0) {
+				for (const log of pauseLogs) {
+					if (log.pause_at && log.resume_at) {
+						const pauseStart = new Date(log.pause_at).getTime();
+						const pauseEnd = new Date(log.resume_at).getTime();
+						totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+					}
+				}
+			}
+			// Nếu đang PAUSING, cộng thêm thời gian pause hiện tại
+			if (isPaused && currentPause?.pause_at) {
+				const pauseStart = new Date(currentPause.pause_at).getTime();
+				totalPauseMs += Math.max(0, now - pauseStart);
+			}
+
+			const focusSeconds = Math.floor((now - start - totalPauseMs) / 1000);
+			setFocusTime(focusSeconds > 0 ? focusSeconds : 0);
 		}
-	}, [session?.start_time, session?.latest_tracking]);
+	}, [session?.start_time, pauseLogs, isPaused, currentPause]);
 
 	useEffect(() => {
 		const timeout = setTimeout(() => {
@@ -57,7 +81,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 		};
 	}, []);
 
-
 	useEffect(() => {
 		if (!session?.id || isPaused) return;
 
@@ -67,7 +90,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 
 		return () => clearInterval(interval);
 	}, [session?.id, isPaused]);
-
 
 	useEffect(() => {
 		if (!isPaused) {
@@ -91,15 +113,42 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 		return () => clearInterval(pauseInterval.current!);
 	}, [isPaused]);
 
-	useState(() => {
-		if (session.status === SessionStatusEnum.PAUSING) {
-			setIsPaused(true)
+	useEffect(() => {
+		if (session?.status === SessionStatusEnum.PAUSING) {
+			setIsPaused(true);
+			if (session.id) {
+				loadCurrentPause(session.id);
+			}
+		} else {
+			setIsPaused(false);
+			setCurrentPause(null);
 		}
-	})
+	}, [session?.status, session?.id, loadCurrentPause, setCurrentPause]);
+
+	useEffect(() => {
+		if (session?.id) {
+			loadPauseLogs(session.id);
+		}
+	}, [session?.id, loadPauseLogs]);
+
+	useEffect(() => {
+		if (isPaused && currentPause?.pause_at) {
+			const pauseStart = new Date(currentPause.pause_at).getTime();
+			const now = Date.now();
+			const pauseSeconds = Math.floor((now - pauseStart) / 1000);
+			setPauseTime(pauseSeconds);
+		} else {
+			setPauseTime(0);
+		}
+	}, [isPaused, currentPause?.pause_at]);
 
 	const formatTime = (seconds: number) => {
-		const mins = Math.floor(seconds / 60);
+		const hrs = Math.floor(seconds / 3600);
+		const mins = Math.floor((seconds % 3600) / 60);
 		const secs = seconds % 60;
+		if (hrs > 0) {
+			return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+		}
 		return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 	};
 
@@ -107,16 +156,16 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 		if (!session?.id) return;
 
 		if (isPaused) {
-			if (pauseTime > 0) {
-				setPauseLogs((prev) => [...prev, pauseTime]);
-				setPauseTime(0);
-			}
+			// Resume session
 			await resume(session.id);
 			setIsPaused(false);
+			// Sau khi resume, reload pause logs từ server để đảm bảo log mới nhất đã có resume_at
+			await loadPauseLogs(session.id);
 		} else {
+			// Pause session
 			await pause(session.id);
 			setIsPaused(true);
-			setPauseTime(0);
+			await loadCurrentPause(session.id);
 		}
 	};
 
@@ -306,21 +355,17 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				End Session
 			</Button>
 
-			{pauseLogs.length > 0 && (
-				<>
-					<Divider sx={{ my: 3 }} />
-					<Typography variant="subtitle2" gutterBottom>
-						Pause Logs
+			{pauseLogs.filter(log => log.resume_at).map((pauseLog, idx) => {
+				const pauseStart = new Date(pauseLog.pause_at);
+				const pauseEnd = pauseLog.resume_at ? new Date(pauseLog.resume_at) : null;
+				const duration = pauseEnd ? Math.floor((pauseEnd.getTime() - pauseStart.getTime()) / 1000) : 0;
+				const key = pauseLog.id ? `${pauseLog.id}-${idx}` : `pause-${idx}`;
+				return (
+					<Typography variant="body2" color="text.secondary" key={key}>
+						{`#${idx + 1} — Paused ${formatTime(duration)}`}
 					</Typography>
-					<Box textAlign="left" width="100%">
-						{pauseLogs.map((p, idx) => (
-							<Typography variant="body2" color="text.secondary" key={idx}>
-								{`#${idx + 1} — Paused ${formatTime(p)}`}
-							</Typography>
-						))}
-					</Box>
-				</>
-			)}
+				);
+			})}
 		</Card>
 	);
 };

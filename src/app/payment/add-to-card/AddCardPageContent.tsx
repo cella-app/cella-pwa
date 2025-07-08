@@ -8,7 +8,7 @@ import { rootStyle } from '@/theme';
 export default function AddCardPageContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const from = searchParams.get('frm') || '/workspace/discovery';
+	const from = searchParams?.get('frm') || '/workspace/discovery';
 
 	const handleSkip = () => {
 		router.push(from);

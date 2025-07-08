@@ -13,25 +13,26 @@ import 'leaflet/dist/leaflet.css';
 import '@/styles/map.css';
 import LocateControl from './LocateControl';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/features/auth/stores/auth.store';
+import { useReservationStore } from '@/features/reservation/stores/reservation.store';
+import { getMe } from '@/features/me/me.action';
 import {
   Avatar,
 } from "@mui/material";
 import { DEFAULT_CENTER } from '@/shared/config/env';
-import { useReservationStore } from '@/features/reservation/stores/reservation.store';
 
 export default memo(function MapContent() {
   const { current: currentReservation } = useReservationStore();
   const [selectedPod, setSelectedPod] = useState<PodList | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [user, setUser] = useState<any>(null); // Use correct User type if available
+  const [loadingUser, setLoadingUser] = useState(true);
+
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const { lastSearchCenter } = useLocationTrackingContext();
   const router = useRouter();
-
-  // Get user và loading state từ store
-  const { user, isLoading, initializeAuth } = useAuthStore();
 
   useOutsideClick(popupRef, () => {
     if (selectedPod) {
@@ -40,8 +41,19 @@ export default memo(function MapContent() {
   });
 
   useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
+    async function fetchUser() {
+      setLoadingUser(true);
+      try {
+        const me = await getMe();
+        setUser(me);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoadingUser(false);
+      }
+    }
+    fetchUser();
+  }, []);
 
   // Map initialization effect
   useEffect(() => {
@@ -62,8 +74,8 @@ export default memo(function MapContent() {
     }
   }, [lastSearchCenter]);
 
-  // Don't render until both map and auth are ready
-  if (!mapLoaded || isLoading) {
+  // Don't render until both map and user are ready
+  if (!mapLoaded || loadingUser) {
     return (
       <div
         style={{
@@ -138,17 +150,17 @@ export default memo(function MapContent() {
         >
           <Avatar
             alt="User Avatar"
-            src={user?.avatar}
+            src={user?.avatar_url}
             sx={{
               width: 44, height: 44, mx: "auto", fontSize: 36, borderRadius: '50%',
               objectFit: 'cover',
             }}
           >
-            {user?.avatar
+            {user?.avatar_url
               ? ""
               : user?.first_name
                 ? user.first_name[0].toUpperCase()
-                : user.email[0].toUpperCase()}
+                : user?.email?.[0]?.toUpperCase()}
           </Avatar>
         </div>
       )}

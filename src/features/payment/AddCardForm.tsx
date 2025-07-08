@@ -57,7 +57,7 @@ const commonBoxInputStyle = {
 // --- Main Component Logic ---
 function AddCardInner({ onSkip }: { onSkip?: () => void }) {
   const searchParams = useSearchParams();
-  const from = searchParams.get('frm') || '/workspace/discovery';
+  const from = searchParams?.get('frm') || '/workspace/discovery';
   const router = useRouter();
   
   const stripe = useStripe();

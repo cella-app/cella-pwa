@@ -12,7 +12,7 @@ import { PodStatus, AccompanyingService, Pod } from '@/shared/data/models/Pod';
 import { getPodDetail } from '@/features/pods/pods.action';
 import { reserveNow, unlockReserve, cancelReserve } from '@/features/reservation/reservation.action';
 import { useReservationStore } from '@/features/reservation/stores/reservation.store';
-import { useSessionStore } from '@/features/reservation/stores/session.store';
+import { useSessionStore } from '@/features/session/stores/session.store';
 import { Reservation } from '@/shared/data/models/Reservation';
 import { useRouter } from 'next/navigation';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -155,6 +155,12 @@ export default function WorkspacePopup({
       setCountdown((prev) => {
         const next = prev - 1;
         if (next <= 0) {
+          // Auto cancel when time expires
+          if (currentReservation?.id) {
+            cancelReserve(currentReservation.id).catch((err) => {
+              console.error('Auto cancel failed:', err);
+            });
+          }
           setReserved(false);
           clearReservation();
           setStatus(PodStatus.available);
@@ -164,7 +170,7 @@ export default function WorkspacePopup({
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [reserved, countdown]);
+  }, [reserved, countdown, currentReservation]);
 
   // Action: Reserve
   const reserveNowClick = async () => {

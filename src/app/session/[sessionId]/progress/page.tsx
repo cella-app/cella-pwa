@@ -1,36 +1,61 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import SessionClock from '@/features/reservation/SessionClock';
-import {
-  Box,
-} from "@mui/material";
+import SessionClock from '@/features/session/SessionClock';
+import { Box, CircularProgress, Typography } from "@mui/material";
 import { rootStyle } from "@/theme";
-import { useSessionStore } from '@/features/reservation/stores/session.store';
+import { sessionApi } from '@/shared/api/session.api';
+import { Session, SessionStatusEnum } from '@/shared/data/models/Session';
 
 export default function SessionProgressPage() {
   const params = useParams();
   const router = useRouter();
-  const sessionId = params.sessionId as string;
+  const sessionId = params?.sessionId as string;
 
-  const { current: currentSession, checkSession } = useSessionStore();
-
-  useEffect(() => {
-    checkSession(); // đảm bảo dữ liệu luôn mới
-  }, []);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!currentSession) return;
-
-    if (currentSession.id !== sessionId) {
-      router.replace('/not-found'); // hoặc router.push('/')
+    async function fetchSession() {
+      setLoading(true);
+      try {
+        const session = await sessionApi.getSessionById(sessionId);
+        if (!session) {
+          router.replace('/not-found');
+        } else if (session.status == SessionStatusEnum.ENDED) {
+          router.replace(`/session/${session.id}/checkout`);
+        } else {
+          setSession(session);
+        }
+      } catch {
+        router.replace('/');
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [currentSession, sessionId, router]);
+    if (sessionId) fetchSession();
+  }, [sessionId, router]);
 
-  if (!currentSession || currentSession.id !== sessionId) {
-    return null;
-  }
+  if (loading) return (
+    <Box sx={{
+      height: '100vh',
+      backgroundColor: rootStyle.backgroundColor,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      flexDirection: 'column',
+      py: 4,
+      border: "none",
+    }}>
+      <CircularProgress sx={{ color: rootStyle.elementColor, mb: 3 }} />
+      <Typography sx={{ fontFamily: rootStyle.mainFontFamily, fontWeight: 700, fontSize: 24, color: rootStyle.textColor }}>
+        Loading...
+      </Typography>
+    </Box>
+  );
+
+  if (!session) return null;
 
   return (
     <Box sx={{
@@ -42,7 +67,7 @@ export default function SessionProgressPage() {
       py: 4,
       border: "none",
     }}>
-      <SessionClock session={currentSession} />
+      <SessionClock session={session} />
     </Box>
   );
 }

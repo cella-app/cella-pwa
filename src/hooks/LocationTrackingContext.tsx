@@ -8,7 +8,7 @@ interface LocationTrackingProviderProps {
 
 const LocationTrackingContext = createContext<ReturnType<typeof useLocationTracking> | undefined>(undefined);
 
-export const LocationTrackingProvider = ({ children, radius = 1000 }: LocationTrackingProviderProps) => {
+export const LocationTrackingProvider = ({ children, radius = 600 }: LocationTrackingProviderProps) => {
   const locationTracking = useLocationTracking(radius);
   return (
     <LocationTrackingContext.Provider value={locationTracking}>

@@ -58,6 +58,19 @@ class ReservationApi extends BaseApi {
 			throw this.handleApiError(error, 'getReservation', 500);
 		}
 	}
+
+	async feeback(reserveId: string, star: number, content: string | null): Promise<null> {
+		try {
+			const { data: responseData } = await this.apiInstance.post<{ data: null }>(`/reserve/${reserveId}/feedback`, {
+				star,
+				content
+			});
+
+			return responseData.data;
+		} catch (error: unknown) {
+			throw this.handleApiError(error, 'getReservation', 500);
+		}
+	}
 }
 
 export const reservationApi = new ReservationApi();
