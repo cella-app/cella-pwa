@@ -26,11 +26,13 @@ import StarIcon from '@mui/icons-material/Star';
 import Pause from '@mui/icons-material/Pause';
 import PlayArrow from '@mui/icons-material/PlayArrow';
 import LockOpen from '@mui/icons-material/LockOpen';
+import { useSessionStore } from '@/features/session/stores/session.store';
 
 export default function SessionCompletePage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params?.sessionId as string;
+  const { clearSession } = useSessionStore();
 
   const [sessionDetails, setSessionDetails] = useState<Session | null>(null);
   const [billing, setBilling] = useState<BillingSession | null>(null);
@@ -54,7 +56,6 @@ export default function SessionCompletePage() {
           router.replace(`/session/${session.id}/progress`);
         } else {
           setSessionDetails(session);
-          // Gọi API lấy billing
           const billingRes = await sessionApi.getBilling(sessionId);
           setBilling(billingRes);
         }
@@ -69,6 +70,7 @@ export default function SessionCompletePage() {
 
 
   const handleGoHome = () => {
+    clearSession()
     router.push('/workspace/discovery');
   };
 
@@ -92,7 +94,6 @@ export default function SessionCompletePage() {
   };
 
   const handleSkip = () => {
-    // Skip feedback - don't send anything
     handleGoHome();
   };
 
