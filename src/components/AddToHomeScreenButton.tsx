@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import { ArrowDownToLine } from "lucide-react";
 
 function isIOS() {
   if (typeof window === 'undefined') return false;
@@ -56,67 +57,51 @@ export default function AddToHomeScreenButton() {
   //     <>
   //       <button
   //         onClick={() => setShowIOSPopup(true)}
-  //         style={{
-  //           position: "fixed",
-  //           bottom: 20,
-  //           right: 20,
-  //           zIndex: 1000,
-  //           background: "#fff",
-  //           border: "1px solid #ccc",
-  //           borderRadius: "50%",
-  //           width: 48,
-  //           height: 48,
-  //           boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-  //           display: "flex",
-  //           alignItems: "center",
-  //           justifyContent: "center",
-  //           fontSize: 24,
-  //         }}
-  //         aria-label="Add to Home Screen Guide"
+  //         style={{ position: "fixed", bottom: 20, right: 20, zIndex: 1000, background: "#fff", border: "1px solid #ccc", borderRadius: "50%", width: 48, height: 48, boxShadow: "0 2px 8px rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}
+  //         aria-label="Hướng dẫn thêm vào MH chính"
   //       >
   //         &#x1f5d2;
   //       </button>
   //       {showIOSPopup && (
-  //         <div
-  //           style={{
-  //             position: "fixed",
-  //             bottom: 80,
-  //             right: 20,
-  //             left: 20,
-  //             zIndex: 1001,
-  //             background: "#fff",
-  //             border: "1px solid #ccc",
-  //             borderRadius: 8,
-  //             padding: 16,
-  //             boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-  //           }}
-  //         >
-  //           <b>How to add to Home Screen (iOS):</b>
-  //           <ol style={{ margin: "8px 0 0 16px" }}>
-  //             <li>
-  //               Tap the <b>Share</b> button{" "}
-  //               <span role="img" aria-label="share">
-  //                 &#x1f5d2;
-  //               </span>{" "}
-  //               in the browser.
-  //             </li>
-  //             <li>Select <b>Add to Home Screen</b>.</li>
+  //         <div style={{ position: "fixed", bottom: 80, right: 20, left: 20, zIndex: 1001, background: "#fff", border: "1px solid #ccc", borderRadius: 8, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
+  //           <b>Hướng dẫn thêm vào màn hình chính (iOS):</b>
+  //           <ol style={{ margin: '8px 0 0 16px' }}>
+  //             <li>Nhấn nút <b>Chia sẻ</b> <span role="img" aria-label="share">&#x1f5d2;</span> ở dưới trình duyệt.</li>
+  //             <li>Chọn <b>Thêm vào MH chính</b> (Add to Home Screen).</li>
   //           </ol>
-  //           <button style={{ marginTop: 8 }} onClick={() => setShowIOSPopup(false)}>
-  //             Close
-  //           </button>
+  //           <button style={{ marginTop: 8 }} onClick={() => setShowIOSPopup(false)}>Đóng</button>
   //         </div>
   //       )}
   //     </>
   //   );
   // }
 
-
-  // Android/Chrome: Hiện button khi có beforeinstallprompt
+  // Android/Chrome: Hiện icon Lucide Plus khi có beforeinstallprompt
   if (showButton) {
     return (
-      <button onClick={handleClick} style={{ position: "fixed", bottom: 20, right: 20, zIndex: 1000 }}>
-        Add to Home screen
+      <button
+        onClick={handleClick}
+        style={{
+          position: "fixed",
+          bottom: 20,
+          right: 20,
+          zIndex: 1000,
+          background: "#fff",
+          border: "1px solid #ccc",
+          borderRadius: "50%",
+          width: 48,
+          height: 48,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 24,
+          cursor: "pointer"
+        }}
+        title="Cài đặt ứng dụng"
+        aria-label="Cài đặt ứng dụng"
+      >
+        <ArrowDownToLine size={24} />
       </button>
     );
   }
