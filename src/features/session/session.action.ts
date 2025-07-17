@@ -5,7 +5,6 @@ import { sessionApi } from '../../shared/api/session.api';
 import { userAlertStore, SERVERIFY_ALERT } from '../alert/stores/alert.store';
 import { Session, SessionStatusEnum } from '@/shared/data/models/Session';
 import { useSessionStore } from './stores/session.store';
-import { redirect } from 'next/navigation';
 
 export async function tracking(sessionId: string) {
   const { addAlert } = userAlertStore.getState();
@@ -93,7 +92,3 @@ export async function checkout(sessionId: string) {
     throw err;
   }
 }
-
-// export async function getBilling(sessionId: string) {
-
-// }

@@ -156,10 +156,8 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 		if (!session?.id) return;
 
 		if (isPaused) {
-			// Resume session
 			await resume(session.id);
 			setIsPaused(false);
-			// Sau khi resume, reload pause logs từ server để đảm bảo log mới nhất đã có resume_at
 			await loadPauseLogs(session.id);
 		} else {
 			// Pause session
@@ -173,7 +171,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 		if (!session?.id) return;
 		await end(session.id);
 		router.push(`/session/${session.id}/checkout`)
-		// window.location.href = `/session/${session.id}/checkout`;
 	};
 
 	const strokeWidth = 12;

@@ -2,6 +2,7 @@ import ThemeProviderWrapper from '@/components/ThemeProviderWrapper';
 import EmotionRegistry from '@/components/EmotionRegistry';
 import { Metadata } from 'next';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import AddToHomeScreenButton from '@/components/AddToHomeScreenButton';
 
 export const metadata: Metadata = {
   title: 'Cella',
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </ThemeProviderWrapper>
         </EmotionRegistry>
+        <AddToHomeScreenButton />
       </body>
     </html>
   );
