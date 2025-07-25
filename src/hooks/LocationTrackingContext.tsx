@@ -1,12 +1,13 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocationTracking } from './useLocationTracking';
+import { PodList } from '@/shared/data/models/Pod';
 
 interface LocationTrackingProviderProps {
   children: ReactNode;
   radius?: number;
 }
 
-const LocationTrackingContext = createContext<ReturnType<typeof useLocationTracking> | undefined>(undefined);
+const LocationTrackingContext = createContext<ReturnType<typeof useLocationTracking> & { setPods: (pods: PodList[]) => void } | undefined>(undefined);
 
 export const LocationTrackingProvider = ({ children, radius = 600 }: LocationTrackingProviderProps) => {
   const locationTracking = useLocationTracking(radius);
@@ -23,4 +24,4 @@ export const useLocationTrackingContext = () => {
     throw new Error('useLocationTrackingContext must be used within a LocationTrackingProvider');
   }
   return context;
-}; 
+};

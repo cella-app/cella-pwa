@@ -7,7 +7,6 @@ interface LocationData {
   longitude: number;
 }
 
-// Constants for better maintainability
 const EARTH_RADIUS_METERS = 6371e3;
 const FETCH_DEBOUNCE_DELAY = 500;
 const RETRY_DELAY = 5000;
@@ -57,13 +56,13 @@ export const useLocationTracking = (radius: number = 600) => {
 
     let source = 'Unknown';
     if (accuracy < HIGH_ACCURACY_THRESHOLD) {
-      source = '🚀 GPS or GPS + WiFi';
+      source = 'GPS or GPS + WiFi';
     } else if (accuracy < WIFI_ACCURACY_THRESHOLD) {
-      source = '📶 WiFi or Cell Tower';
+      source = 'WiFi or Cell Tower';
     } else if (accuracy < CELL_TOWER_ACCURACY_THRESHOLD) {
-      source = '📡 Cell tower (low-res)';
+      source = 'Cell tower (low-res)';
     } else {
-      source = '🌍 IP-based or Estimated';
+      source = 'IP-based or Estimated';
     }
 
     console.log(`[${++logCountRef.current}] @${timestamp}`);
@@ -241,5 +240,6 @@ export const useLocationTracking = (radius: number = 600) => {
     loading,
     error,
     lastSearchCenter: centroid,
+    setPods, // Add setPods to the returned object
   };
 };

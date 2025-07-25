@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef, memo } from 'react';
-import { MapContainer } from 'react-leaflet';
-import L, { Map as LeafletMapType } from 'leaflet';
+import { useEffect, useState, useRef, useCallback, memo } from 'react';
+import { MapContainer, useMapEvents } from 'react-leaflet';
+import L, { Map as LeafletMapType, LatLng } from 'leaflet';
 
-import { MapLayersAndControls } from '@/features/pods/MapLayersAndControls';
+import { MapLayersAndControls } from '@/features/pods/MapLayersAndControls'; // Corrected import path
 import WorkspacePopup from '@/features/pods/WorkspacePopup';
 import { PodList } from '@/shared/data/models/Pod';
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
@@ -15,10 +15,51 @@ import LocateControl from './LocateControl';
 import { useRouter } from 'next/navigation';
 import { useReservationStore } from '@/features/reservation/stores/reservation.store';
 import { getMe } from '@/features/me/me.action';
+import { getPodsNearMe } from '@/features/pods/pods.action';
+import { ZOOM_RADIUS_CONFIG, DEBOUNCE_TIME } from '@/shared/config/mapConfig';
 import {
   Avatar,
 } from "@mui/material";
 import { DEFAULT_CENTER } from '@/shared/config/env';
+
+// Helper function to get consistent latitude/longitude from different types
+function getCoords(location: { latitude: number; longitude: number } | LatLng) {
+  if ('lat' in location && 'lng' in location) {
+    return { latitude: location.lat, longitude: location.lng };
+  }
+  return location;
+}
+
+function MapEventHandlers({ fetchPodsBasedOnMap, currentLocation }: { fetchPodsBasedOnMap: (location: { latitude: number; longitude: number }, currentZoom: number) => void, currentLocation: { latitude: number; longitude: number } | null }) {
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const map = useMapEvents({
+    zoomend: () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      debounceTimeoutRef.current = setTimeout(() => {
+        console.log('Debounce finished, fetching pods (from useMapEvents).');
+        const zoom = map.getZoom();
+        // Use currentLocation if available, otherwise fallback to map center
+        const locationToUse = currentLocation || map.getCenter();
+        const coords = getCoords(locationToUse);
+        fetchPodsBasedOnMap(coords, zoom);
+      }, DEBOUNCE_TIME);
+    },
+  });
+
+  // Initial fetch when map is ready
+  useEffect(() => {
+    console.log('Initial fetch of pods (from useMapEvents).');
+    const zoom = map.getZoom();
+    // Use currentLocation if available, otherwise fallback to map center
+    const locationToUse = currentLocation || map.getCenter();
+    const coords = getCoords(locationToUse);
+    fetchPodsBasedOnMap(coords, zoom);
+  }, [fetchPodsBasedOnMap, map, currentLocation]);
+
+  return null;
+}
 
 export default memo(function MapContent() {
   const { current: currentReservation } = useReservationStore();
@@ -30,8 +71,8 @@ export default memo(function MapContent() {
   const [loadingUser, setLoadingUser] = useState(true);
 
   const mapRef = useRef<LeafletMapType | null>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
-  const { lastSearchCenter } = useLocationTrackingContext();
+  const popupRef = useRef<HTMLDivElement>(null); // Corrected type
+  const { lastSearchCenter, setPods, currentLocation } = useLocationTrackingContext();
   const router = useRouter();
 
   useOutsideClick(popupRef, () => {
@@ -74,7 +115,28 @@ export default memo(function MapContent() {
     }
   }, [lastSearchCenter]);
 
-  // Don't render until both map and user are ready
+  const fetchPodsBasedOnMap = useCallback(async (location: { latitude: number; longitude: number }, currentZoom: number) => {
+    console.log("current zoom:", currentZoom);
+    console.log("current location:", location);
+
+    const closestConfig = ZOOM_RADIUS_CONFIG.reduce((prev, curr) =>
+      Math.abs(curr.zoom - currentZoom) < Math.abs(prev.zoom - currentZoom) ? curr : prev
+    );
+
+    console.log("closest config:", closestConfig);
+
+    try {
+      const response = await getPodsNearMe({
+        longitude: location.longitude,
+        latitude: location.latitude,
+        radius: closestConfig.radius,
+      });
+      setPods(response.data.pods);
+    } catch (error) {
+      console.error("Failed to fetch pods:", error);
+    }
+  }, [setPods]);
+
   if (!mapLoaded || loadingUser) {
     return (
       <div
@@ -107,9 +169,10 @@ export default memo(function MapContent() {
       <MapContainer
         center={center}
         zoom={15}
-        minZoom={2}
+        minZoom={10}
         maxZoom={18}
         scrollWheelZoom={true}
+        zoomControl={false}
         style={{ height: '100vh', width: '100%' }}
         ref={mapRef}
         attributionControl={false}
@@ -117,6 +180,8 @@ export default memo(function MapContent() {
         maxBounds={[[-85, -180], [85, 180]]}
         maxBoundsViscosity={1.0}
       >
+        {/* Pass currentLocation to MapEventHandlers */}
+        {currentLocation && <MapEventHandlers fetchPodsBasedOnMap={fetchPodsBasedOnMap} currentLocation={currentLocation} />}
         <LocateControl />
         {mapRef.current && (
           <MapLayersAndControls
@@ -192,4 +257,4 @@ export default memo(function MapContent() {
       )}
     </>
   );
-});
+})
