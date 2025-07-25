@@ -103,6 +103,7 @@ export default function WorkspacePopup({
   const [loading, setLoading] = useState<boolean>(true);
   const [reserved, setReserved] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [isLoading, setIsLoading] = useState(false); // Added isLoading state
   const router = useRouter();
 
   const { current: currentReservation, setReservation, clearReservation } = useReservationStore();
@@ -174,6 +175,8 @@ export default function WorkspacePopup({
 
   // Action: Reserve
   const reserveNowClick = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
       const reservation = await reserveNow(id);
       setReservation(reservation);
@@ -190,11 +193,15 @@ export default function WorkspacePopup({
       }
     } catch (err) {
       console.error('Reserve failed:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Action: Unlock
   const unlockClick = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
       if (!currentReservation?.id) throw new Error('No reservation to unlock');
       const session = await unlockReserve(currentReservation.id);
@@ -212,11 +219,15 @@ export default function WorkspacePopup({
         router.push(`/payment/add-to-card?frm=/workspace/discovery?opw=${id}`);
       }
       console.error('Unlock failed:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Action: Cancel
   const cancelClick = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
       if (!currentReservation?.id) throw new Error('No reservation to cancel');
       await cancelReserve(currentReservation.id);
@@ -226,6 +237,8 @@ export default function WorkspacePopup({
       setStatus(PodStatus.available);
     } catch (err) {
       console.error('Cancel failed:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -325,7 +338,8 @@ export default function WorkspacePopup({
             fullWidth
             disabled={
               !isAvailable ||
-              (!!currentReservation && currentReservation.workspace_pod !== id)
+              (!!currentReservation && currentReservation.workspace_pod !== id) ||
+              isLoading // Disable when loading
             }
             onClick={reserveNowClick}
             sx={{
@@ -357,6 +371,7 @@ export default function WorkspacePopup({
               '&:hover': { boxShadow: 'none' },
             }}
             onClick={unlockClick}
+            disabled={isLoading} // Disable when loading
           >
             Unlock Pod
           </Button>
@@ -371,6 +386,7 @@ export default function WorkspacePopup({
               '&:hover': { boxShadow: 'none' },
             }}
             onClick={cancelClick}
+            disabled={isLoading} // Disable when loading
           >
             Cancel
           </Button>

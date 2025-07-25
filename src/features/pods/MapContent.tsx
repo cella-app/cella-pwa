@@ -116,14 +116,11 @@ export default memo(function MapContent() {
   }, [lastSearchCenter]);
 
   const fetchPodsBasedOnMap = useCallback(async (location: { latitude: number; longitude: number }, currentZoom: number) => {
-    console.log("current zoom:", currentZoom);
-    console.log("current location:", location);
+    console.log("fetchPodsBasedOnMap called with:", { location, currentZoom });
 
     const closestConfig = ZOOM_RADIUS_CONFIG.reduce((prev, curr) =>
       Math.abs(curr.zoom - currentZoom) < Math.abs(prev.zoom - currentZoom) ? curr : prev
     );
-
-    console.log("closest config:", closestConfig);
 
     try {
       const response = await getPodsNearMe({
@@ -132,6 +129,7 @@ export default memo(function MapContent() {
         radius: closestConfig.radius,
       });
       setPods(response.data.pods);
+      console.log("Pods fetched and set:", response.data.pods);
     } catch (error) {
       console.error("Failed to fetch pods:", error);
     }
@@ -182,7 +180,7 @@ export default memo(function MapContent() {
       >
         {/* Pass currentLocation to MapEventHandlers */}
         {currentLocation && <MapEventHandlers fetchPodsBasedOnMap={fetchPodsBasedOnMap} currentLocation={currentLocation} />}
-        <LocateControl />
+        <LocateControl fetchPodsBasedOnMap={fetchPodsBasedOnMap} />
         {mapRef.current && (
           <MapLayersAndControls
             map={mapRef.current}

@@ -35,6 +35,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 	const [pauseTime, setPauseTime] = useState(0);
 	const [isPaused, setIsPaused] = useState(false);
 	const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
+	const [isLoading, setIsLoading] = useState(false); // Added isLoading state
 
 	const focusInterval = useRef<NodeJS.Timeout | null>(null);
 	const pauseInterval = useRef<NodeJS.Timeout | null>(null);
@@ -153,24 +154,43 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 	};
 
 	const handleToggle = async () => {
-		if (!session?.id) return;
+		if (!session?.id || isLoading) return;
 
-		if (isPaused) {
-			await resume(session.id);
-			setIsPaused(false);
-			await loadPauseLogs(session.id);
-		} else {
-			// Pause session
-			await pause(session.id);
-			setIsPaused(true);
-			await loadCurrentPause(session.id);
+		setIsLoading(true);
+		console.log("handleToggle: Setting isLoading to true");
+		try {
+			if (isPaused) {
+				await resume(session.id);
+				setIsPaused(false);
+				await loadPauseLogs(session.id);
+			} else {
+				// Pause session
+				await pause(session.id);
+				setIsPaused(true);
+				await loadCurrentPause(session.id);
+			}
+		} catch (error) {
+			console.error("Error toggling session:", error);
+		} finally {
+			setIsLoading(false);
+			console.log("handleToggle: Setting isLoading to false");
 		}
 	};
 
 	const handleEndSession = async () => {
-		if (!session?.id) return;
-		await end(session.id);
-		router.push(`/session/${session.id}/checkout`)
+		if (!session?.id || isLoading) return;
+
+		setIsLoading(true);
+		console.log("handleEndSession: Setting isLoading to true");
+		try {
+			await end(session.id);
+			router.push(`/session/${session.id}/checkout`)
+		} catch (error) {
+			console.error("Error ending session:", error);
+		} finally {
+			setIsLoading(false);
+			console.log("handleEndSession: Setting isLoading to false");
+		}
 	};
 
 	const strokeWidth = 12;
@@ -212,11 +232,13 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 					borderRadius: 12,
 					backgroundColor: !isPaused ? rootStyle.elementColor : "#e0e0e0",
 					position: "relative",
-					cursor: "pointer",
+					cursor: isLoading ? "not-allowed" : "pointer", // Disable cursor when loading
+					opacity: isLoading ? 0.7 : 1, // Reduce opacity when loading
 					alignSelf: "flex-end",
 					mb: 2,
 				}}
 			>
+				{/* Inner Box for the toggle switch */}
 				<Box
 					sx={{
 						position: "absolute",
@@ -339,6 +361,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				onClick={handleToggle}
 				sx={{ mb: 4, fontWeight: 600, fontSize: 16 }}
 				startIcon={!isPaused ? <Pause /> : <Play />}
+				disabled={isLoading} // Disable button when loading
 			>
 				{!isPaused ? "Pause Session" : "Resume Session"}
 			</Button>
@@ -348,6 +371,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				fullWidth
 				color="error"
 				onClick={handleEndSession}
+				disabled={isLoading} // Disable button when loading
 			>
 				End Session
 			</Button>
