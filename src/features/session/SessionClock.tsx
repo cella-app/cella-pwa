@@ -351,7 +351,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				</Box>
 			</Box>
 			<Typography sx={{ fontSize: "24px", fontWeight: 700, fontFamily: rootStyle.mainFontFamily, mb: 2 }}>
-				{isPaused ? "Pop Locked" : "Pop Unlocked"}
+				{isPaused ? "Pod Locked" : "Pod Unlocked"}
 			</Typography>
 
 

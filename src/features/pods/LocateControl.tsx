@@ -7,9 +7,10 @@ import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 
 interface LocateControlProps {
 	fetchPodsBasedOnMap: (location: { latitude: number; longitude: number }, currentZoom: number) => void;
+	onLocate: (latlng: { latitude: number; longitude: number }) => void;
 }
 
-export default function LocateControl({ fetchPodsBasedOnMap }: LocateControlProps) {
+export default function LocateControl({ fetchPodsBasedOnMap, onLocate }: LocateControlProps) {
 	const map = useMap();
 	const { currentLocation } = useLocationTrackingContext();
 
@@ -51,7 +52,13 @@ export default function LocateControl({ fetchPodsBasedOnMap }: LocateControlProp
 			() => {
 				if (!currentLocation) return;
 				const latlng = L.latLng(currentLocation.latitude, currentLocation.longitude);
+
 				map.flyTo(latlng, 15, { duration: 2 });
+
+				onLocate({
+					latitude: latlng.lat,
+					longitude: latlng.lng,
+				});
 			}
 		);
 
@@ -62,7 +69,6 @@ export default function LocateControl({ fetchPodsBasedOnMap }: LocateControlProp
 				window.location.reload();
 			}
 		);
-
 
 		locateControl.addTo(map);
 		reloadControl.addTo(map);
@@ -78,7 +84,7 @@ export default function LocateControl({ fetchPodsBasedOnMap }: LocateControlProp
 			locateControl.remove();
 			reloadControl.remove();
 		};
-	}, [map, currentLocation, fetchPodsBasedOnMap]);
+	}, [map, currentLocation, fetchPodsBasedOnMap, onLocate]);
 
 	return null;
 }

@@ -14,7 +14,7 @@ const HIGH_ACCURACY_THRESHOLD = 20;
 const WIFI_ACCURACY_THRESHOLD = 100;
 const CELL_TOWER_ACCURACY_THRESHOLD = 1000;
 
-export const useLocationTracking = (radius: number = 600) => {
+export const useLocationTracking = (radius: number = 600, currentMapCenter?: LocationData | null) => {
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [pods, setPods] = useState<PodList[]>([]);
   const [loading, setLoading] = useState(false);
@@ -117,15 +117,25 @@ export const useLocationTracking = (radius: number = 600) => {
       return false;
     }
 
-    const distance = calculateDistance(
-      centroid[1], // centroid lat
-      centroid[0], // centroid lng
-      newLoc.latitude,
-      newLoc.longitude
+    const distanceToCentroid = calculateDistance(
+      centroid[1], centroid[0],
+      newLoc.latitude, newLoc.longitude
     );
-    console.debug("loginfo", newLoc, centroid, distance);
-    return distance > radius;
-  }, [lastLocation, centroid, radius, calculateDistance]);
+
+    console.debug("loginfo", newLoc, centroid, distanceToCentroid);
+
+    const distanceToMapCenter = currentMapCenter
+      ? calculateDistance(currentMapCenter.latitude, currentMapCenter.longitude, newLoc.latitude, newLoc.longitude)
+      : 0;
+
+    console.log("Distance to map center:", distanceToMapCenter);
+    if (distanceToMapCenter > 200) {
+      console.log("[shouldFetch] Too far from map center, skip tracking");
+      return false;
+    }
+
+    return distanceToCentroid > radius;
+  }, [lastLocation, centroid, radius, calculateDistance, currentMapCenter]);
 
   const handleGeolocationError = useCallback((error: GeolocationPositionError) => {
     console.error('Geolocation error:', error);
@@ -240,6 +250,6 @@ export const useLocationTracking = (radius: number = 600) => {
     loading,
     error,
     lastSearchCenter: centroid,
-    setPods, // Add setPods to the returned object
+    setPods,
   };
 };

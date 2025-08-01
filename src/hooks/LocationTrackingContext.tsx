@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocationTracking } from './useLocationTracking';
 import { PodList } from '@/shared/data/models/Pod';
+import { useMapStore } from '@/features/reservation/stores/map.store';
 
 interface LocationTrackingProviderProps {
   children: ReactNode;
@@ -10,7 +11,9 @@ interface LocationTrackingProviderProps {
 const LocationTrackingContext = createContext<ReturnType<typeof useLocationTracking> & { setPods: (pods: PodList[]) => void } | undefined>(undefined);
 
 export const LocationTrackingProvider = ({ children, radius = 600 }: LocationTrackingProviderProps) => {
-  const locationTracking = useLocationTracking(radius);
+  const { currentMapCenter } = useMapStore();
+  const locationTracking = useLocationTracking(radius, currentMapCenter);
+  
   return (
     <LocationTrackingContext.Provider value={locationTracking}>
       {children}

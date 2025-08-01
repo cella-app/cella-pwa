@@ -14,6 +14,7 @@ import '@/styles/map.css';
 import LocateControl from './LocateControl';
 import { useRouter } from 'next/navigation';
 import { useReservationStore } from '@/features/reservation/stores/reservation.store';
+import { useMapStore } from '@/features/reservation/stores/map.store';
 import { getMe } from '@/features/me/me.action';
 import { getPodsNearMe } from '@/features/pods/pods.action';
 import { ZOOM_RADIUS_CONFIG, DEBOUNCE_TIME } from '@/shared/config/mapConfig';
@@ -31,32 +32,69 @@ function getCoords(location: { latitude: number; longitude: number } | LatLng) {
 }
 
 function MapEventHandlers({ fetchPodsBasedOnMap, currentLocation }: { fetchPodsBasedOnMap: (location: { latitude: number; longitude: number }, currentZoom: number) => void, currentLocation: { latitude: number; longitude: number } | null }) {
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Tách debounce timeout cho từng event để tránh conflict
+  const moveDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const zoomDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const { setCurrentMapCenter } = useMapStore();
+
   const map = useMapEvents({
     zoomend: () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
+      if (zoomDebounceRef.current) {
+        clearTimeout(zoomDebounceRef.current);
       }
-      debounceTimeoutRef.current = setTimeout(() => {
-        console.log('Debounce finished, fetching pods (from useMapEvents).');
+      zoomDebounceRef.current = setTimeout(() => {
+        console.log('[zoomend] Event triggered');
         const zoom = map.getZoom();
-        // Use currentLocation if available, otherwise fallback to map center
-        const locationToUse = currentLocation || map.getCenter();
-        const coords = getCoords(locationToUse);
+        const center = map.getCenter();
+        // Luôn dùng map center cho zoom event
+        const coords = { latitude: center.lat, longitude: center.lng };
+        console.log('[zoomend] Center:', coords, 'Zoom:', zoom);
         fetchPodsBasedOnMap(coords, zoom);
       }, DEBOUNCE_TIME);
     },
+
+    moveend: () => {
+      if (moveDebounceRef.current) {
+        clearTimeout(moveDebounceRef.current);
+      }
+      moveDebounceRef.current = setTimeout(() => {
+        console.log('[moveend] Event triggered at:', new Date().toLocaleTimeString());
+
+        // Lấy center mới từ map - không qua getCoords để tránh cache
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        const coords = { latitude: center.lat, longitude: center.lng };
+
+        console.log('[moveend] Raw center object:', center);
+        console.log('[moveend] Extracted coords:', coords);
+        console.log('[moveend] Map bounds:', map.getBounds().toString());
+
+        setCurrentMapCenter(coords);
+        fetchPodsBasedOnMap(coords, zoom);
+      }, DEBOUNCE_TIME);
+    }
   });
 
-  // Initial fetch when map is ready
+  // Initial fetch when map is ready - chỉ chạy 1 lần
   useEffect(() => {
-    console.log('Initial fetch of pods (from useMapEvents).');
+    console.log('[useEffect] Initial fetch triggered');
     const zoom = map.getZoom();
-    // Use currentLocation if available, otherwise fallback to map center
+
+    // Ưu tiên currentLocation cho lần đầu, sau đó dùng map center
     const locationToUse = currentLocation || map.getCenter();
     const coords = getCoords(locationToUse);
+
+    console.log('[useEffect] Using location:', coords);
     fetchPodsBasedOnMap(coords, zoom);
-  }, [fetchPodsBasedOnMap, map, currentLocation]);
+  }, [fetchPodsBasedOnMap, map]); // Bỏ currentLocation khỏi deps để tránh re-run
+
+  // Cleanup timeouts
+  useEffect(() => {
+    return () => {
+      if (moveDebounceRef.current) clearTimeout(moveDebounceRef.current);
+      if (zoomDebounceRef.current) clearTimeout(zoomDebounceRef.current);
+    };
+  }, []);
 
   return null;
 }
@@ -74,6 +112,8 @@ export default memo(function MapContent() {
   const popupRef = useRef<HTMLDivElement>(null); // Corrected type
   const { lastSearchCenter, setPods, currentLocation } = useLocationTrackingContext();
   const router = useRouter();
+  const isUserTriggeredFlyToRef = useRef(false);
+  const { setCurrentMapCenter } = useMapStore();
 
   useOutsideClick(popupRef, () => {
     if (selectedPod) {
@@ -111,6 +151,7 @@ export default memo(function MapContent() {
   // Map center update effect
   useEffect(() => {
     if (mapRef.current && lastSearchCenter) {
+      console.log('[flyTo] Flying to:', lastSearchCenter);
       mapRef.current.flyTo([lastSearchCenter[1], lastSearchCenter[0]], 15, { duration: 2 });
     }
   }, [lastSearchCenter]);
@@ -129,7 +170,7 @@ export default memo(function MapContent() {
         radius: closestConfig.radius,
       });
       setPods(response.data.pods);
-      console.log("Pods fetched and set:", response.data.pods);
+      console.log("Pods fetched and set:", response.data.pods.length, "pods");
     } catch (error) {
       console.error("Failed to fetch pods:", error);
     }
@@ -178,9 +219,21 @@ export default memo(function MapContent() {
         maxBounds={[[-85, -180], [85, 180]]}
         maxBoundsViscosity={1.0}
       >
-        {/* Pass currentLocation to MapEventHandlers */}
-        {currentLocation && <MapEventHandlers fetchPodsBasedOnMap={fetchPodsBasedOnMap} currentLocation={currentLocation} />}
-        <LocateControl fetchPodsBasedOnMap={fetchPodsBasedOnMap} />
+        {/* Luôn render MapEventHandlers, không phụ thuộc vào currentLocation */}
+        <MapEventHandlers
+          fetchPodsBasedOnMap={fetchPodsBasedOnMap}
+          currentLocation={currentLocation}
+        />
+
+        <LocateControl
+          fetchPodsBasedOnMap={fetchPodsBasedOnMap}
+          onLocate={(latlng) => {
+            console.log('[LocateControl] User located at:', latlng);
+            isUserTriggeredFlyToRef.current = true;
+            setCurrentMapCenter(latlng);
+          }}
+        />
+
         {mapRef.current && (
           <MapLayersAndControls
             map={mapRef.current}

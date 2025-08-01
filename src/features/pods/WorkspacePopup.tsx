@@ -326,7 +326,7 @@ export default function WorkspacePopup({
         title={
           !isAvailable
             ? 'Pod is unavailable'
-            : currentReservation?.workspace_pod !== id
+            : currentReservation && currentReservation?.workspace_pod !== id
               ? 'You already reserved another workspace'
               : ''
         }
