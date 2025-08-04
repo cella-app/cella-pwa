@@ -335,7 +335,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 						textAlign: "center",
 						color: "black",
 					}}>
-							{"5:00 of this break is free"}
+						{"Free 5-minute break after 50 minutes!"}
 					</Typography>
 					<Typography color="text.secondary" sx={{
 						fontSize: "16px",

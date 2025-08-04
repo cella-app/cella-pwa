@@ -102,7 +102,6 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
       });
       if (paymentMethodError) throw paymentMethodError;
 
-      // Step 2: Create SetupIntent on your server
       
       const { client_secret: clientSecret } = (await paymentApi.getSetupIntent()) as PaymentSetupIntent;
       // Step 3: Confirm the SetupIntent

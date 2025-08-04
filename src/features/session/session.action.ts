@@ -2,12 +2,10 @@
 'use client';
 
 import { sessionApi } from '../../shared/api/session.api';
-import { userAlertStore, SERVERIFY_ALERT } from '../alert/stores/alert.store';
-import { Session, SessionStatusEnum } from '@/shared/data/models/Session';
+import { Session } from '@/shared/data/models/Session';
 import { useSessionStore } from './stores/session.store';
-
+import { alertError } from '@/shared/utils/error';
 export async function tracking(sessionId: string) {
-  const { addAlert } = userAlertStore.getState();
   const { current, setSession } = useSessionStore.getState();
 
   try {
@@ -18,16 +16,12 @@ export async function tracking(sessionId: string) {
     }
   
   } catch (err) {
-    addAlert({
-      severity: SERVERIFY_ALERT.ERROR,
-      message: err instanceof Error ? err.message : 'An unknown error occurred',
-    });
+    alertError(err)
     throw err;
   }
 }
 
 export async function pause(sessionId: string) {
-  const { addAlert } = userAlertStore.getState();
   const { setSession } = useSessionStore.getState();
 
   try {
@@ -35,16 +29,12 @@ export async function pause(sessionId: string) {
     setSession(pausedSession)
 
   } catch (err) {
-    addAlert({
-      severity: SERVERIFY_ALERT.ERROR,
-      message: err instanceof Error ? err.message : 'An unknown error occurred',
-    });
+    alertError(err)
     throw err;
   }
 }
 
 export async function resume(sessionId: string) {
-  const { addAlert } = userAlertStore.getState();
   const { setSession } = useSessionStore.getState();
 
   try {
@@ -52,16 +42,12 @@ export async function resume(sessionId: string) {
     setSession(resumedSession)
 
   } catch (err) {
-    addAlert({
-      severity: SERVERIFY_ALERT.ERROR,
-      message: err instanceof Error ? err.message : 'An unknown error occurred',
-    });
+    alertError(err)
     throw err;
   }
 }
 
 export async function end(sessionId: string) {
-  const { addAlert } = userAlertStore.getState();
   const { setSession } = useSessionStore.getState();
 
   try {
@@ -69,26 +55,19 @@ export async function end(sessionId: string) {
     setSession(endedSession);
 
   } catch (err) {
-    addAlert({
-      severity: SERVERIFY_ALERT.ERROR,
-      message: err instanceof Error ? err.message : 'An unknown error occurred',
-    });
+    alertError(err)
     throw err;
   }
 }
 
 export async function checkout(sessionId: string) {
-  const { addAlert } = userAlertStore.getState();
   const { clearSession } = useSessionStore.getState();
   try {
     await sessionApi.endSession(sessionId);
     clearSession();
 
   } catch (err) {
-    addAlert({
-      severity: SERVERIFY_ALERT.ERROR,
-      message: err instanceof Error ? err.message : 'An unknown error occurred',
-    });
+    alertError(err)
     throw err;
   }
 }
