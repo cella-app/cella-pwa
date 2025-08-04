@@ -337,17 +337,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 					}}>
 						{"Free 5-minute break after 50 minutes!"}
 					</Typography>
-					<Typography color="text.secondary" sx={{
-						fontSize: "16px",
-						fontWeight: 200,
-						fontFamily: rootStyle.mainFontFamily,
-						display: isPaused ? "block" : "none",
-						textAlign: "center",
-						color: "black"
-
-					}}>
-						{"• no charge yet"}
-					</Typography>
 				</Box>
 			</Box>
 			<Typography sx={{ fontSize: "24px", fontWeight: 700, fontFamily: rootStyle.mainFontFamily, mb: 2 }}>

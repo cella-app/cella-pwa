@@ -356,7 +356,7 @@ export default function SessionCompletePage() {
               <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
                 <EuroIcon sx={{ color: rootStyle.elementColor, mr: 1 }} />
                 <b>Price per minute:</b>
-                <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{summary.price_per_minute} €</Box>
+                  <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{summary.price_per_minute.toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}</Box>
                 </Box>
                 <hr></hr>
               <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
