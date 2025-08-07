@@ -1,8 +1,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useEffect, useState } from "react";
-import { ArrowDownToLine } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { ArrowDownToLine } from 'lucide-react';
+import InstallGuidePopup from './InstallGuidePopup';
+import { useAddToHomeScreenStore } from '@/features/add-to-home-screen/stores/add-to-home-screen.store';
+
+const buttonStyle: React.CSSProperties = {
+  position: 'fixed',
+  bottom: 20,
+  right: 20,
+  zIndex: 1000,
+  background: '#fff',
+  border: '1px solid #ccc',
+  borderRadius: '50%',
+  width: 48,
+  height: 48,
+  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: 24,
+  cursor: 'pointer',
+};
 
 function isIOS() {
   if (typeof window === 'undefined') return false;
@@ -11,101 +31,173 @@ function isIOS() {
 
 function isInStandaloneMode() {
   if (typeof window === 'undefined') return false;
-  return window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true
+  );
+}
+
+function getBrowserType() {
+  if (typeof window === 'undefined') return 'unknown';
+  const userAgent = window.navigator.userAgent.toLowerCase();
+
+  if (/iphone|ipad|ipod/i.test(userAgent)) {
+    if (userAgent.includes('crios')) return 'chrome';
+    if (userAgent.includes('fxios')) return 'firefox';
+    if (userAgent.includes('edgios')) return 'edge';
+    return 'safari';
+  }
+
+  if (userAgent.includes('chrome') && !userAgent.includes('edg')) return 'chrome';
+  if (userAgent.includes('firefox')) return 'firefox';
+  if (userAgent.includes('edg')) return 'edge';
+  return 'other';
 }
 
 export default function AddToHomeScreenButton() {
+  const {
+    showButton,
+    showIOSPopup,
+    showChromePopup,
+    showIOSIcon,
+    browserType,
+    setShowButton,
+    setShowIOSPopup,
+    setShowChromePopup,
+    setShowIOSIcon,
+    setBrowserType,
+  } = useAddToHomeScreenStore();
+
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showButton, setShowButton] = useState(false);
-  // const [showIOSPopup, setShowIOSPopup] = useState(false);
-  // const [showIOSIcon, setShowIOSIcon] = useState(false);
 
   useEffect(() => {
     if (isInStandaloneMode()) {
       setShowButton(false);
-      // setShowIOSPopup(false);
-      // setShowIOSIcon(false);
+      setShowIOSPopup(false);
+      setShowChromePopup(false);
+      setShowIOSIcon(false);
       return;
     }
+
+    const detectedBrowser = getBrowserType();
+    setBrowserType(detectedBrowser);
+
     if (isIOS()) {
-      // setShowIOSIcon(true);
+      setShowIOSIcon(true);
       setShowButton(false);
       return;
     }
-    // Android/Chrome
+
+    // Android: Listen for beforeinstallprompt
     const handler = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowButton(true);
+      setShowButton(true); // Show install button for Android
     };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
 
-  const handleClick = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.finally(() => {
-        setShowButton(false);
-      });
-    }
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, [setShowButton, setShowIOSPopup, setShowChromePopup, setShowIOSIcon, setBrowserType]);
+
+  const getInstallGuideType = (platform: 'ios' | 'chrome') => {
+    if (platform === 'ios') return 'ios';
+    return 'chrome';
   };
 
-  // iOS: Hiện icon nhỏ, bấm vào mở popup hướng dẫn
-  // if (showIOSIcon) {
-  //   return (
-  //     <>
-  //       <button
-  //         onClick={() => setShowIOSPopup(true)}
-  //         style={{ position: "fixed", bottom: 20, right: 20, zIndex: 1000, background: "#fff", border: "1px solid #ccc", borderRadius: "50%", width: 48, height: 48, boxShadow: "0 2px 8px rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}
-  //         aria-label="Hướng dẫn thêm vào MH chính"
-  //       >
-  //         &#x1f5d2;
-  //       </button>
-  //       {showIOSPopup && (
-  //         <div style={{ position: "fixed", bottom: 80, right: 20, left: 20, zIndex: 1001, background: "#fff", border: "1px solid #ccc", borderRadius: 8, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
-  //           <b>Hướng dẫn thêm vào màn hình chính (iOS):</b>
-  //           <ol style={{ margin: '8px 0 0 16px' }}>
-  //             <li>Nhấn nút <b>Chia sẻ</b> <span role="img" aria-label="share">&#x1f5d2;</span> ở dưới trình duyệt.</li>
-  //             <li>Chọn <b>Thêm vào MH chính</b> (Add to Home Screen).</li>
-  //           </ol>
-  //           <button style={{ marginTop: 8 }} onClick={() => setShowIOSPopup(false)}>Đóng</button>
-  //         </div>
-  //       )}
-  //     </>
-  //   );
-  // }
+  const getPopupTitle = (platform: 'ios' | 'chrome') => {
+    if (platform === 'ios') {
+      switch (browserType) {
+        case 'safari':
+          return 'App Installation Guide (iOS Safari)';
+        case 'chrome':
+          return 'App Installation Guide (iOS Chrome)';
+        case 'firefox':
+          return 'App Installation Guide (iOS Firefox)';
+        case 'edge':
+          return 'App Installation Guide (iOS Edge)';
+        default:
+          return 'App Installation Guide (iOS)';
+      }
+    }
+    return 'App Installation Guide (Chrome)';
+  };
 
-  // Android/Chrome: Hiện icon Lucide Plus khi có beforeinstallprompt
-  if (showButton) {
-    return (
-      <button
-        onClick={handleClick}
-        style={{
-          position: "fixed",
-          bottom: 20,
-          right: 20,
-          zIndex: 1000,
-          background: "#fff",
-          border: "1px solid #ccc",
-          borderRadius: "50%",
-          width: 48,
-          height: 48,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 24,
-          cursor: "pointer"
-        }}
-        title="Cài đặt ứng dụng"
-        aria-label="Cài đặt ứng dụng"
-      >
-        <ArrowDownToLine size={24} />
-      </button>
-    );
-  }
+  const handleIOSButtonClick = () => {
+    setShowIOSPopup(true);
+    setShowChromePopup(false);
+  };
 
-  // Standalone hoặc không đủ điều kiện: không hiển thị gì
-  return null;
-} 
+  const handleChromeButtonClick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+
+      deferredPrompt.userChoice.then((choiceResult: any) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('✅ User accepted the install prompt');
+        } else {
+          console.log('❌ User dismissed the install prompt');
+        }
+        setDeferredPrompt(null);
+        setShowButton(false); // Hide button after interaction
+      });
+    } else {
+      console.log('⚠️ No deferredPrompt available');
+    }
+
+    // Optional: show guide even after dismissed
+    // setShowChromePopup(true);
+    setShowIOSPopup(false);
+  };
+
+  const renderButton = () => {
+    if (showIOSPopup || showChromePopup) return null;
+
+    if (showIOSIcon) {
+      return (
+        <button
+          onClick={handleIOSButtonClick}
+          style={buttonStyle}
+          aria-label="Add to Home Screen Guide"
+          title="Add to Home Screen Guide"
+        >
+          <ArrowDownToLine size={24} />
+        </button>
+      );
+    }
+
+    if (showButton) {
+      return (
+        <button
+          onClick={handleChromeButtonClick}
+          style={buttonStyle}
+          title="Install App"
+          aria-label="Install App"
+        >
+          <ArrowDownToLine size={24} />
+        </button>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <>
+      {renderButton()}
+
+      <InstallGuidePopup
+        showPopup={showIOSPopup}
+        onClose={() => setShowIOSPopup(false)}
+        title={getPopupTitle('ios')}
+        guideType={getInstallGuideType('ios')}
+      />
+
+      <InstallGuidePopup
+        showPopup={showChromePopup}
+        onClose={() => setShowChromePopup(false)}
+        title={getPopupTitle('chrome')}
+        guideType={getInstallGuideType('chrome')}
+      />
+    </>
+  );
+}

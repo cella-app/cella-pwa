@@ -209,7 +209,7 @@ export default memo(function MapContent() {
         center={center}
         zoom={15}
         minZoom={10}
-        maxZoom={18}
+        maxZoom={20}
         scrollWheelZoom={true}
         zoomControl={false}
         style={{ height: '100vh', width: '100%' }}

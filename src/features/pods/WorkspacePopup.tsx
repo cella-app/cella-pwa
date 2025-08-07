@@ -169,7 +169,7 @@ export default function WorkspacePopup({
         }
         return next;
       });
-    }, 1000);
+    }, 200);
     return () => clearInterval(timer);
   }, [reserved, countdown, currentReservation]);
 
