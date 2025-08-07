@@ -7,7 +7,7 @@ interface InstallGuidePopupProps {
   showPopup: boolean;
   onClose: () => void;
   title: string;
-  guideType: 'ios' | 'chrome'; // Changed from url to guideType
+  guideType: 'safari' | 'chrome'; // Changed from url to guideType
 }
 
 export default function InstallGuidePopup({ showPopup, onClose, title, guideType }: InstallGuidePopupProps) {
@@ -17,7 +17,7 @@ export default function InstallGuidePopup({ showPopup, onClose, title, guideType
 
   const renderGuideContent = () => {
     switch (guideType) {
-      case 'ios':
+      case 'safari':
         return <InstallGuideSafariContent />;
       case 'chrome':
         return <InstallGuideChromeContent />;
