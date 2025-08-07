@@ -7,21 +7,21 @@ import InstallGuidePopup from './InstallGuidePopup';
 import { useAddToHomeScreenStore } from '@/features/add-to-home-screen/stores/add-to-home-screen.store';
 
 const buttonStyle: React.CSSProperties = {
-  position: 'fixed',
+  position: "fixed",
   bottom: 20,
   right: 20,
   zIndex: 1000,
-  background: '#fff',
-  border: '1px solid #ccc',
-  borderRadius: '50%',
+  background: "#fff",
+  border: "1px solid #ccc",
+  borderRadius: "50%",
   width: 48,
   height: 48,
-  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   fontSize: 24,
-  cursor: 'pointer',
+  cursor: "pointer"
 };
 
 function isIOS() {
