@@ -5,6 +5,7 @@ import { sessionApi } from '../../shared/api/session.api';
 import { Session } from '@/shared/data/models/Session';
 import { useSessionStore } from './stores/session.store';
 import { alertError } from '@/shared/utils/error';
+
 export async function tracking(sessionId: string) {
   const { current, setSession } = useSessionStore.getState();
 

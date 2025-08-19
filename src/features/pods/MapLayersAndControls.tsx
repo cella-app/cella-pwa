@@ -17,10 +17,6 @@ const Marker = dynamic(
   () => import('react-leaflet').then((mod) => mod.Marker),
   { ssr: false }
 );
-const Circle = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Circle),
-  { ssr: false }
-);
 
 interface MapLayersAndControlsProps {
   map: LeafletMapType | null;
@@ -112,16 +108,6 @@ export const MapLayersAndControls = ({
           <Marker
             position={[currentLocation.latitude, currentLocation.longitude]}
             icon={myLocationIcon}
-          />
-
-          <Circle
-            center={[currentLocation.latitude, currentLocation.longitude]}
-            radius={200}
-            pathOptions={{
-              color: 'transparent',
-              fillColor: '#007BFF',
-              fillOpacity: 0.2,
-            }}
           />
         </>
       )}

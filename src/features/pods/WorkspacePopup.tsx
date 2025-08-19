@@ -180,7 +180,7 @@ export default function WorkspacePopup({
     try {
       const reservation = await reserveNow(id);
       setReservation(reservation);
-
+      console.log(reservation);
       const seconds = getCountdownFromReservation(reservation.unlock_due);
       if (seconds > 0) {
         setReserved(true);

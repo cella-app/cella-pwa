@@ -7,6 +7,8 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const token = request.cookies.get('authToken')?.value;
 
+  console.log('authToken:', token);
+
   if (pathname === '/') {
     return NextResponse.redirect(new URL('/workspace/discovery', request.url));
   }
