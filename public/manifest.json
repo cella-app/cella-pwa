@@ -4,31 +4,31 @@
 	"description": "Cell - Workspace pod",
 	"icons": [
 		{
-			"src": "/pwa/icon-72.png",
+			"src": "/pwa/icon.png",
 			"type": "image/png",
 			"sizes": "72x72",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon-96.png",
+			"src": "/pwa/icon.png",
 			"type": "image/png",
 			"sizes": "96x96",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon-128.png",
+			"src": "/pwa/icon.png",
 			"type": "image/png",
 			"sizes": "128x128",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon-144.png",
+			"src": "/pwa/icon.png",
 			"type": "image/png",
 			"sizes": "144x144",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon-152.png",
+			"src": "/pwa/icon.png",
 			"type": "image/png",
 			"sizes": "152x152",
 			"purpose": "any"
@@ -40,25 +40,25 @@
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon-180.png",
+			"src": "/pwa/icon.png",
 			"type": "image/png",
 			"sizes": "180x180",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon-384.png",
+			"src": "/pwa/icon.png",
 			"type": "image/png",
 			"sizes": "384x384",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/iconL.png",
+			"src": "/pwa/icon.png",
 			"type": "image/png",
 			"sizes": "512x512",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/iconL.png",
+			"src": "/pwa/icon.png",
 			"sizes": "512x512",
 			"type": "image/png",
 			"purpose": "maskable"
