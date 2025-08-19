@@ -9,7 +9,7 @@ import { useAddToHomeScreenStore } from '@/features/add-to-home-screen/stores/ad
 const buttonStyle: React.CSSProperties = {
   position: 'fixed',
   bottom: 20,
-  right: 20,
+  left: 20,
   zIndex: 1000,
   background: '#fff',
   border: '1px solid #ccc',
