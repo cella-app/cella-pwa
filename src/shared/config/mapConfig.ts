@@ -6,4 +6,4 @@ export const ZOOM_RADIUS_CONFIG = [
   { zoom: 15, radius: 600 },   // 600m
 ];
 
-export const DEBOUNCE_TIME = 1000; // milliseconds
+export const DEBOUNCE_TIME = 500; // milliseconds

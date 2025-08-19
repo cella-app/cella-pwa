@@ -24,7 +24,15 @@ export interface BillingSummaryResponse {
 	billingSummary: BillingSummarySession;
 }
 
+const TIME_DEBOUNCE_REQIEST = 500;
+
+type EndSessionResolver = (value: Session | PromiseLike<Session>) => void;
+type EndSessionRejecter = (reason?: unknown) => void;
+
 class SessionApi extends BaseApi {
+	private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	private debounceResolver: { resolve: EndSessionResolver; reject: EndSessionRejecter } | null = null;
+	private latestRequestData: string | null = null; // For endSession, it's sessionId
 
 	constructor() {
 		super(axiosInstance)
@@ -60,12 +68,29 @@ class SessionApi extends BaseApi {
 	}
 
 	async endSession(sessionId: string): Promise<Session> {
-		try {
-			const { data: responseData } = await this.apiInstance.post<{ data: SessionCurrentRunningResponse }>(`/reserve/session/${sessionId}/end`);
-			return responseData.data.session;
-		} catch (error: unknown) {
-			throw this.handleApiError(error, 'getSession', 500);
+		this.latestRequestData = sessionId;
+
+		if (this.debounceTimer) {
+			clearTimeout(this.debounceTimer);
 		}
+
+		return new Promise((resolve, reject) => {
+			this.debounceResolver = { resolve, reject };
+
+			this.debounceTimer = setTimeout(async () => {
+				try {
+					const { data: responseData } = await this.apiInstance.post<{ data: SessionCurrentRunningResponse }>(`/reserve/session/${this.latestRequestData}/end`);
+					const result = responseData.data.session;
+					this.debounceResolver?.resolve(result);
+				} catch (error) {
+					this.debounceResolver?.reject(this.handleApiError(error, 'endSession', 500));
+				} finally {
+					this.debounceTimer = null;
+					this.debounceResolver = null;
+					this.latestRequestData = null;
+				}
+			}, TIME_DEBOUNCE_REQIEST);
+		});
 	}
 
 	async pauseSession(sessionId: string): Promise<Session> {

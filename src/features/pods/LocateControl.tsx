@@ -53,7 +53,7 @@ export default function LocateControl({ fetchPodsBasedOnMap, onLocate }: LocateC
 				if (!currentLocation) return;
 				const latlng = L.latLng(currentLocation.latitude, currentLocation.longitude);
 
-				map.flyTo(latlng, 15, { duration: 2 });
+				map.flyTo(latlng, 15, { duration: 0.5 });
 
 				onLocate({
 					latitude: latlng.lat,
@@ -66,7 +66,12 @@ export default function LocateControl({ fetchPodsBasedOnMap, onLocate }: LocateC
 			'Reload Pod Data',
 			`<i class="fa-solid fa-rotate-right"></i>`,
 			() => {
-				window.location.reload();
+				const currentCenter = map.getCenter();
+				const currentZoom = map.getZoom();
+				fetchPodsBasedOnMap(
+					{ latitude: currentCenter.lat, longitude: currentCenter.lng },
+					currentZoom
+				);
 			}
 		);
 
@@ -75,6 +80,12 @@ export default function LocateControl({ fetchPodsBasedOnMap, onLocate }: LocateC
 
 		const locateButtonElement = locateControl.getContainer();
 		const reloadButtonElement = reloadControl.getContainer();
+
+		if (locateButtonElement) {
+			locateButtonElement.style.cursor = currentLocation ? 'pointer' : 'not-allowed';
+			locateButtonElement.style.opacity = currentLocation ? '1' : '0.5';
+			(locateButtonElement as HTMLButtonElement).disabled = !currentLocation;
+		}
 
 		if (locateButtonElement && reloadButtonElement) {
 			reloadButtonElement.style.marginTop = '8px';

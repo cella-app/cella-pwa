@@ -11,7 +11,15 @@ export interface UnlockResponse {
 	session: Session
 }
 
+const TIME_DEBOUNCE_REQIEST = 500;
+
+type UnlockResolver = (value: Session | PromiseLike<Session>) => void;
+type UnlockRejecter = (reason?: unknown) => void;
+
 class ReservationApi extends BaseApi {
+	private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	private debounceResolver: { resolve: UnlockResolver; reject: UnlockRejecter } | null = null;
+	private latestRequestData: string | null = null; // For unlock, it's reserveId
 
 	constructor() {
 		super(axiosInstance)
@@ -50,13 +58,29 @@ class ReservationApi extends BaseApi {
 	}
 
 	async unlock(reserveId: string): Promise<Session> {
-		try {
-			const { data: responseData } = await this.apiInstance.post<{ data: UnlockResponse }>(`/reserve/${reserveId}/unlock`);
+		this.latestRequestData = reserveId;
 
-			return responseData.data.session;
-		} catch (error: unknown) {
-			throw this.handleApiError(error, 'getReservation', 500);
+		if (this.debounceTimer) {
+			clearTimeout(this.debounceTimer);
 		}
+
+		return new Promise((resolve, reject) => {
+			this.debounceResolver = { resolve, reject };
+
+			this.debounceTimer = setTimeout(async () => {
+				try {
+					const { data: responseData } = await this.apiInstance.post<{ data: UnlockResponse }>(`/reserve/${this.latestRequestData}/unlock`);
+					const result = responseData.data.session;
+					this.debounceResolver?.resolve(result);
+				} catch (error) {
+					this.debounceResolver?.reject(this.handleApiError(error, 'unlock', 500));
+				} finally {
+					this.debounceTimer = null;
+					this.debounceResolver = null;
+					this.latestRequestData = null;
+				}
+			}, TIME_DEBOUNCE_REQIEST);
+		});
 	}
 
 	async feeback(reserveId: string, star: number, content: string | null): Promise<null> {
