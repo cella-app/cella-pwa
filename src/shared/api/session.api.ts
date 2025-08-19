@@ -1,6 +1,6 @@
 import axiosInstance from './instances/axios-auth-instance';
 import BaseApi from './base';
-import { Session, SessionPause, BillingSession, BillingSummarySession } from "@/shared/data/models/Session"
+import { Session, SessionPause, BillingSession, BillingSummarySession, SessionAmount } from "@/shared/data/models/Session"
 
 export interface SessionCurrentRunningResponse {
 	session: Session;
@@ -121,6 +121,16 @@ class SessionApi extends BaseApi {
 		try {
 			const { data: responseData } = await this.apiInstance.get<{ data: BillingSummaryResponse }>(`/reserve/session/${sessionId}/billing-summary`);
 			return responseData.data.billingSummary;
+		} catch (error: unknown) {
+			console.warn('Failed to get current pause, returning null:', error);
+			return null;
+		}
+	}
+
+	async getAmount(sessionId: string): Promise<number | null> {
+		try {
+			const { data: responseData } = await this.apiInstance.get<{ data: SessionAmount }>(`/reserve/session/${sessionId}/amount`);
+			return responseData.data.amount;
 		} catch (error: unknown) {
 			console.warn('Failed to get current pause, returning null:', error);
 			return null;

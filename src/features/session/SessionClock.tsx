@@ -11,9 +11,15 @@ import {
 import { Pause, Play, Lock, LockOpen } from "lucide-react";
 import { rootStyle } from "@/theme";
 import { Session, SessionStatusEnum } from "@/shared/data/models/Session";
-import { tracking, pause, resume, end } from '@/features/session/session.action';
+import { tracking, pause, resume, end, getAmount } from '@/features/session/session.action';
 import { useSessionStore } from '@/features/session/stores/session.store';
 import { useRouter } from 'next/navigation';
+import { MIN_AMOUNT } from '@/shared/config/payment';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 
 interface SessionClockProps {
 	session: Session;
@@ -35,7 +41,10 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 	const [pauseTime, setPauseTime] = useState(0);
 	const [isPaused, setIsPaused] = useState(false);
 	const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
-	const [isLoading, setIsLoading] = useState(false); // Added isLoading state
+	const [isLoading, setIsLoading] = useState(false);
+	const [endSessionButtonText, setEndSessionButtonText] = useState("End Session");
+	const [showMinAmountPopup, setShowMinAmountPopup] = useState(false);
+	const [calculatedAmount, setCalculatedAmount] = useState(0);
 
 	const focusInterval = useRef<NodeJS.Timeout | null>(null);
 	const pauseInterval = useRef<NodeJS.Timeout | null>(null);
@@ -181,16 +190,49 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 		if (!session?.id || isLoading) return;
 
 		setIsLoading(true);
+		setEndSessionButtonText("Calculating amount...");
 		console.log("handleEndSession: Setting isLoading to true");
 		try {
-			await end(session.id);
-			router.push(`/session/${session.id}/checkout`)
+			const amountResponse = await getAmount(session.id);
+			const amount = amountResponse.amount;
+			setCalculatedAmount(amount);
+
+			if (amount < MIN_AMOUNT) {
+				setShowMinAmountPopup(true);
+			} else {
+				setEndSessionButtonText("Ending...");
+				await end(session.id);
+				router.push(`/session/${session.id}/checkout`);
+			}
 		} catch (error) {
 			console.error("Error ending session:", error);
+			setEndSessionButtonText("End Session"); // Reset button text on error
 		} finally {
 			setIsLoading(false);
 			console.log("handleEndSession: Setting isLoading to false");
 		}
+	};
+
+	const handleConfirmEndSession = async () => {
+		setShowMinAmountPopup(false);
+		if (!session?.id) return;
+
+		setIsLoading(true);
+		setEndSessionButtonText("Ending...");
+		try {
+			await end(session.id);
+			router.push(`/session/${session.id}/checkout`);
+		} catch (error) {
+			console.error("Error ending session after confirmation:", error);
+			setEndSessionButtonText("End Session"); // Reset button text on error
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const handleCloseMinAmountPopup = () => {
+		setShowMinAmountPopup(false);
+		setEndSessionButtonText("End Session"); // Reset button text if user cancels
 	};
 
 	const strokeWidth = 12;
@@ -350,7 +392,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				onClick={handleToggle}
 				sx={{ mb: 4, fontWeight: 600, fontSize: 16 }}
 				startIcon={!isPaused ? <Pause /> : <Play />}
-				disabled={isLoading} // Disable button when loading
+				disabled={isLoading}
 			>
 				{!isPaused ? "Pause Session" : "Resume Session"}
 			</Button>
@@ -360,10 +402,70 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				fullWidth
 				color="error"
 				onClick={handleEndSession}
-				disabled={isLoading} // Disable button when loading
+				disabled={isLoading}
 			>
-				End Session
+				{endSessionButtonText}
 			</Button>
+
+			<Dialog
+				open={showMinAmountPopup}
+				onClose={handleCloseMinAmountPopup}
+				fullWidth
+				maxWidth="xs"
+				PaperProps={{ sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor } }}
+			>
+				<DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>{"Minimum Amount Required"}</DialogTitle>
+				<DialogContent sx={{ pb: 0, textAlign: 'center' }}>
+					<DialogContentText sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}>
+						{`The minimum amount to pay is ${MIN_AMOUNT}. Your current calculated amount is ${calculatedAmount}. Do you still want to end the session?`}
+					</DialogContentText>
+				</DialogContent>
+				<DialogActions
+					sx={{
+						justifyContent: 'center',
+						gap: 2,
+						pb: { xs: 1.5, sm: 2 },
+						flexDirection: 'row',
+						alignItems: 'center',
+					}}
+				>
+					<Button
+						onClick={handleCloseMinAmountPopup}
+						disabled={isLoading}
+						variant="outlined"
+						fullWidth
+						sx={{
+							borderRadius: 3,
+							fontWeight: 700,
+							color: rootStyle.elementColor,
+							borderColor: rootStyle.elementColor,
+							px: 2,
+							background: 'transparent',
+							maxWidth: 180,
+							minWidth: 125
+						}}
+					>
+						No, Cancel
+					</Button>
+					<Button
+						onClick={handleConfirmEndSession}
+						color="error"
+						disabled={isLoading}
+						variant="contained"
+						fullWidth
+						sx={{
+							borderRadius: 3,
+							fontWeight: 700,
+							px: 2,
+							background: '#C2412B',
+							maxWidth: 180,
+							minWidth: 125
+						}}
+					>
+						Yes, End Session
+					</Button>
+				</DialogActions>
+			</Dialog>
 
 			{pauseLogs.filter(log => log.resume_at).map((pauseLog, idx) => {
 				const pauseStart = new Date(pauseLog.pause_at);

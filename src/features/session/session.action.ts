@@ -72,3 +72,16 @@ export async function checkout(sessionId: string) {
     throw err;
   }
 }
+
+export async function getAmount(sessionId: string): Promise<{ amount: number }> {
+  try {
+    const amount = await sessionApi.getAmount(sessionId);
+    if (amount === null) {
+      throw new Error("Failed to retrieve amount.");
+    }
+    return { amount };
+  } catch (err) {
+    alertError(err);
+    throw err;
+  }
+}

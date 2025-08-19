@@ -79,3 +79,7 @@ export interface BillingSummarySession {
 	price_per_minute: number;
 	total_fee: number;
 }
+
+export interface SessionAmount {
+	amount: number;
+}
