@@ -53,8 +53,7 @@ function LoginForm() {
 
 	useEffect(() => {
 		if (isAuthenticated) {
-			router.push('/workspace/discovery');
-			router.push('/workspace/discovery');
+			router.push('/workspace/discovery');		
 		}
 	}, [isAuthenticated, router]);
 
@@ -67,8 +66,7 @@ function LoginForm() {
 			}, TIMEOUT_REDIRECT_LOGIN);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {
-			throw err			
-			throw err			
+			throw err					
 		}
 	};
 

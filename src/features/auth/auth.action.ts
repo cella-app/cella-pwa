@@ -28,11 +28,14 @@ export async function loginAction(email: string, password: string) {
 			severity: SERVERIFY_ALERT.SUCCESS,
 			message: "Login successfully!"
 		})
-
-		setTimeout(async () => {
-			const user = await meApi.get();
-			setUser(user)
-		}, 500)
+    
+    const user = await meApi.get();
+    setUser(user)
+		
+    // setTimeout(async () => {
+		// 	const user = await meApi.get();
+		// 	setUser(user)
+		// }, 500)
 	} catch (err) {
 		setError(err instanceof Error ? err.message : 'Login failed');
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
