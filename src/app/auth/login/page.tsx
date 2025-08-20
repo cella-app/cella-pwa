@@ -60,10 +60,13 @@ function LoginForm() {
 	const onSubmit = async (data: LoginFormData) => {
 		try {
 			await loginAction(data.email, data.password);
-			setTimeout(() => {
-				const from = searchParams?.get('from') || '/workspace/discovery';
-				router.push(from);
-			}, TIMEOUT_REDIRECT_LOGIN);
+			router.push('/workspace/discovery');		
+
+			// setTimeout(() => {
+			// 	const from = searchParams?.get('from') || '/workspace/discovery';
+
+			// 	router.push(from);
+			// }, TIMEOUT_REDIRECT_LOGIN);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {
 			throw err					
