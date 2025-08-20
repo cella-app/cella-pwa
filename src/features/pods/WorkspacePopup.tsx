@@ -78,7 +78,6 @@ const ButtonBox = styled(Box)(() => ({
 interface WorkspacePopupProps {
   id: string;
   name: string;
-  distance: string;
   status: PodStatus;
   accompanying_services: AccompanyingService[];
   currentReservation?: Reservation | null;
@@ -94,7 +93,6 @@ const serviceIcons: Record<string, React.ComponentType<{ width: string; height: 
 export default function WorkspacePopup({
   id,
   name,
-  distance,
   accompanying_services,
 }: WorkspacePopupProps) {
   const [price, setPrice] = useState<number | null>(null);
@@ -109,7 +107,6 @@ export default function WorkspacePopup({
   const { current: currentReservation, setReservation, clearReservation } = useReservationStore();
   const { setSession } = useSessionStore();
   const isAvailable = status === 'available';
-  console.log(distance)
   // Countdown calculation
   const getCountdownFromReservation = (unlock_due: string | Date): number => {
     const due = new Date(unlock_due).getTime();
@@ -169,7 +166,7 @@ export default function WorkspacePopup({
         }
         return next;
       });
-    }, 200);
+    }, 1000);
     return () => clearInterval(timer);
   }, [reserved, countdown, currentReservation]);
 
@@ -180,7 +177,6 @@ export default function WorkspacePopup({
     try {
       const reservation = await reserveNow(id);
       setReservation(reservation);
-      console.log(reservation);
       const seconds = getCountdownFromReservation(reservation.unlock_due);
       if (seconds > 0) {
         setReserved(true);
