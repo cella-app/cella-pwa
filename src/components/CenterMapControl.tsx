@@ -6,17 +6,16 @@ import L from 'leaflet';
 import { CircleSmall as ICircle } from 'lucide-react';
 
 import { renderToString } from 'react-dom/server';
-import { Circle, Polyline } from 'react-leaflet';
+import { Circle } from 'react-leaflet';
 import { useRadiusStore } from '@/features/pods/stores/radius.store';
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 import { useMapStore } from '@/features/reservation/stores/map.store';
-import DistanceMarker from './DistanceMarker';
 
 const CenterMapControl = () => {
 	const map = useMap();
 	const centerMarkerRef = useRef<L.Marker | null>(null);
 	const { radius } = useRadiusStore();
-	const { currentLocation, searchCenter } = useLocationTrackingContext();
+	const { searchCenter } = useLocationTrackingContext();
 	const { setCurrentMapCenter } = useMapStore();
 
 	// Sử dụng searchCenter thay vì map center
@@ -81,11 +80,6 @@ const CenterMapControl = () => {
 		},
 	});
 
-	const linePositions = currentLocation ? [
-		L.latLng(currentLocation.latitude, currentLocation.longitude),
-		L.latLng(circleCenter.lat, circleCenter.lng)
-	] : [];
-
 	return (
 		<>
 			<Circle
@@ -97,18 +91,6 @@ const CenterMapControl = () => {
 					fillOpacity: 0.2,
 				}}
 			/>
-			{currentLocation && (
-				<Polyline
-					positions={linePositions}
-					pathOptions={{ color: '#007BFF', fillOpacity: 0.2, weight: 1.5 }}
-				/>
-			)}
-			{currentLocation && (
-				<DistanceMarker
-					currentLocation={currentLocation}
-					circleCenter={circleCenter}
-				/>
-			)}
 		</>
 	);
 };

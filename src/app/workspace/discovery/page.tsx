@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 
 const MapContent = dynamic(() => import('@/features/pods/MapContent'), {
   ssr: false,
+  // để đây xử lý loader
   loading: () => <Box>Loading map...</Box>,
 });
 

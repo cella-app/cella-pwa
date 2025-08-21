@@ -3,20 +3,16 @@ import { getPodsNearMe } from '@/features/pods/pods.action';
 import { PodList } from '@/shared/data/models/Pod';
 import L from 'leaflet';
 import { useLocationStore } from '@/features/pods/stores/location.store';
+import {
+  FETCH_DEBOUNCE_DELAY,
+  RETRY_DELAY,
+  MOVEMENT_THRESHOLD,
+  CLOSE_DISTANCE_THRESHOLD,
+  FAR_MOVEMENT_THRESHOLD
+} from '@/shared/config/location';
 
-interface LocationData {
-  latitude: number;
-  longitude: number;
-}
-
-const EARTH_RADIUS_METERS = 6371e3;
-const FETCH_DEBOUNCE_DELAY = 500;
-const RETRY_DELAY = 5000;
-const MOVEMENT_THRESHOLD = 0.000001; // ~0.1 meters
-
-// Thêm constants cho logic mới
-const CLOSE_DISTANCE_THRESHOLD = 10; // 10m - khoảng cách gần
-const FAR_MOVEMENT_THRESHOLD = 50; // 50m - ngưỡng di chuyển xa
+import { LocationData } from '@/shared/data/models/Location';
+import { calculateDistance } from '@/shared/utils/location';
 
 export const useLocationTracking = (
   radius: number = 600,
@@ -30,11 +26,8 @@ export const useLocationTracking = (
   const [centroid, setCentroid] = useState<[number, number] | null>(null);
   const [lastLocation, setLastLocation] = useState<LocationData | null>(null);
   const [isUserOutOfView, setIsUserOutOfView] = useState<boolean>(false);
-
-  // Thêm state mới cho search center
   const [searchCenter, setSearchCenter] = useState<LocationData | null>(null);
   const [lastFarMovementCheck, setLastFarMovementCheck] = useState<LocationData | null>(null);
-
   const watchIdRef = useRef<number | null>(null);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -42,20 +35,8 @@ export const useLocationTracking = (
 
   const { setLocation } = useLocationStore();
 
-  const calculateDistance = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const lat1Rad = (lat1 * Math.PI) / 180;
-    const lat2Rad = (lat2 * Math.PI) / 180;
-    const latDiff = ((lat2 - lat1) * Math.PI) / 180;
-    const lngDiff = ((lng2 - lng1) * Math.PI) / 180;
-    const a = Math.sin(latDiff / 2) ** 2 +
-      Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.sin(lngDiff / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return EARTH_RADIUS_METERS * c;
-  }, []);
 
-  // Logic mới để quyết định search center
   const updateSearchCenter = useCallback((newUserLocation: LocationData, mapCenter?: LocationData | null) => {
-    // Nếu chưa có search center, khởi tạo bằng vị trí user hoặc map center
     if (!searchCenter) {
       const initialCenter = mapCenter || newUserLocation;
       setSearchCenter(initialCenter);
@@ -63,7 +44,6 @@ export const useLocationTracking = (
       return initialCenter;
     }
 
-    // Nếu có mapCenter mới (user di chuyển map manually), ưu tiên mapCenter
     if (mapCenter) {
       const distanceMapCenterToCurrentSearch = calculateDistance(
         mapCenter.latitude,
@@ -137,6 +117,8 @@ export const useLocationTracking = (
         longitude: lng,
         radius
       });
+
+      console.warn("Fetch tracking")
 
       if (response?.data?.pods) {
         setPods(response.data.pods);
@@ -319,7 +301,7 @@ export const useLocationTracking = (
     loading,
     error,
     lastSearchCenter: centroid,
-    searchCenter, // Export search center để có thể hiển thị trên map
+    searchCenter,
     setPods,
     isUserOutOfView,
     getLocationForFetch,

@@ -353,7 +353,6 @@ export default memo(function MapContent() {
             id={selectedPod.id}
             name={selectedPod.name || 'Unnamed Pod'}
             status={selectedPod.status}
-            distance={`${selectedPod.distance_meters}m`}
             accompanying_services={selectedPod.accompanying_services}
             currentReservation={currentReservation}
           />

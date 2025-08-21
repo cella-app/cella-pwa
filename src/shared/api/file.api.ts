@@ -42,30 +42,8 @@ class FileApi extends BaseApi {
       return searchRes.data.data[0].id;
     }
 
-    // let avatarFolder
-    // const searchAvatarRes = await this.apiInstance.get(`/folders`, {
-    //   params: {
-    //     filter: {
-    //       name: { _eq: "avatar" }
-    //     },
-    //     limit: 1
-    //   },
-    //   withCredentials: true
-    // });
-
-    // if (!searchAvatarRes) {
-    //   const createAvatar = await this.apiInstance.post(`/folders`, {
-    //     name: "avatar",
-    //   }, { withCredentials: true });
-
-    //   avatarFolder = createAvatar.data.data
-    // } else {
-    //   avatarFolder = searchAvatarRes.data.datap[0]
-    // }
-
     const createRes = await this.apiInstance.post<{ data: FolderBackend }>(`/folders`, {
       name: folderName,
-      // parent: avatarFolder
     }, { withCredentials: true });
 
     return createRes.data.data.id;

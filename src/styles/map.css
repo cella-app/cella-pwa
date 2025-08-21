@@ -69,43 +69,4 @@
     transform: scale(1.5);
     opacity: 0.5;
   }
-} 
-
-/* Thêm vào file @/styles/map.css */
-
-/* .leaflet-control-locate-location,
-.leaflet-marker-icon[src*="blue"],
-.leaflet-marker-icon[src*="location"] {
-  transition: transform 0.2s ease-out !important;
 }
-
-.leaflet-zoom-anim .leaflet-control-locate-location,
-.leaflet-zoom-anim .leaflet-marker-icon[src*="blue"],
-.leaflet-zoom-anim .leaflet-marker-icon[src*="location"] {
-  transition: none !important;
-  will-change: transform !important;
-}
-
-.leaflet-zoom-animated {
-  will-change: transform !important;
-}
-
-.leaflet-tile-container {
-  will-change: transform !important;
-}
-
-.leaflet-control-locate-circle {
-  transition: transform 0.3s ease-out !important;
-}
-
-.leaflet-zoom-anim .leaflet-control-locate-circle {
-  transition: none !important;
-}
-
-.location-marker {
-  transition: transform 0.2s ease-out !important;
-}
-
-.leaflet-zoom-anim .location-marker {
-  transition: none !important;
-} */
