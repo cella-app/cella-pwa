@@ -7,10 +7,7 @@ import {
   FETCH_DEBOUNCE_DELAY,
   RETRY_DELAY,
   MOVEMENT_THRESHOLD,
-  CLOSE_DISTANCE_THRESHOLD,
-  FAR_MOVEMENT_THRESHOLD
 } from '@/shared/config/location';
-
 import { LocationData } from '@/shared/data/models/Location';
 import { calculateDistance } from '@/shared/utils/location';
 
@@ -35,6 +32,23 @@ export const useLocationTracking = (
 
   const { setLocation } = useLocationStore();
 
+  const getAllowedCenterThreshold = (radius: number): number => {
+    if (radius <= 600) return 10;
+    if (radius <= 1000) return 20;
+    if (radius <= 2500) return 45;
+    if (radius <= 5000) return 90;
+    if (radius <= 20000) return 200;
+    return 250;
+  };
+
+  const getAllowedToGetPodsThreshold = (radius: number): number => {
+    if (radius <= 600) return 50;
+    if (radius <= 1000) return 100;
+    if (radius <= 2500) return 150;
+    if (radius <= 5000) return 300;
+    if (radius <= 20000) return 1000;
+    return 1200;
+  };
 
   const updateSearchCenter = useCallback((newUserLocation: LocationData, mapCenter?: LocationData | null) => {
     if (!searchCenter) {
@@ -52,16 +66,15 @@ export const useLocationTracking = (
         searchCenter.longitude
       );
 
-      // Nếu map center thay đổi đáng kể, cập nhật search center theo map
+      // If map center changes significantly, update search center to map
       if (distanceMapCenterToCurrentSearch > MOVEMENT_THRESHOLD * 1000) {
         setSearchCenter(mapCenter);
-        // Reset far movement check khi user manually di chuyển map
         setLastFarMovementCheck(newUserLocation);
         return mapCenter;
       }
     }
 
-    // Tính khoảng cách giữa vị trí user và search center hiện tại
+    // Calculate distance between user location and current search center
     const distanceToSearchCenter = calculateDistance(
       newUserLocation.latitude,
       newUserLocation.longitude,
@@ -69,15 +82,15 @@ export const useLocationTracking = (
       searchCenter.longitude
     );
 
-    // Case 1: Nếu khoảng cách < 10m, search center theo user
-    if (distanceToSearchCenter < CLOSE_DISTANCE_THRESHOLD) {
+    // Case 1: If distance < allowed center threshold, update search center to user
+    if (distanceToSearchCenter < getAllowedCenterThreshold(radius)) {
       const updatedCenter = { ...newUserLocation };
       setSearchCenter(updatedCenter);
       setLastFarMovementCheck(newUserLocation); // Reset far movement check
       return updatedCenter;
     }
 
-    // Case 2: Nếu khoảng cách > 10m, kiểm tra user có di chuyển > 50m từ lần check cuối
+    // Case 2: If distance > allowed center threshold, check if user moved > allowed pods threshold
     if (lastFarMovementCheck) {
       const movementSinceLastCheck = calculateDistance(
         newUserLocation.latitude,
@@ -86,8 +99,8 @@ export const useLocationTracking = (
         lastFarMovementCheck.longitude
       );
 
-      if (movementSinceLastCheck > FAR_MOVEMENT_THRESHOLD) {
-        // User đã di chuyển > 50m, đưa search center về vị trí user
+      if (movementSinceLastCheck > getAllowedToGetPodsThreshold(radius)) {
+        // User moved significantly, update search center to user location
         const updatedCenter = { ...newUserLocation };
         setSearchCenter(updatedCenter);
         setLastFarMovementCheck(newUserLocation);
@@ -95,15 +108,12 @@ export const useLocationTracking = (
       }
     }
 
-    // Giữ nguyên search center hiện tại
+    // Keep current search center
     return searchCenter;
-  }, [searchCenter, lastFarMovementCheck, calculateDistance]);
+  }, [searchCenter, lastFarMovementCheck, calculateDistance, radius]);
 
-  // Hàm quyết định vị trí nào sẽ được sử dụng để fetch pods
   const getLocationForFetch = useCallback((mapCenter?: LocationData | null): LocationData | null => {
     if (!currentLocation) return mapCenter || null;
-
-    // Sử dụng logic mới để cập nhật search center
     return updateSearchCenter(currentLocation, mapCenter);
   }, [currentLocation, updateSearchCenter]);
 
@@ -118,13 +128,12 @@ export const useLocationTracking = (
         radius
       });
 
-      console.warn("Fetch tracking")
+      console.warn("Fetch tracking");
 
       if (response?.data?.pods) {
         setPods(response.data.pods);
         setLastLocation({ latitude: lat, longitude: lng });
 
-        // Handle centroid safely
         if (response.meta?.centroid &&
           Array.isArray(response.meta.centroid) &&
           response.meta.centroid.length >= 2) {
@@ -160,13 +169,10 @@ export const useLocationTracking = (
     }
   }, [map, currentLocation]);
 
-  // Cập nhật shouldFetch để sử dụng search center
   const shouldFetch = useCallback((newLoc: LocationData): boolean => {
     if (!lastLocation || !searchCenter) return true;
 
-    // Tính khoảng cách từ search center mới đến vị trí fetch cuối cùng
     const newSearchCenter = updateSearchCenter(newLoc, currentMapCenter);
-
     const distanceFromLastFetch = calculateDistance(
       newSearchCenter.latitude,
       newSearchCenter.longitude,
@@ -174,8 +180,7 @@ export const useLocationTracking = (
       lastLocation.longitude
     );
 
-    // Fetch nếu search center đã thay đổi đáng kể
-    return distanceFromLastFetch > MOVEMENT_THRESHOLD * 1000; // Convert to larger threshold for search center
+    return distanceFromLastFetch > MOVEMENT_THRESHOLD * 1000;
   }, [lastLocation, searchCenter, updateSearchCenter, currentMapCenter, calculateDistance]);
 
   const handleLocationSuccess = useCallback((position: GeolocationPosition) => {
@@ -185,14 +190,30 @@ export const useLocationTracking = (
     };
 
     setCurrentLocation(newLocation);
-    // Lưu vị trí hiện tại của người dùng vào location store
     setLocation([newLocation.latitude, newLocation.longitude]);
     setError(null);
 
-    // Get the search center based on new logic
+    // Check distance to searchCenter and pan map if within threshold
+    if (map && searchCenter) {
+      const distanceToSearchCenter = calculateDistance(
+        newLocation.latitude,
+        newLocation.longitude,
+        searchCenter.latitude,
+        searchCenter.longitude
+      );
+
+      if (distanceToSearchCenter < getAllowedCenterThreshold(radius)) {
+        // Pan map to keep user at center
+        map.panTo([newLocation.latitude, newLocation.longitude]);
+      }
+      // If distance > threshold, map center is locked (no panning)
+    } else if (map && !searchCenter) {
+      // Initial case: no searchCenter yet, pan to user location
+      map.panTo([newLocation.latitude, newLocation.longitude]);
+    }
+
     const fetchLocation = updateSearchCenter(newLocation, currentMapCenter);
 
-    // Always fetch on first location
     if (!isInitializedRef.current) {
       isInitializedRef.current = true;
       if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
@@ -206,7 +227,7 @@ export const useLocationTracking = (
         fetchPods(currentFetchLocation.latitude, currentFetchLocation.longitude);
       }, FETCH_DEBOUNCE_DELAY);
     }
-  }, [shouldFetch, fetchPods, setLocation, updateSearchCenter, currentMapCenter]);
+  }, [shouldFetch, fetchPods, setLocation, updateSearchCenter, currentMapCenter, map, searchCenter, radius, calculateDistance]);
 
   const handleGeolocationError = useCallback((error: GeolocationPositionError) => {
     console.error('Geolocation error:', error);
@@ -221,7 +242,6 @@ export const useLocationTracking = (
         break;
       case error.TIMEOUT:
         errorMessage = 'Location request timed out';
-        // Retry on timeout
         if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = setTimeout(() => {
           if (navigator.geolocation) {
@@ -235,12 +255,11 @@ export const useLocationTracking = (
             );
           }
         }, RETRY_DELAY);
-        return; // Don't set error immediately for timeout
+        return;
     }
     setError(errorMessage);
   }, [handleLocationSuccess]);
 
-  // Initialize geolocation
   useEffect(() => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser');
@@ -279,14 +298,12 @@ export const useLocationTracking = (
     return cleanup;
   }, [handleLocationSuccess, handleGeolocationError]);
 
-  // Check if user is out of view when location or map changes
   useEffect(() => {
     if (currentLocation && map) {
       checkUserOutOfView();
     }
   }, [currentLocation, map, checkUserOutOfView]);
 
-  // Reset state when radius changes
   useEffect(() => {
     setCentroid(null);
     setLastLocation(null);
