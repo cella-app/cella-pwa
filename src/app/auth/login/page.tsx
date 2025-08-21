@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
 import {
 	Box,
 	TextField,
@@ -32,8 +31,8 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 function LoginForm() {
 	const theme = useTheme();
-	const router = useRouter();
-	const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
+	// const router = useRouter();
+	const { isLoading, initializeAuth } = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
 
@@ -49,16 +48,17 @@ function LoginForm() {
 		initializeAuth();
 	}, [initializeAuth]);
 
-	useEffect(() => {
-		if (isAuthenticated) {
-			router.push('/workspace/discovery');		
-		}
-	}, [isAuthenticated, router]);
+	// useEffect(() => {
+	// 	if (isAuthenticated) {
+	// 		router.push('/workspace/discovery');		
+	// 	}
+	// }, [isAuthenticated, router]);
 
 	const onSubmit = async (data: LoginFormData) => {
 		try {
 			await loginAction(data.email, data.password);
-			router.push('/workspace/discovery');		
+	
+			// Will redirect after successful login by auth layout
 
 			// setTimeout(() => {
 			// 	const from = searchParams?.get('from') || '/workspace/discovery';
