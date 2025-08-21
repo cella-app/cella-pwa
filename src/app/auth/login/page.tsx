@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
 	Box,
 	TextField,
@@ -29,12 +29,10 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-const TIMEOUT_REDIRECT_LOGIN = 2000
 
 function LoginForm() {
 	const theme = useTheme();
 	const router = useRouter();
-	const searchParams = useSearchParams();
 	const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
