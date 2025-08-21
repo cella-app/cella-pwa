@@ -4,61 +4,61 @@
 	"description": "Cell - Workspace pod",
 	"icons": [
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"type": "image/png",
 			"sizes": "72x72",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"type": "image/png",
 			"sizes": "96x96",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"type": "image/png",
 			"sizes": "128x128",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"type": "image/png",
 			"sizes": "144x144",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"type": "image/png",
 			"sizes": "152x152",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"type": "image/png",
 			"sizes": "192x192",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"type": "image/png",
 			"sizes": "180x180",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"type": "image/png",
 			"sizes": "384x384",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"type": "image/png",
 			"sizes": "512x512",
 			"purpose": "any"
 		},
 		{
-			"src": "/pwa/icon.png",
+			"src": "/pwa/main-logo.png",
 			"sizes": "512x512",
 			"type": "image/png",
 			"purpose": "maskable"
