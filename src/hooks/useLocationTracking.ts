@@ -218,13 +218,17 @@ export const useLocationTracking = (
       isInitializedRef.current = true;
       if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
       fetchTimeoutRef.current = setTimeout(() => {
-        fetchPods(fetchLocation.latitude, fetchLocation.longitude);
+        if (fetchLocation) {
+          fetchPods(fetchLocation.latitude, fetchLocation.longitude);
+        }
       }, FETCH_DEBOUNCE_DELAY);
     } else if (shouldFetch(newLocation)) {
       if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
       fetchTimeoutRef.current = setTimeout(() => {
         const currentFetchLocation = updateSearchCenter(newLocation, currentMapCenter);
-        fetchPods(currentFetchLocation.latitude, currentFetchLocation.longitude);
+        if (currentFetchLocation) {
+          fetchPods(currentFetchLocation.latitude, currentFetchLocation.longitude);
+        }
       }, FETCH_DEBOUNCE_DELAY);
     }
   }, [shouldFetch, fetchPods, setLocation, updateSearchCenter, currentMapCenter, map, searchCenter, radius, calculateDistance]);

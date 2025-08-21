@@ -193,14 +193,17 @@ export default memo(function MapContent() {
       Math.abs(curr.zoom - currentZoom) < Math.abs(prev.zoom - currentZoom) ? curr : prev
     );
 
+
     try {
-      const response = await getPodsNearMe({
-        longitude: location.longitude,
-        latitude: location.latitude,
-        radius: closestConfig.radius,
-      });
-      setPods(response.data.pods);
-      console.log('Pods fetched and set:', response.data.pods.length, 'pods');
+      if (location && closestConfig.radius) {
+        const response = await getPodsNearMe({
+          longitude: location.longitude,
+          latitude: location.latitude,
+          radius: closestConfig.radius,
+        });
+        setPods(response.data.pods);
+        console.log('Pods fetched and set:', response.data.pods.length, 'pods');
+      }
     } catch (error) {
       console.error('Failed to fetch pods:', error);
       // Avoid clearing pods on error to prevent flickering

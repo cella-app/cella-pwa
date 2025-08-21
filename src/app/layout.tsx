@@ -12,18 +12,18 @@ export const metadata: Metadata = {
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   icons: {
     icon: [
-      { url: '/pwa/icon-72.png', sizes: '72x72', type: 'image/png' },
-      { url: '/pwa/icon-96.png', sizes: '96x96', type: 'image/png' },
-      { url: '/pwa/icon-128.png', sizes: '128x128', type: 'image/png' },
-      { url: '/pwa/icon-144.png', sizes: '144x144', type: 'image/png' },
-      { url: '/pwa/icon-152.png', sizes: '152x152', type: 'image/png' },
-      { url: '/pwa/icon.png', sizes: '192x192', type: 'image/png' },
-      { url: '/pwa/icon-180.png', sizes: '180x180', type: 'image/png' },
-      { url: '/pwa/icon-384.png', sizes: '384x384', type: 'image/png' },
+      { url: '/pwa/main-logo.png', sizes: '72x72', type: 'image/png' },
+      { url: '/pwa/main-logo.png', sizes: '96x96', type: 'image/png' },
+      { url: '/pwa/main-logo.png', sizes: '128x128', type: 'image/png' },
+      { url: '/pwa/main-logo.png', sizes: '144x144', type: 'image/png' },
+      { url: '/pwa/main-logo.png', sizes: '152x152', type: 'image/png' },
+      { url: '/pwa/main-logo.png', sizes: '192x192', type: 'image/png' },
+      { url: '/pwa/main-logo.png', sizes: '180x180', type: 'image/png' },
+      { url: '/pwa/main-logo.png', sizes: '384x384', type: 'image/png' },
       { url: '/pwa/iconL.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/pwa/icon-180.png', sizes: '180x180', type: 'image/png' },
+      { url: '/pwa/main-logo.png', sizes: '180x180', type: 'image/png' },
     ],
   },
 };
