@@ -114,7 +114,7 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
         setSuccess(true);
         addAlert({
           severity: SERVERIFY_ALERT.SUCCESS,
-          message: "Add card successfully!"
+          message: "Add card successful!"
         })
         setTimeout(() => {
           router.push(from);

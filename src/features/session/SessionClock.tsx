@@ -419,7 +419,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				<DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>{"Minimum Amount Required"}</DialogTitle>
 				<DialogContent sx={{ pb: 0, textAlign: 'center' }}>
 					<DialogContentText sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}>
-						{`The minimum amount to pay is ${DEFAULT_CURRENCY_SYMBOL}${MIN_AMOUNT}. Your current calculated amount is ${DEFAULT_CURRENCY_SYMBOL}${calculatedAmount}. Do you still want to end the session?`}
+						{`The minimum amount to pay is ${MIN_AMOUNT.toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}. Your current calculated amount is ${calculatedAmount.toLocaleString('en-US', { style: 'currency', currency: 'EUR' }) }. Do you still want to end the session?`}
 					</DialogContentText>
 				</DialogContent>
 				<DialogActions

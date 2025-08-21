@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import type { Map as LeafletMapType, DivIcon, Icon } from 'leaflet';
+import L, { Map as LeafletMapType, DivIcon, Icon } from 'leaflet';
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 import UserLocalPointIcon from '@/components/icons/UserLocalPointIcon';
 import { renderToString } from 'react-dom/server';
@@ -24,6 +24,10 @@ interface MapLayersAndControlsProps {
   onPodSelect?: (pod: PodList) => void;
 }
 
+interface PodWithVisibility extends PodList {
+  isFading?: boolean;
+}
+
 export const MapLayersAndControls = ({
   map,
   onMapLoad,
@@ -33,8 +37,10 @@ export const MapLayersAndControls = ({
   const [isClient, setIsClient] = useState(false);
   const [myLocationIcon, setMyLocationIcon] = useState<DivIcon | null>(null);
   const [podIcon, setPodIcon] = useState<Icon | null>(null);
+  const [fadingPodIcon, setFadingPodIcon] = useState<Icon | null>(null);
   const { currentLocation, pods } = useLocationTrackingContext();
   const clickLock = useRef(false);
+  const [displayedPods, setDisplayedPods] = useState<PodWithVisibility[]>([]);
 
   useEffect(() => {
     setIsClient(true);
@@ -42,29 +48,38 @@ export const MapLayersAndControls = ({
 
   useEffect(() => {
     if (isClient) {
-      import('leaflet').then((L) => {
-        setMyLocationIcon(
-          L.divIcon({
-            className: 'user-location-marker',
-            html: `
-              <div class="user-location-icon">
-                ${renderToString(<UserLocalPointIcon width="32" height="32" fill="#007BFF" />)}
-              </div>
-            `,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16],
-          })
-        );
+      setMyLocationIcon(
+        L.divIcon({
+          className: 'user-location-marker',
+          html: `
+            <div class="user-location-icon">
+              ${renderToString(<UserLocalPointIcon width="32" height="32" fill="#007BFF" />)}
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        })
+      );
 
-        setPodIcon(
-          L.icon({
-            iconUrl: '/point.png',
-            shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
-            iconSize: [32, 32],
-            iconAnchor: [16, 32],
-          })
-        );
-      });
+      setPodIcon(
+        L.icon({
+          iconUrl: '/point.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          className: 'pod-marker',
+        })
+      );
+
+      setFadingPodIcon(
+        L.icon({
+          iconUrl: '/point.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          className: 'pod-marker fading',
+        })
+      );
     }
   }, [isClient]);
 
@@ -82,8 +97,40 @@ export const MapLayersAndControls = ({
     }
   }, [map, currentLocation, mapLoaded, onMapLoad, isClient]);
 
-  const handleMarkerClick = (pod: PodList) => {
-    if (clickLock.current) return;
+  useEffect(() => {
+    if (!pods || !isClient) return;
+
+    // Compare new pods with displayed pods
+    const newPodIds = new Set(pods.map((pod) => pod.id));
+    const currentPodIds = new Set(displayedPods.map((pod) => pod.id));
+
+    // Identify pods to keep, add, or remove
+    const podsToKeep = displayedPods.filter(
+      (pod) => newPodIds.has(pod.id) && !pod.isFading
+    );
+    const podsToAdd = pods.filter((pod) => !currentPodIds.has(pod.id));
+    const podsToRemove = displayedPods
+      .filter((pod) => !newPodIds.has(pod.id) && !pod.isFading)
+      .map((pod) => ({ ...pod, isFading: true }));
+
+    // Update state with new pods and fading pods
+    setDisplayedPods([...podsToKeep, ...podsToAdd, ...podsToRemove]);
+
+    // Set timeout to remove fading pods after 1 second
+    const fadingPods = podsToRemove.map((pod) => pod.id);
+    if (fadingPods.length > 0) {
+      const timeout = setTimeout(() => {
+        setDisplayedPods((prev) =>
+          prev.filter((pod) => !fadingPods.includes(pod.id))
+        );
+      }, 1000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [pods, isClient]);
+
+  const handleMarkerClick = (pod: PodWithVisibility) => {
+    if (clickLock.current || pod.isFading) return;
     clickLock.current = true;
     onPodSelect?.(pod);
     setTimeout(() => {
@@ -97,6 +144,16 @@ export const MapLayersAndControls = ({
 
   return (
     <>
+      <style>
+        {`
+          .pod-marker {
+            transition: opacity 1s ease-out;
+          }
+          .pod-marker.fading {
+            opacity: 0;
+          }
+        `}
+      </style>
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         noWrap={true}
@@ -104,27 +161,25 @@ export const MapLayersAndControls = ({
       />
 
       {currentLocation && myLocationIcon && (
-        <>
-          <Marker
-            position={[currentLocation.latitude, currentLocation.longitude]}
-            icon={myLocationIcon}
-          />
-        </>
+        <Marker
+          position={[currentLocation.latitude, currentLocation.longitude]}
+          icon={myLocationIcon}
+        />
       )}
 
-      {pods && pods.length > 0 && podIcon && pods.map((pod: PodList) => {
+      {displayedPods.length > 0 && podIcon && fadingPodIcon && displayedPods.map((pod) => {
         const position = [pod.location[1], pod.location[0]] as [number, number];
         return (
           <Marker
             key={pod.id}
             position={position}
-            icon={podIcon}
+            icon={pod.isFading ? fadingPodIcon : podIcon}
             eventHandlers={{
-              click: () => handleMarkerClick(pod)
+              click: () => handleMarkerClick(pod),
             }}
           />
         );
       })}
     </>
   );
-}; 
+};

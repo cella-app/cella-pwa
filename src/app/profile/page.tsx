@@ -305,7 +305,7 @@ export default function ProfilePage() {
               minWidth: 125
             }}
           >
-            No, Cancel
+            Keep session
           </Button>
           <Button
             onClick={handleConfirmDelete}

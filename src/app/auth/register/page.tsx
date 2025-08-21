@@ -64,7 +64,7 @@ export default function RegisterPage() {
 			await registerAction(data.email, data.password, router);
 			addAlert({
 				severity: SERVERIFY_ALERT.SUCCESS,
-				message: "Create account successfully!"
+				message: "Create account successful!"
 			})
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (err: any) {

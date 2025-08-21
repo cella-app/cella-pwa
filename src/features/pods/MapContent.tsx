@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useCallback, memo } from 'react';
 import { MapContainer, useMapEvents } from 'react-leaflet';
 import L, { Map as LeafletMapType, LatLng } from 'leaflet';
-
 import { MapLayersAndControls } from '@/features/pods/MapLayersAndControls';
 import WorkspacePopup from '@/features/pods/WorkspacePopup';
 import { PodList } from '@/shared/data/models/Pod';
@@ -18,7 +17,7 @@ import { useMapStore } from '@/features/reservation/stores/map.store';
 import { getMe } from '@/features/me/me.action';
 import { getPodsNearMe } from '@/features/pods/pods.action';
 import { ZOOM_RADIUS_CONFIG, DEBOUNCE_TIME } from '@/shared/config/mapConfig';
-import { Avatar } from "@mui/material";
+import { Avatar } from '@mui/material';
 import { DEFAULT_CENTER } from '@/shared/config/env';
 import CenterMapControl from '@/components/CenterMapControl';
 import { useRadiusStore } from './stores/radius.store';
@@ -34,44 +33,30 @@ function getCoords(location: { latitude: number; longitude: number } | LatLng) {
 function MapEventHandlers({
   fetchPodsBasedOnMap,
   currentLocation,
-  setRadius
+  setRadius,
 }: {
   fetchPodsBasedOnMap: (location: { latitude: number; longitude: number }, currentZoom: number) => void;
   currentLocation: { latitude: number; longitude: number } | null;
   setRadius: (radius: number) => void;
 }) {
-  // Refs để quản lý state và timeouts
+  // Refs to manage state and timeouts
   const moveDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const zoomDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const isMovingRef = useRef(false);
 
   const { setCurrentMapCenter } = useMapStore();
-  const { setPods } = useLocationTrackingContext(); // Get setPods to clear pods
 
   const map = useMapEvents({
-    // Clear pods immediately when user starts moving/zooming
     movestart: () => {
-      console.log('[movestart] Clearing pods');
+      console.log('[movestart] Map movement started');
       isMovingRef.current = true;
-      setPods([]); // Clear pods ngay lập tức
-
-      // Clear any pending fetch
-      if (moveDebounceRef.current) {
-        clearTimeout(moveDebounceRef.current);
-        moveDebounceRef.current = null;
-      }
+      // Do NOT clear pods here; let MapLayersAndControls handle pod transitions
     },
 
     zoomstart: () => {
-      console.log('[zoomstart] Clearing pods');
+      console.log('[zoomstart] Map zoom started');
       isMovingRef.current = true;
-      setPods([]); // Clear pods ngay lập tức
-
-      // Clear any pending fetch
-      if (zoomDebounceRef.current) {
-        clearTimeout(zoomDebounceRef.current);
-        zoomDebounceRef.current = null;
-      }
+      // Do NOT clear pods here; let MapLayersAndControls handle pod transitions
     },
 
     zoomend: () => {
@@ -93,7 +78,8 @@ function MapEventHandlers({
         );
         setRadius(closestConfig.radius);
 
-        // Fetch pods with new zoom
+        // Update map center and fetch pods
+        setCurrentMapCenter(coords);
         fetchPodsBasedOnMap(coords, zoom);
       }, DEBOUNCE_TIME);
     },
@@ -118,15 +104,13 @@ function MapEventHandlers({
         setCurrentMapCenter(coords);
         fetchPodsBasedOnMap(coords, zoom);
       }, DEBOUNCE_TIME);
-    }
+    },
   });
 
-  // Initial fetch when map is ready - chỉ chạy 1 lần
+  // Initial fetch when map is ready - only runs once
   useEffect(() => {
     console.log('[useEffect] Initial fetch triggered');
     const zoom = map.getZoom();
-
-    // Ưu tiên currentLocation cho lần đầu, sau đó dùng map center
     const locationToUse = currentLocation || map.getCenter();
     const coords = getCoords(locationToUse);
 
@@ -149,17 +133,17 @@ export default memo(function MapContent() {
   const { current: currentReservation } = useReservationStore();
   const [selectedPod, setSelectedPod] = useState<PodList | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null); // Use correct User type if available
   const [loadingUser, setLoadingUser] = useState(true);
 
   const mapRef = useRef<LeafletMapType | null>(null);
-  const popupRef = useRef<HTMLDivElement>(null); // Corrected type
+  const popupRef = useRef<HTMLDivElement>(null);
   const { lastSearchCenter, setPods, currentLocation } = useLocationTrackingContext();
   const router = useRouter();
   const isUserTriggeredFlyToRef = useRef(false);
   const { setCurrentMapCenter } = useMapStore();
-  const { setRadius } = useRadiusStore(); // Get setRadius from useRadiusStore
+  const { setRadius } = useRadiusStore();
 
   useOutsideClick(popupRef, () => {
     if (selectedPod) {
@@ -203,7 +187,7 @@ export default memo(function MapContent() {
   }, [lastSearchCenter]);
 
   const fetchPodsBasedOnMap = useCallback(async (location: { latitude: number; longitude: number }, currentZoom: number) => {
-    console.log("fetchPodsBasedOnMap called with:", { location, currentZoom });
+    console.log('fetchPodsBasedOnMap called with:', { location, currentZoom });
 
     const closestConfig = ZOOM_RADIUS_CONFIG.reduce((prev, curr) =>
       Math.abs(curr.zoom - currentZoom) < Math.abs(prev.zoom - currentZoom) ? curr : prev
@@ -216,9 +200,11 @@ export default memo(function MapContent() {
         radius: closestConfig.radius,
       });
       setPods(response.data.pods);
-      console.log("Pods fetched and set:", response.data.pods.length, "pods");
+      console.log('Pods fetched and set:', response.data.pods.length, 'pods');
     } catch (error) {
-      console.error("Failed to fetch pods:", error);
+      console.error('Failed to fetch pods:', error);
+      // Avoid clearing pods on error to prevent flickering
+      // setPods([]); // Removed to prevent unnecessary clearing
     }
   }, [setPods]);
 
@@ -231,7 +217,7 @@ export default memo(function MapContent() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#f5f5f5'
+          background: '#f5f5f5',
         }}
       >
         <div>Loading...</div>
@@ -240,7 +226,7 @@ export default memo(function MapContent() {
   }
 
   const center = lastSearchCenter
-    ? [lastSearchCenter[1], lastSearchCenter[0]] as [number, number]
+    ? ([lastSearchCenter[1], lastSearchCenter[0]] as [number, number])
     : DEFAULT_CENTER;
 
   const handlePodSelect = (pod: PodList) => {
@@ -272,13 +258,11 @@ export default memo(function MapContent() {
         wheelPxPerZoomLevel={60}
       >
         <CenterMapControl />
-        {/* Luôn render MapEventHandlers, không phụ thuộc vào currentLocation */}
         <MapEventHandlers
           fetchPodsBasedOnMap={fetchPodsBasedOnMap}
           currentLocation={currentLocation}
-          setRadius={setRadius} // Truyền setRadius xuống MapEventHandlers
+          setRadius={setRadius}
         />
-
         <LocateControl
           fetchPodsBasedOnMap={fetchPodsBasedOnMap}
           onLocate={(latlng) => {
@@ -287,7 +271,6 @@ export default memo(function MapContent() {
             setCurrentMapCenter(latlng);
           }}
         />
-
         {mapRef.current && (
           <MapLayersAndControls
             map={mapRef.current}
@@ -321,12 +304,16 @@ export default memo(function MapContent() {
             alt="User Avatar"
             src={user?.avatar_url}
             sx={{
-              width: 44, height: 44, mx: "auto", fontSize: 36, borderRadius: '50%',
+              width: 44,
+              height: 44,
+              mx: 'auto',
+              fontSize: 36,
+              borderRadius: '50%',
               objectFit: 'cover',
             }}
           >
             {user?.avatar_url
-              ? ""
+              ? ''
               : user?.first_name
                 ? user.first_name[0].toUpperCase()
                 : user?.email?.[0]?.toUpperCase()}
