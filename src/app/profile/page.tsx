@@ -28,6 +28,7 @@ import DialogActions from '@mui/material/DialogActions';
 import { updateAvatarWithDelete, getMe, updateInfo } from '@/features/me/me.action';
 import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
+import { Skeleton } from '@mui/material';
 
 type UserWithAvatarUrl = User & { avatar_url?: string };
 
@@ -43,6 +44,7 @@ export default function ProfilePage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [savingName, setSavingName] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchUser() {
@@ -54,6 +56,8 @@ export default function ProfilePage() {
         setLastName(freshUser.last_name || '');
       } catch {
         // handle error if needed
+      } finally {
+        setLoading(false);
       }
     }
     fetchUser();
@@ -151,6 +155,8 @@ export default function ProfilePage() {
       >
         <LogoutIcon />
       </IconButton>
+    {loading ? <ProfilePageSkeleton/> : 
+    <>
       <Box
         sx={{
           maxWidth: 500,
@@ -269,7 +275,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </Box>
-      <Dialog open={deleteDialogOpen} onClose={handleCancelDelete} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor } }}>
+      <Dialog open={deleteDialogOpen} onClose={handleCancelDelete} fullWidth maxWidth="xs" slotProps={{paper:{sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor }}}}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>Are you sure?</DialogTitle>
         <DialogContent sx={{ pb: 0, textAlign: 'center' }}>
           <Typography sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}>This action is permanent.</Typography>
@@ -320,7 +326,7 @@ export default function ProfilePage() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={editNameDialogOpen} onClose={() => setEditNameDialogOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor } }}>
+      <Dialog open={editNameDialogOpen} onClose={() => setEditNameDialogOpen(false)} maxWidth="xs" fullWidth slotProps={{paper: {sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor }}}}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>Update Name</DialogTitle>
         <DialogContent sx={{ paddingTop: "2rem !important" }}>
           <Stack spacing={2} direction="column" alignItems="center" width="100%">
@@ -331,7 +337,11 @@ export default function ProfilePage() {
               value={firstName}
               onChange={e => setFirstName(e.target.value)}
               fullWidth
-              inputProps={{ style: { fontSize: 18 } }}
+              slotProps={{
+                input: {
+                  style: { fontSize: 18 }
+                }
+              }}
               autoFocus
             />
             <TextField
@@ -341,7 +351,11 @@ export default function ProfilePage() {
               value={lastName}
               onChange={e => setLastName(e.target.value)}
               fullWidth
-              inputProps={{ style: { fontSize: 18 } }}
+              slotProps={{
+                input: {
+                  style: { fontSize: 18 }
+                }
+              }}
             />
           </Stack>
         </DialogContent>
@@ -381,6 +395,95 @@ export default function ProfilePage() {
           </Button>
         </DialogActions>
       </Dialog>
+    </>}
     </Box>
   );
 } 
+
+function ProfilePageSkeleton() {
+  return (
+      <Box
+        sx={{
+          maxWidth: 500,
+          borderRadius: 3,
+          p: 4,
+          textAlign: "center",
+          position: 'relative',
+        }}
+      >
+        <Typography variant="h4" fontWeight={700} mb={2} sx={{
+          fontSize: "36px",
+          fontFamily: rootStyle.titleFontFamily
+        }}>
+          <Skeleton variant="text" width={200} sx={{ margin: 'auto' }} />
+        </Typography>
+        <Box sx={{ position: "relative", display: "inline-block", mb: 1 }}>
+          <Skeleton variant="circular" width={72} height={72} sx={{ margin: 'auto' }} />
+          <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+            <Skeleton variant="text" width={120} />
+          </Typography>
+        </Box>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            flexDirection: "row",
+            borderRadius: 2,
+            px: 2,
+            py: 1,
+            transition: 'background 0.2s',
+          }}
+        >
+          <Typography variant="h6" fontWeight={600} sx={{
+            fontFamily: rootStyle.titleFontFamily,
+            fontSize: "24px"
+          }}>
+            <Skeleton variant="text" width={150} />
+          </Typography>
+          <EditIcon fontSize="small" sx={{ ml: 1, color: '#888' }} />
+        </Box>
+        <Typography variant="body2" color="text.secondary" mb={2} fontWeight={600} fontSize="20px">
+          <Skeleton variant="text" width={250} sx={{ margin: 'auto' }} />
+        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 1,
+            mb: 2,
+          }}
+        >
+          <CreditCardIcon fontSize="small" />
+          <Typography variant="body2">
+            <Skeleton variant="text" width={200} />
+          </Typography>
+          <IconButton size="small">
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Box>
+        <Card
+          sx={{
+            border: `1px solid ${rootStyle.borderColorMain}`,
+            boxShadow: "none",
+            mb: 2,
+            background: "transparent",
+          }}
+        >
+          <CardContent>
+            <Typography fontWeight={600} mb={1}>
+              <Skeleton variant="text" width={180} />
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              <Skeleton variant="text" width={300} />
+              <Skeleton variant="text" width={280} />
+            </Typography>
+            <Skeleton variant="rectangular" width={247} height={36} sx={{ margin: 'auto' }} />
+          </CardContent>
+        </Card>
+      </Box>
+   
+  )
+}
