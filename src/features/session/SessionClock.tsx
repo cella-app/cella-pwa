@@ -25,8 +25,6 @@ interface SessionClockProps {
 	session: Session;
 }
 
-const DEFAULT_CURRENCY_SYMBOL='€'
-
 const TRACKING_TIME = 15 * 1000; 
 
 const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
