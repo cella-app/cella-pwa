@@ -32,12 +32,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body suppressHydrationWarning>
-        <EmotionRegistry>
-          <ThemeProviderWrapper>
-            {children}
-          </ThemeProviderWrapper>
-        </EmotionRegistry>
-        <AddToHomeScreenButton />
+            <EmotionRegistry>
+              <ThemeProviderWrapper>
+                {children}
+              </ThemeProviderWrapper>
+            </EmotionRegistry>
+          <AddToHomeScreenButton />
       </body>
     </html>
   );

@@ -20,4 +20,18 @@ export default withPWA({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
+  runtimeCaching: [
+    {
+      urlPattern: /^\/workspace\/discovery$/, // matches exactly /workspace/discovery
+      handler: 'NetworkFirst', // priority data network first for workspace-discovery-page, fallback to cache
+      options: {
+        cacheName: 'workspace-discovery-page',
+        networkTimeoutSeconds: 10,
+        expiration: {
+          maxEntries: 1,
+          maxAgeSeconds: 60 * 60, // 1 hour
+        },
+      },
+    },
+  ]
 })(nextConfig);

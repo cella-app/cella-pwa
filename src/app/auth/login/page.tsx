@@ -20,6 +20,7 @@ import { rootStyle } from '@/theme';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
 
 const loginSchema = z.object({
 	email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -31,8 +32,8 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 function LoginForm() {
 	const theme = useTheme();
-	// const router = useRouter();
-	const { isLoading, initializeAuth } = useAuthStore();
+	const router = useRouter();
+	const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
 
@@ -57,9 +58,8 @@ function LoginForm() {
 	const onSubmit = async (data: LoginFormData) => {
 		try {
 			await loginAction(data.email, data.password);
-	
-			// Will redirect after successful login by auth layout
-
+	        router.replace('/workspace/discovery'); 
+			
 			// setTimeout(() => {
 			// 	const from = searchParams?.get('from') || '/workspace/discovery';
 
@@ -158,7 +158,7 @@ function LoginForm() {
 							{...register('password')}
 							error={!!errors.password}
 							helperText={errors.password?.message}
-							InputProps={{
+							slotProps={{htmlInput:{
 								endAdornment: (
 									<InputAdornment position="end">
 										<IconButton onClick={togglePasswordVisibility} edge="end">
@@ -166,17 +166,17 @@ function LoginForm() {
 										</IconButton>
 									</InputAdornment>
 								),
-							}}
+							}}}
 						/>
 
 						<Button
 							type="submit"
 							fullWidth
 							variant="contained"
-							disabled={isLoading}
+							disabled={isLoading || isAuthenticated}
 							sx={{ mt: 4 }}
 						>
-							{isLoading ? 'Logging in...' : 'Login'}
+							{isLoading || isAuthenticated ? 'Logging in...' : 'Login'}
 						</Button>
 
 						<Typography
