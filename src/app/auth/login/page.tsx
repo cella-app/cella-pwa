@@ -173,10 +173,10 @@ function LoginForm() {
 							type="submit"
 							fullWidth
 							variant="contained"
-							disabled={isLoading || isAuthenticated}
+							disabled={isLoading}
 							sx={{ mt: 4 }}
 						>
-							{isLoading || isAuthenticated ? 'Logging in...' : 'Login'}
+							{isLoading ? 'Logging in...' : 'Login'}
 						</Button>
 
 						<Typography
