@@ -33,7 +33,8 @@ type LoginFormData = z.infer<typeof loginSchema>;
 function LoginForm() {
 	const theme = useTheme();
 	const router = useRouter();
-	const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
+	// const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
+	const { isLoading, initializeAuth } = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
 
