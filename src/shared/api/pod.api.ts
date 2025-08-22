@@ -46,6 +46,9 @@ class PodApi extends BaseApi {
 
 			this.debounceTimer = setTimeout(async () => {
 				try {
+					if (!this.latestRequestData) {
+						return;
+					}
 					const { data: responseData } = await this.apiInstance.post<PodNearMeResponse>('/pods', this.latestRequestData!);
 					const result = {
 						data: responseData.data,
