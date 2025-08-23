@@ -1,7 +1,7 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useLocationTracking } from './useLocationTracking';
+import { useLocationTracking } from './useLocationTracking3';
 import { PodList } from '@/shared/data/models/Pod';
-import { useMapStore } from '@/features/reservation/stores/map.store';
+import { useMapStore } from '@/features/map/stores/map.store';
 
 interface LocationTrackingProviderProps {
   children: ReactNode;

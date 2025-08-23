@@ -6,11 +6,10 @@ import L from 'leaflet';
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 
 interface LocateControlProps {
-	fetchPodsBasedOnMap: (location: { latitude: number; longitude: number }, currentZoom: number) => void;
 	onLocate: (latlng: { latitude: number; longitude: number }) => void;
 }
 
-export default function LocateControl({ fetchPodsBasedOnMap, onLocate }: LocateControlProps) {
+export default function LocateControl({ onLocate }: LocateControlProps) {
 	const map = useMap();
 	const { currentLocation } = useLocationTrackingContext();
 
@@ -66,12 +65,8 @@ export default function LocateControl({ fetchPodsBasedOnMap, onLocate }: LocateC
 			'Reload Pod Data',
 			`<i class="fa-solid fa-rotate-right"></i>`,
 			() => {
-				const currentCenter = map.getCenter();
-				const currentZoom = map.getZoom();
-				fetchPodsBasedOnMap(
-					{ latitude: currentCenter.lat, longitude: currentCenter.lng },
-					currentZoom
-				);
+				// const currentCenter = map.getCenter();
+				// const currentZoom = map.getZoom();
 			}
 		);
 
@@ -95,7 +90,7 @@ export default function LocateControl({ fetchPodsBasedOnMap, onLocate }: LocateC
 			locateControl.remove();
 			reloadControl.remove();
 		};
-	}, [map, currentLocation, fetchPodsBasedOnMap, onLocate]);
+	}, [map, currentLocation, onLocate]);
 
 	return null;
 }

@@ -8,27 +8,25 @@ import { CircleSmall as ICircle } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { Circle } from 'react-leaflet';
 import { useRadiusStore } from '@/features/pods/stores/radius.store';
-import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
-import { useMapStore } from '@/features/reservation/stores/map.store';
+import { useMapStore } from '@/features/map/stores/map.store';
 
 const CenterMapControl = () => {
 	const map = useMap();
 	const centerMarkerRef = useRef<L.Marker | null>(null);
 	const { radius } = useRadiusStore();
-	const { searchCenter } = useLocationTrackingContext();
-	const { setCurrentMapCenter } = useMapStore();
+	const { setCurrentMapCenter, currentMapCenter } = useMapStore();
 
 	// Sử dụng searchCenter thay vì map center
 	const [circleCenter, setCircleCenter] = useState(() => {
-		return searchCenter ?
-			L.latLng(searchCenter.latitude, searchCenter.longitude) :
+		return currentMapCenter ?
+			L.latLng(currentMapCenter.latitude, currentMapCenter.longitude) :
 			map.getCenter();
 	});
 
 	// Cập nhật marker khi searchCenter thay đổi
 	useEffect(() => {
-		if (searchCenter) {
-			const newCenter = L.latLng(searchCenter.latitude, searchCenter.longitude);
+		if (currentMapCenter) {
+			const newCenter = L.latLng(currentMapCenter.latitude, currentMapCenter.longitude);
 			setCircleCenter(newCenter);
 
 			// Cập nhật marker position
@@ -36,12 +34,12 @@ const CenterMapControl = () => {
 				centerMarkerRef.current.setLatLng(newCenter);
 			}
 		}
-	}, [searchCenter]);
+	}, [currentMapCenter]);
 
 	useEffect(() => {
 		// Khởi tạo marker với searchCenter hoặc map center
-		const initialCenter = searchCenter ?
-			L.latLng(searchCenter.latitude, searchCenter.longitude) :
+		const initialCenter = currentMapCenter ?
+			L.latLng(currentMapCenter.latitude, currentMapCenter.longitude) :
 			map.getCenter();
 
 		centerMarkerRef.current = L.marker(initialCenter, {

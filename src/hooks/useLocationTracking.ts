@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getPodsNearMe } from '@/features/pods/pods.action';
 import { PodList } from '@/shared/data/models/Pod';
 import L from 'leaflet';
-import { useLocationStore } from '@/features/pods/stores/location.store';
+import { useLocationStore } from '@/features/map/stores/location.store';
 import {
   FETCH_DEBOUNCE_DELAY,
   RETRY_DELAY,
