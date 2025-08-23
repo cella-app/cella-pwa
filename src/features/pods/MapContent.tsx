@@ -143,7 +143,7 @@ export default memo(function MapContent() {
 
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const { setPods, currentLocation, startTracking } = useLocationTrackingContext();
+  const { setPods, currentLocation } = useLocationTrackingContext();
   const router = useRouter();
   const isUserTriggeredFlyToRef = useRef(false);
 
@@ -153,7 +153,6 @@ export default memo(function MapContent() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         console.log('User granted permission:', pos);
-        startTracking();
       },
       (err) => {
         console.warn('User denied or error:', err);
@@ -177,7 +176,6 @@ export default memo(function MapContent() {
       console.log('Permission state:', result.state);
 
       if (result.state === 'granted') {
-        startTracking();
         setOpenLocationDialog(false);
       } else if (result.state === 'denied') {
         setOpenLocationDialog(false);

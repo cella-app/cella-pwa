@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import L from 'leaflet';
 import { useLocationStore } from '@/features/map/stores/location.store';
 import { LocationData } from '@/shared/data/models/Location';
-import { calculateDistanceNew, getAllowedToGetPodsThreshold, getAllowedCenterThreshold } from '@/shared/utils/location';
-import { useGettingPodsConditionStore } from '@/features/pods/stores/gettingPodsCondition.store';
+import { calculateDistanceNew, getAllowedToGetPodsThreshold } from '@/shared/utils/location';
+// import { useGettingPodsConditionStore } from '@/features/pods/stores/gettingPodsCondition.store';
 import { PodList } from '@/shared/data/models/Pod';
 import debounce from 'lodash/debounce';
 
-const RETRY_DELAY = 50;
+const RETRY_DELAY = 500; // Thời gian chờ trước khi thử lại khi có lỗi geolocation
 const DEBOUNCE_TIME = 300; // Thời gian debounce (ms) để giới hạn tần suất cập nhật
 
 export function useLocationTracking(
@@ -26,8 +26,7 @@ export function useLocationTracking(
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { setLocation, currentLocation, lastLocation, setLastLocation } = useLocationStore();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { changeState } = useGettingPodsConditionStore();
+  // const { changeState } = useGettingPodsConditionStore();
 
   // ✅ Check if user's location is within the map bounds
   const checkUserOutOfView = useCallback(() => {
@@ -67,7 +66,7 @@ export function useLocationTracking(
 
     setLocation(newLocation);
     setError(null);
-  }, [lastLocation, radius, setLocation, setLastLocation]);
+  }, [lastLocation, radius, setLocation, setLastLocation, map]);
 
   // ✅ Handle geolocation errors and retry
   const handleGeolocationError = useCallback((error: GeolocationPositionError) => {
@@ -84,7 +83,20 @@ export function useLocationTracking(
         break;
       case error.TIMEOUT:
         errorMessage = 'Location request timed out';
-        break;
+        if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = setTimeout(() => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              handleLocationSuccess,
+              (retryError) => {
+                console.error('Retry geolocation error:', retryError);
+                setError('Failed to get location after retry');
+              },
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+            );
+          }
+        }, RETRY_DELAY);
+
     }
 
     setError(errorMessage);
@@ -92,34 +104,43 @@ export function useLocationTracking(
     if (retryTimeoutRef.current) {
       clearTimeout(retryTimeoutRef.current);
     }
-
-    retryTimeoutRef.current = setTimeout(() => {
-      startTracking();
-    }, RETRY_DELAY);
-  }, []);
+  }, [handleLocationSuccess]);
 
   // ✅ Start location tracking
-  const startTracking = useCallback(() => {
-    if (!('geolocation' in navigator)) {
+  useEffect(() => {
+    if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser');
       return;
     }
 
-    console.warn("OK nhé");
+    console.warn("OKKKK")
 
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-    }
+    const cleanup = () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
+    cleanup();
+
+    const watchId = navigator.geolocation.watchPosition(
       handleLocationSuccess,
       handleGeolocationError,
       {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 5000,
+        timeout: 10000
       }
     );
+
+    watchIdRef.current = watchId;
+
+    return cleanup;
   }, [handleLocationSuccess, handleGeolocationError]);
 
   // ✅ Debounced function to center the map smoothly
@@ -187,17 +208,6 @@ export function useLocationTracking(
     };
   }, [centerMap]);
 
-  useEffect(() => {
-    if (currentMapCenter && currentLocation) {
-      const threshold = getAllowedCenterThreshold(radius);
-      const centerAndCurrentDiff = calculateDistanceNew(currentMapCenter, currentLocation)
-
-      if (centerAndCurrentDiff > threshold) {
-        setIsMapInteracting(true);
-      }
-    }
-  }, [currentMapCenter])
-
   return {
     lastSearchCenter: currentLocation,
     currentLocation,
@@ -205,9 +215,9 @@ export function useLocationTracking(
     isUserOutOfView,
     pods,
     error,
-    loading: false,
+    loading:false,
     setPods,
-    startTracking,
+    // startTracking,
   };
 }
 
