@@ -19,13 +19,14 @@ export function useLocationTracking(
   const [isUserOutOfView, setIsUserOutOfView] = useState<boolean>(false);
   const [pods, setPods] = useState<PodList[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [isMapInteracting, setIsMapInteracting] = useState(false); // Theo dõi tương tác người dùng
 
   const watchIdRef = useRef<number | null>(null);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { setLocation, currentLocation, lastLocation, setLastLocation } = useLocationStore();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { changeState } = useGettingPodsConditionStore();
 
   // ✅ Check if user's location is within the map bounds
@@ -204,7 +205,7 @@ export function useLocationTracking(
     isUserOutOfView,
     pods,
     error,
-    loading,
+    loading: false,
     setPods,
     startTracking,
   };

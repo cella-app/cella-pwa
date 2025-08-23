@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 import { useReservationStore } from '@/features/reservation/stores/reservation.store';
 import { useMapStore } from '@/features/map/stores/map.store';
 import { getMe } from '@/features/me/me.action';
-import { getPodsNearMe } from '@/features/pods/pods.action';
+// import { getPodsNearMe } from '@/features/pods/pods.action';
 import { ZOOM_RADIUS_CONFIG, DEBOUNCE_TIME } from '@/shared/config/mapConfig';
 import { Avatar } from '@mui/material';
 import { DEFAULT_CENTER } from '@/shared/config/env';
@@ -231,9 +231,9 @@ export default memo(function MapContent() {
   const fetchPodsBasedOnMap = useCallback(async (location: { latitude: number; longitude: number }, currentZoom: number) => {
     console.log('fetchPodsBasedOnMap called with:', { location, currentZoom });
 
-    const closestConfig = ZOOM_RADIUS_CONFIG.reduce((prev, curr) =>
-      Math.abs(curr.zoom - currentZoom) < Math.abs(prev.zoom - currentZoom) ? curr : prev
-    );
+    // const closestConfig = ZOOM_RADIUS_CONFIG.reduce((prev, curr) =>
+    //   Math.abs(curr.zoom - currentZoom) < Math.abs(prev.zoom - currentZoom) ? curr : prev
+    // );
 
 
     try {
