@@ -32,6 +32,8 @@ export const LocationTrackingProvider = ({ children }: LocationTrackingProviderP
 
   // Initialize startTracking based on localStorage and permission state (client-side only)
   useEffect(() => {
+    console.log("useEffect in LocationTrackingProvider called");
+
     if (typeof window === 'undefined') return; // Skip during SSR
 
     const alreadyAsked = localStorage.getItem('locationPermissionAsked');
