@@ -1,330 +1,271 @@
-// import { useState, useEffect, useCallback, useRef } from 'react';
-// import { getPodsNearMe } from '@/features/pods/pods.action';
-// import { PodList } from '@/shared/data/models/Pod';
-// import L from 'leaflet';
-// import { useLocationStore } from '@/features/map/stores/location.store';
-// import {
-//   FETCH_DEBOUNCE_DELAY,
-//   RETRY_DELAY,
-//   MOVEMENT_THRESHOLD,
-// } from '@/shared/config/location';
-// import { LocationData } from '@/shared/data/models/Location';
-// import { calculateDistance } from '@/shared/utils/location';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import L from 'leaflet';
+import { useLocationStore } from '@/features/map/stores/location.store';
+import { LocationData } from '@/shared/data/models/Location';
+import { calculateDistanceNew, getAllowedToGetPodsThreshold, getAllowedCenterThreshold } from '@/shared/utils/location';
+import { useMapConditionStore } from '@/features/map/stores/mapCondition.store';
+import { usePodStore } from '@/features/pods/stores/pod.store';
+import { getPodsNearMe } from '@/features/pods/pods.action';
+import debounce from 'lodash/debounce';
 
-// export const useLocationTracking = (
-//   radius: number = 600,
-//   currentMapCenter?: LocationData | null,
-//   map?: L.Map
-// ) => {
-//   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
-//   const [pods, setPods] = useState<PodList[]>([]);
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-//   const [centroid, setCentroid] = useState<[number, number] | null>(null);
-//   const [lastLocation, setLastLocation] = useState<LocationData | null>(null);
-//   const [isUserOutOfView, setIsUserOutOfView] = useState<boolean>(false);
-//   const [searchCenter, setSearchCenter] = useState<LocationData | null>(null);
-//   const [lastFarMovementCheck, setLastFarMovementCheck] = useState<LocationData | null>(null);
-//   const watchIdRef = useRef<number | null>(null);
-//   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-//   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-//   const isInitializedRef = useRef(false);
+const RETRY_DELAY = 500; // Thời gian chờ trước khi thử lại khi có lỗi geolocation
+const DEBOUNCE_TIME = 300; // Thời gian debounce (ms) cho centerMap
+const FETCH_DEBOUNCE_TIME = 100; // Thời gian debounce cho fetchPods
 
-//   const { setLocation } = useLocationStore();
+export function useLocationTracking(
+  radius: number = 600,
+  currentMapCenter?: LocationData | null,
+  map?: L.Map
+) {
+  const [isUserOutOfView, setIsUserOutOfView] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isMapInteracting, setIsMapInteracting] = useState(false);
 
-//   const getAllowedCenterThreshold = (radius: number): number => {
-//     if (radius <= 600) return 10;
-//     if (radius <= 1000) return 20;
-//     if (radius <= 2500) return 45;
-//     if (radius <= 5000) return 90;
-//     if (radius <= 20000) return 200;
-//     return 250;
-//   };
+  const watchIdRef = useRef<number | null>(null);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFetchedCenter = useRef<LocationData | null>(null); // Lưu center của lần fetch trước
 
-//   const getAllowedToGetPodsThreshold = (radius: number): number => {
-//     if (radius <= 600) return 50;
-//     if (radius <= 1000) return 100;
-//     if (radius <= 2500) return 150;
-//     if (radius <= 5000) return 300;
-//     if (radius <= 20000) return 1000;
-//     return 1200;
-//   };
+  const { setLocation, currentLocation, lastLocation, setLastLocation } = useLocationStore();
+  const { setStateLocationDiffValid } = useMapConditionStore();
+  const { pods, setPods } = usePodStore();
 
-//   const updateSearchCenter = useCallback((newUserLocation: LocationData, mapCenter?: LocationData | null) => {
-//     if (!searchCenter) {
-//       const initialCenter = mapCenter || newUserLocation;
-//       setSearchCenter(initialCenter);
-//       setLastFarMovementCheck(newUserLocation);
-//       return initialCenter;
-//     }
+  // Debounced fetchPods để tránh gọi API nhiều lần
+  const debouncedFetchPods = useCallback(
+    debounce(async (center: LocationData, rad: number) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getPodsNearMe({
+          latitude: center.latitude,
+          longitude: center.longitude,
+          radius: rad,
+        });
+        if (response?.data?.pods) {
+          setPods(response.data.pods);
+          lastFetchedCenter.current = center; // Cập nhật sau fetch thành công
+        } else {
+          throw new Error('Invalid response format from server');
+        }
+      } catch (err) {
+        console.error('Error fetching pods:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch pods';
+        setError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    }, FETCH_DEBOUNCE_TIME),
+    [setPods]
+  );
 
-//     if (mapCenter) {
-//       const distanceMapCenterToCurrentSearch = calculateDistance(
-//         mapCenter.latitude,
-//         mapCenter.longitude,
-//         searchCenter.latitude,
-//         searchCenter.longitude
-//       );
+  // Kiểm tra xem có nên fetch pods không
+  const shouldFetchPods = useCallback(
+    (center: LocationData) => {
+      if (!center) return false;
+      if (!lastFetchedCenter.current) return true; // Fetch lần đầu
+      const threshold = getAllowedToGetPodsThreshold(radius);
+      const diff = calculateDistanceNew(center, lastFetchedCenter.current);
+      return diff >= threshold;
+    },
+    [radius]
+  );
 
-//       // If map center changes significantly, update search center to map
-//       if (distanceMapCenterToCurrentSearch > MOVEMENT_THRESHOLD * 1000) {
-//         setSearchCenter(mapCenter);
-//         setLastFarMovementCheck(newUserLocation);
-//         return mapCenter;
-//       }
-//     }
+  // Check if user's location is within the map bounds
+  const checkUserOutOfView = useCallback(() => {
+    if (!map || !currentLocation) {
+      setIsUserOutOfView(false);
+      return;
+    }
+    try {
+      const bounds = map.getBounds();
+      const { latitude, longitude } = currentLocation;
+      const isOut = !bounds.contains([latitude, longitude]);
+      setIsUserOutOfView(isOut);
+    } catch (err) {
+      console.error('Error checking user out of view:', err);
+      setIsUserOutOfView(false);
+    }
+  }, [map, currentLocation]);
 
-//     // Calculate distance between user location and current search center
-//     const distanceToSearchCenter = calculateDistance(
-//       newUserLocation.latitude,
-//       newUserLocation.longitude,
-//       searchCenter.latitude,
-//       searchCenter.longitude
-//     );
+  // Handle successful geolocation
+  const handleLocationSuccess = useCallback(
+    (position: GeolocationPosition) => {
+      const newLocation: LocationData = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
 
-//     // Case 1: If distance < allowed center threshold, update search center to user
-//     if (distanceToSearchCenter < getAllowedCenterThreshold(radius)) {
-//       const updatedCenter = { ...newUserLocation };
-//       setSearchCenter(updatedCenter);
-//       setLastFarMovementCheck(newUserLocation); // Reset far movement check
-//       return updatedCenter;
-//     }
+      const threshold = getAllowedToGetPodsThreshold(radius);
+      if (!lastLocation) {
+        setLastLocation(newLocation);
+        setStateLocationDiffValid(true);
+      } else {
+        const diff = calculateDistanceNew(newLocation, lastLocation);
+        setStateLocationDiffValid(diff >= threshold);
+        if (diff >= threshold) {
+          setLastLocation(newLocation);
+        }
+      }
 
-//     // Case 2: If distance > allowed center threshold, check if user moved > allowed pods threshold
-//     if (lastFarMovementCheck) {
-//       const movementSinceLastCheck = calculateDistance(
-//         newUserLocation.latitude,
-//         newUserLocation.longitude,
-//         lastFarMovementCheck.latitude,
-//         lastFarMovementCheck.longitude
-//       );
+      setLocation(newLocation);
+      setError(null);
+    },
+    [lastLocation, radius, setLocation, setLastLocation, setStateLocationDiffValid]
+  );
 
-//       if (movementSinceLastCheck > getAllowedToGetPodsThreshold(radius)) {
-//         // User moved significantly, update search center to user location
-//         const updatedCenter = { ...newUserLocation };
-//         setSearchCenter(updatedCenter);
-//         setLastFarMovementCheck(newUserLocation);
-//         return updatedCenter;
-//       }
-//     }
+  // Handle geolocation errors and retry
+  const handleGeolocationError = useCallback(
+    (error: GeolocationPositionError) => {
+      console.error('Geolocation error:', error);
+      let errorMessage = 'Error tracking location';
 
-//     // Keep current search center
-//     return searchCenter;
-//   }, [searchCenter, lastFarMovementCheck, calculateDistance, radius]);
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage = 'Location access denied by user';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage = 'Location information unavailable';
+          break;
+        case error.TIMEOUT:
+          errorMessage = 'Location request timed out';
+          if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = setTimeout(() => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                handleLocationSuccess,
+                (retryError) => {
+                  console.error('Retry geolocation error:', retryError);
+                  setError('Failed to get location after retry');
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+              );
+            }
+          }, RETRY_DELAY);
+          break;
+      }
 
-//   const getLocationForFetch = useCallback((mapCenter?: LocationData | null): LocationData | null => {
-//     if (!currentLocation) return mapCenter || null;
-//     return updateSearchCenter(currentLocation, mapCenter);
-//   }, [currentLocation, updateSearchCenter]);
+      setError(errorMessage);
+    },
+    [handleLocationSuccess]
+  );
 
-//   const fetchPods = useCallback(async (lat: number, lng: number) => {
-//     try {
-//       setLoading(true);
-//       setError(null);
+  // Start location tracking
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser');
+      return;
+    }
 
-//       const response = await getPodsNearMe({
-//         latitude: lat,
-//         longitude: lng,
-//         radius
-//       });
+    const cleanup = () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
 
-//       console.warn("Fetch tracking");
+    cleanup();
 
-//       if (response?.data?.pods) {
-//         setPods(response.data.pods);
-//         setLastLocation({ latitude: lat, longitude: lng });
+    const watchId = navigator.geolocation.watchPosition(
+      handleLocationSuccess,
+      handleGeolocationError,
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000,
+      }
+    );
 
-//         if (response.meta?.centroid &&
-//           Array.isArray(response.meta.centroid) &&
-//           response.meta.centroid.length >= 2) {
-//           setCentroid([response.meta.centroid[0], response.meta.centroid[1]]);
-//         }
-//       } else {
-//         console.warn('Invalid response format:', response);
-//         setError('Invalid response from server');
-//       }
-//     } catch (err) {
-//       console.error('Error fetching pods:', err);
-//       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch pods';
-//       setError(errorMessage);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [radius]);
+    watchIdRef.current = watchId;
 
-//   const checkUserOutOfView = useCallback(() => {
-//     if (!map || !currentLocation) {
-//       setIsUserOutOfView(false);
-//       return;
-//     }
+    return cleanup;
+  }, [handleLocationSuccess, handleGeolocationError]);
 
-//     try {
-//       const bounds = map.getBounds();
-//       const { latitude, longitude } = currentLocation;
-//       const isOut = !bounds.contains([latitude, longitude]);
-//       setIsUserOutOfView(isOut);
-//     } catch (error) {
-//       console.error('Error checking user out of view:', error);
-//       setIsUserOutOfView(false);
-//     }
-//   }, [map, currentLocation]);
+  // Debounced function to center the map smoothly
+  const centerMap = useCallback(
+    debounce((location: LocationData) => {
+      if (map && !isMapInteracting && currentMapCenter) {
+        // Kiểm tra khoảng cách giữa center và location
+        const threshold = getAllowedCenterThreshold(radius);
+        const distanceToCenter = calculateDistanceNew(location, currentMapCenter);
+        if (distanceToCenter <= threshold) {
+          try {
+            map.flyTo([location.latitude, location.longitude], map.getZoom(), {
+              duration: 0.5,
+              easeLinearity: 0.25,
+            });
+          } catch (err) {
+            console.error('Error centering map:', err);
+          }
+        }
+      }
+    }, DEBOUNCE_TIME),
+    [map, isMapInteracting, currentMapCenter, radius]
+  );
 
-//   const shouldFetch = useCallback((newLoc: LocationData): boolean => {
-//     if (!lastLocation || !searchCenter) return true;
+  // Auto-center và check out of view khi location thay đổi
+  useEffect(() => {
+    if (currentLocation) {
+      centerMap(currentLocation);
+      checkUserOutOfView();
+    }
+  }, [currentLocation, centerMap, checkUserOutOfView]);
 
-//     const newSearchCenter = updateSearchCenter(newLoc, currentMapCenter);
-//     const distanceFromLastFetch = calculateDistance(
-//       newSearchCenter.latitude,
-//       newSearchCenter.longitude,
-//       lastLocation.latitude,
-//       lastLocation.longitude
-//     );
+  // Xử lý sự kiện drag/zoom để set isMapInteracting
+  useEffect(() => {
+    if (!map) return;
 
-//     return distanceFromLastFetch > MOVEMENT_THRESHOLD * 1000;
-//   }, [lastLocation, searchCenter, updateSearchCenter, currentMapCenter, calculateDistance]);
+    const handleDragStart = () => setIsMapInteracting(true);
+    const handleDragEnd = () => setIsMapInteracting(false);
+    const handleZoomStart = () => setIsMapInteracting(true);
+    const handleZoomEnd = () => setIsMapInteracting(false);
 
-//   const handleLocationSuccess = useCallback((position: GeolocationPosition) => {
-//     const newLocation: LocationData = {
-//       latitude: position.coords.latitude,
-//       longitude: position.coords.longitude,
-//     };
+    map.on('dragstart', handleDragStart);
+    map.on('dragend', handleDragEnd);
+    map.on('zoomstart', handleZoomStart);
+    map.on('zoomend', handleZoomEnd);
 
-//     setCurrentLocation(newLocation);
-//     setLocation([newLocation.latitude, newLocation.longitude]);
-//     setError(null);
+    return () => {
+      map.off('dragstart', handleDragStart);
+      map.off('dragend', handleDragEnd);
+      map.off('zoomstart', handleZoomStart);
+      map.off('zoomend', handleZoomEnd);
+    };
+  }, [map]);
 
-//     // Check distance to searchCenter and pan map if within threshold
-//     if (map && searchCenter) {
-//       const distanceToSearchCenter = calculateDistance(
-//         newLocation.latitude,
-//         newLocation.longitude,
-//         searchCenter.latitude,
-//         searchCenter.longitude
-//       );
+  // Fetch pods khi currentMapCenter hoặc radius thay đổi
+  useEffect(() => {
+    if (currentMapCenter && shouldFetchPods(currentMapCenter)) {
+      debouncedFetchPods(currentMapCenter, radius);
+    }
+  }, [currentMapCenter, radius, debouncedFetchPods, shouldFetchPods]);
 
-//       if (distanceToSearchCenter < getAllowedCenterThreshold(radius)) {
-//         // Pan map to keep user at center
-//         map.panTo([newLocation.latitude, newLocation.longitude]);
-//       }
-//       // If distance > threshold, map center is locked (no panning)
-//     } else if (map && !searchCenter) {
-//       // Initial case: no searchCenter yet, pan to user location
-//       map.panTo([newLocation.latitude, newLocation.longitude]);
-//     }
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      centerMap.cancel();
+      debouncedFetchPods.cancel();
+    };
+  }, [centerMap, debouncedFetchPods]);
 
-//     const fetchLocation = updateSearchCenter(newLocation, currentMapCenter);
+  return {
+    lastSearchCenter: currentLocation,
+    currentLocation,
+    isUserOutOfView,
+    pods,
+    error,
+    loading,
+    setPods,
+  };
+}
 
-//     if (!isInitializedRef.current) {
-//       isInitializedRef.current = true;
-//       if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-//       fetchTimeoutRef.current = setTimeout(() => {
-//         if (fetchLocation) {
-//           fetchPods(fetchLocation.latitude, fetchLocation.longitude);
-//         }
-//       }, FETCH_DEBOUNCE_DELAY);
-//     } else if (shouldFetch(newLocation)) {
-//       if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-//       fetchTimeoutRef.current = setTimeout(() => {
-//         const currentFetchLocation = updateSearchCenter(newLocation, currentMapCenter);
-//         if (currentFetchLocation) {
-//           fetchPods(currentFetchLocation.latitude, currentFetchLocation.longitude);
-//         }
-//       }, FETCH_DEBOUNCE_DELAY);
-//     }
-//   }, [shouldFetch, fetchPods, setLocation, updateSearchCenter, currentMapCenter, map, searchCenter, radius, calculateDistance]);
-
-//   const handleGeolocationError = useCallback((error: GeolocationPositionError) => {
-//     console.error('Geolocation error:', error);
-//     let errorMessage = 'Error tracking location';
-
-//     switch (error.code) {
-//       case error.PERMISSION_DENIED:
-//         errorMessage = 'Location access denied by user';
-//         break;
-//       case error.POSITION_UNAVAILABLE:
-//         errorMessage = 'Location information unavailable';
-//         break;
-//       case error.TIMEOUT:
-//         errorMessage = 'Location request timed out';
-//         if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
-//         retryTimeoutRef.current = setTimeout(() => {
-//           if (navigator.geolocation) {
-//             navigator.geolocation.getCurrentPosition(
-//               handleLocationSuccess,
-//               (retryError) => {
-//                 console.error('Retry geolocation error:', retryError);
-//                 setError('Failed to get location after retry');
-//               },
-//               { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-//             );
-//           }
-//         }, RETRY_DELAY);
-//         return;
-//     }
-//     setError(errorMessage);
-//   }, [handleLocationSuccess]);
-
-//   useEffect(() => {
-//     if (!navigator.geolocation) {
-//       setError('Geolocation is not supported by your browser');
-//       return;
-//     }
-
-//     const cleanup = () => {
-//       if (watchIdRef.current !== null) {
-//         navigator.geolocation.clearWatch(watchIdRef.current);
-//         watchIdRef.current = null;
-//       }
-//       if (fetchTimeoutRef.current) {
-//         clearTimeout(fetchTimeoutRef.current);
-//         fetchTimeoutRef.current = null;
-//       }
-//       if (retryTimeoutRef.current) {
-//         clearTimeout(retryTimeoutRef.current);
-//         retryTimeoutRef.current = null;
-//       }
-//     };
-
-//     cleanup();
-
-//     const watchId = navigator.geolocation.watchPosition(
-//       handleLocationSuccess,
-//       handleGeolocationError,
-//       {
-//         enableHighAccuracy: true,
-//         maximumAge: 0,
-//         timeout: 10000
-//       }
-//     );
-
-//     watchIdRef.current = watchId;
-
-//     return cleanup;
-//   }, [handleLocationSuccess, handleGeolocationError]);
-
-//   useEffect(() => {
-//     if (currentLocation && map) {
-//       checkUserOutOfView();
-//     }
-//   }, [currentLocation, map, checkUserOutOfView]);
-
-//   useEffect(() => {
-//     setCentroid(null);
-//     setLastLocation(null);
-//     setSearchCenter(null);
-//     setLastFarMovementCheck(null);
-//     isInitializedRef.current = false;
-//   }, [radius]);
-
-//   return {
-//     currentLocation,
-//     pods,
-//     loading,
-//     error,
-//     lastSearchCenter: centroid,
-//     searchCenter,
-//     setPods,
-//     isUserOutOfView,
-//     getLocationForFetch,
-//   };
-// };
+export default useLocationTracking;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback, memo } from 'react';
+import { useEffect, useState, useRef, memo } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
 import { MapContainer, useMapEvents } from 'react-leaflet';
 import L, { Map as LeafletMapType, LatLng } from 'leaflet';
@@ -16,12 +16,11 @@ import { useRouter } from 'next/navigation';
 import { useReservationStore } from '@/features/reservation/stores/reservation.store';
 import { useMapStore } from '@/features/map/stores/map.store';
 import { getMe } from '@/features/me/me.action';
-// import { getPodsNearMe } from '@/features/pods/pods.action';
 import { ZOOM_RADIUS_CONFIG, DEBOUNCE_TIME } from '@/shared/config/mapConfig';
 import { Avatar } from '@mui/material';
 import { DEFAULT_CENTER } from '@/shared/config/env';
 import CenterMapControl from '@/components/CenterMapControl';
-import { useRadiusStore } from './stores/radius.store';
+import { useRadiusStore } from '../map/stores/radius.store';
 
 const LOCATION_PERMISSION_KEY = 'locationPermissionAsked';
 
@@ -35,11 +34,9 @@ function getCoords(location: { latitude: number; longitude: number } | LatLng) {
 }
 
 function MapEventHandlers({
-  fetchPodsBasedOnMap,
   currentLocation,
   setRadius,
 }: {
-  fetchPodsBasedOnMap: (location: { latitude: number; longitude: number }, currentZoom: number) => void;
   currentLocation: { latitude: number; longitude: number } | null;
   setRadius: (radius: number) => void;
 }) {
@@ -48,8 +45,7 @@ function MapEventHandlers({
   const zoomDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const isMovingRef = useRef(false);
 
-  const { setCurrentMapCenter } = useMapStore();
-
+  const { lastMapCenter, currentMapCenter, setLastMapCenter, setCurrentMapCenter } = useMapStore();
   const map = useMapEvents({
     movestart: () => {
       console.log('[movestart] Map movement started');
@@ -81,10 +77,14 @@ function MapEventHandlers({
           Math.abs(curr.zoom - zoom) < Math.abs(prev.zoom - zoom) ? curr : prev
         );
         setRadius(closestConfig.radius);
+        if (!lastMapCenter) {
+          setLastMapCenter(coords)
+        } else if (currentMapCenter) {
+          setLastMapCenter(currentMapCenter);
+        }
 
         // Update map center and fetch pods
         setCurrentMapCenter(coords);
-        fetchPodsBasedOnMap(coords, zoom);
       }, DEBOUNCE_TIME);
     },
 
@@ -103,10 +103,10 @@ function MapEventHandlers({
 
         console.log('[moveend] Raw center object:', center);
         console.log('[moveend] Extracted coords:', coords);
+        console.log('[moveend] Extracted zoom:', zoom);
         console.log('[moveend] Map bounds:', map.getBounds().toString());
 
         setCurrentMapCenter(coords);
-        fetchPodsBasedOnMap(coords, zoom);
       }, DEBOUNCE_TIME);
     },
   });
@@ -119,8 +119,8 @@ function MapEventHandlers({
     const coords = getCoords(locationToUse);
 
     console.log('[useEffect] Using location:', coords);
-    fetchPodsBasedOnMap(coords, zoom);
-  }, [fetchPodsBasedOnMap, map]);
+    console.log('[useEffect] Using zoom:', zoom);
+  }, [map]);
 
   // Cleanup timeouts
   useEffect(() => {
@@ -143,7 +143,7 @@ export default memo(function MapContent() {
 
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const { setPods, currentLocation } = useLocationTrackingContext();
+  const { currentLocation } = useLocationTrackingContext();
   const router = useRouter();
   const isUserTriggeredFlyToRef = useRef(false);
 
@@ -226,32 +226,6 @@ export default memo(function MapContent() {
     setMapLoaded(true);
   }, []);
 
-  const fetchPodsBasedOnMap = useCallback(async (location: { latitude: number; longitude: number }, currentZoom: number) => {
-    console.log('fetchPodsBasedOnMap called with:', { location, currentZoom });
-
-    // const closestConfig = ZOOM_RADIUS_CONFIG.reduce((prev, curr) =>
-    //   Math.abs(curr.zoom - currentZoom) < Math.abs(prev.zoom - currentZoom) ? curr : prev
-    // );
-
-
-    try {
-      // if (location && closestConfig.radius) {
-      //   const response = await getPodsNearMe({
-      //     longitude: location.longitude,
-      //     latitude: location.latitude,
-      //     radius: closestConfig.radius,
-      //   });
-      //   setPods(response.data.pods);
-      //   console.log('Pods fetched and set:', response.data.pods.length, 'pods');
-      // }
-      setPods([])
-    } catch (error) {
-      console.error('Failed to fetch pods:', error);
-      // Avoid clearing pods on error to prevent flickering
-      // setPods([]); // Removed to prevent unnecessary clearing
-    }
-  }, [setPods]);
-
   if (!mapLoaded || loadingUser) {
     return (
       <div
@@ -301,7 +275,6 @@ export default memo(function MapContent() {
       >
         <CenterMapControl />
         <MapEventHandlers
-          fetchPodsBasedOnMap={fetchPodsBasedOnMap}
           currentLocation={currentLocation}
           setRadius={setRadius}
         />

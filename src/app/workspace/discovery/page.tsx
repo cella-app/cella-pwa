@@ -88,7 +88,7 @@ export default function MapPage() {
 
   return (
     <Box sx={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <LocationTrackingProvider radius={600}>
+      <LocationTrackingProvider>
         <MapContent />
       </LocationTrackingProvider>
     </Box>

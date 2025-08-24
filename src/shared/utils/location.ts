@@ -41,10 +41,10 @@ export const getAllowedToGetPodsThreshold = (radius: number): number => {
 };
 
 export const getAllowedCenterThreshold = (radius: number): number => {
-	if (radius <= 600) return 10;
-	if (radius <= 1000) return 20;
-	if (radius <= 2500) return 45;
-	if (radius <= 5000) return 90;
-	if (radius <= 20000) return 200;
-	return 250;
+	if (radius <= 600) return 300;
+	if (radius <= 1000) return 500;
+	if (radius <= 2500) return 1250;
+	if (radius <= 5000) return 2500;
+	if (radius <= 20000) return 10000;
+	return 12000;
 };

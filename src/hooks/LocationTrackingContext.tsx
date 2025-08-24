@@ -1,19 +1,26 @@
+// LocationTrackingContext.js
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useLocationTracking } from './useLocationTracking3';
-import { PodList } from '@/shared/data/models/Pod';
+import { useLocationTracking } from './useLocationTracking';
 import { useMapStore } from '@/features/map/stores/map.store';
+import { useRadiusStore } from '@/features/map/stores/radius.store';
 
 interface LocationTrackingProviderProps {
   children: ReactNode;
-  radius?: number;
 }
 
-const LocationTrackingContext = createContext<ReturnType<typeof useLocationTracking> & { setPods: (pods: PodList[]) => void } | undefined>(undefined);
+const LocationTrackingContext = createContext<ReturnType<typeof useLocationTracking> | undefined>(undefined);
 
-export const LocationTrackingProvider = ({ children, radius = 600 }: LocationTrackingProviderProps) => {
+export const LocationTrackingProvider = ({ children }: LocationTrackingProviderProps) => {
   const { currentMapCenter } = useMapStore();
+  const { radius } = useRadiusStore();
   const locationTracking = useLocationTracking(radius, currentMapCenter);
-  
+
+  // Log để debug
+  console.log('LocationTrackingProvider render:', {
+    hasCurrentLocation: !!locationTracking.currentLocation,
+    error: locationTracking.error
+  });
+
   return (
     <LocationTrackingContext.Provider value={locationTracking}>
       {children}
