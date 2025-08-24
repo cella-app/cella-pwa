@@ -143,28 +143,18 @@ export default memo(function MapContent() {
 
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const { currentLocation } = useLocationTrackingContext();
+  const { currentLocation, setStartTracking } = useLocationTrackingContext();
   const router = useRouter();
   const isUserTriggeredFlyToRef = useRef(false);
 
   const [openLocationDialog, setOpenLocationDialog] = useState(true);
 
   const handleAllowLocation = () => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        console.log('User granted permission:', pos);
-      },
-      (err) => {
-        console.warn('User denied or error:', err);
-      }
-    );
-
+    setStartTracking(true);
     localStorage.setItem(LOCATION_PERMISSION_KEY, 'true');
     setOpenLocationDialog(false);
   };
-
   const handleDenyLocation = () => {
-    console.log('User denied location access');
     localStorage.setItem(LOCATION_PERMISSION_KEY, 'true');
     setOpenLocationDialog(false);
   };
@@ -360,13 +350,13 @@ export default memo(function MapContent() {
         </div>
       )}
       <Dialog open={openLocationDialog}>
-        <DialogTitle>Cho phép truy cập vị trí</DialogTitle>
+        <DialogTitle>Allow Location Access</DialogTitle>
         <DialogContent>
-          Để hiển thị các điểm làm việc gần bạn, ứng dụng cần truy cập vị trí hiện tại. Bạn có muốn bật định vị?
+          To show workplaces near you, the app needs access to your current location. Would you like to enable location services?
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDenyLocation} color="secondary">Không</Button>
-          <Button onClick={handleAllowLocation} variant="contained" color="primary">Cho phép</Button>
+          <Button onClick={handleDenyLocation} color="secondary">No</Button>
+          <Button onClick={handleAllowLocation} variant="contained" color="primary">Allow</Button>
         </DialogActions>
       </Dialog>
     </>

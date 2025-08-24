@@ -10,12 +10,13 @@ import debounce from 'lodash/debounce';
 
 const RETRY_DELAY = 500; // Thời gian chờ trước khi thử lại khi có lỗi geolocation
 const DEBOUNCE_TIME = 300; // Thời gian debounce (ms) cho centerMap
-const FETCH_DEBOUNCE_TIME = 100; // Thời gian debounce cho fetchPods
+const FETCH_DEBOUNCE_TIME = 500; // Thời gian debounce cho fetchPods
 
 export function useLocationTracking(
   radius: number = 600,
   currentMapCenter?: LocationData | null,
-  map?: L.Map
+  startTracking: boolean = false,
+  map?: L.Map,
 ) {
   const [isUserOutOfView, setIsUserOutOfView] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export function useLocationTracking(
   // Handle successful geolocation
   const handleLocationSuccess = useCallback(
     (position: GeolocationPosition) => {
+      console.log("OK2", position)
       const newLocation: LocationData = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
@@ -156,6 +158,8 @@ export function useLocationTracking(
       return;
     }
 
+    if (!startTracking) return;
+
     const cleanup = () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
@@ -174,7 +178,7 @@ export function useLocationTracking(
       handleGeolocationError,
       {
         enableHighAccuracy: true,
-        maximumAge: 0,
+        maximumAge: 30000,
         timeout: 10000,
       }
     );
@@ -182,7 +186,7 @@ export function useLocationTracking(
     watchIdRef.current = watchId;
 
     return cleanup;
-  }, [handleLocationSuccess, handleGeolocationError]);
+  }, [handleLocationSuccess, handleGeolocationError, startTracking]);
 
   // Debounced function to center the map smoothly
   const centerMap = useCallback(
