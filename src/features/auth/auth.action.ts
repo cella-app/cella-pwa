@@ -7,7 +7,7 @@ import { clearAuth, getRefreshToken } from '@/shared/utils/auth';
 import { userAlertStore, SERVERIFY_ALERT } from '@/features/alert/stores/alert.store';
 
 export async function loginAction(email: string, password: string) {
-	const { setAuth, setLoading, setError, setUser } = useAuthStore.getState();
+	const { setAuth, setLoading, setError, setUser, isAuthenticated } = useAuthStore.getState();
 	const { addAlert } = userAlertStore.getState();
 
 	setLoading(true);
@@ -28,6 +28,8 @@ export async function loginAction(email: string, password: string) {
 			severity: SERVERIFY_ALERT.SUCCESS,
 			message: "Login successfully!"
 		})
+
+		console.log(isAuthenticated)
     
     const user = await meApi.get();
     setUser(user)
