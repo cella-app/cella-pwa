@@ -21,7 +21,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { userAlertStore } from '@/features/alert/stores/alert.store';
+import { SERVERIFY_ALERT, userAlertStore } from '@/features/alert/stores/alert.store';
 import { getToken } from '@/shared/utils/auth';
 
 const loginSchema = z.object({
@@ -37,6 +37,7 @@ function LoginForm() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const { isLoading ,isAuthenticated} = useAuthStore();
+	const { addAlert } = userAlertStore.getState();
 
 	const [showPassword, setShowPassword] = useState(false);
 
@@ -51,6 +52,7 @@ function LoginForm() {
 	const onSubmit = async (data: LoginFormData) => {
 		try {
 			await loginAction(data.email, data.password);	
+			
 			// setTimeout(() => {
 			// 	const from = searchParams?.get('from') || '/workspace/discovery';
 			// 	router.push(from);
@@ -75,9 +77,15 @@ function LoginForm() {
 		const from = searchParams?.get('from') || '/workspace/discovery';
 		console.log('[auth] Auth statue:',isAuthenticated )
 		if(isAuthenticated){
+			addAlert({
+				severity: SERVERIFY_ALERT.SUCCESS,
+				message: "Login successfully!"
+			})
 			console.log('[auth] Login success: ', from)
 			router.replace(from); 
+			router.refresh()
 		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	},[isAuthenticated, router, searchParams])
 	
 	return (
