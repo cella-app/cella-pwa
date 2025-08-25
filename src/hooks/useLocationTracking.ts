@@ -18,6 +18,15 @@ export function useLocationTracking(
   startTracking: boolean = false,
   map?: L.Map,
 ) {
+  
+  // 🔍 DEBUG: Check hook được gọi
+  console.log('🎣 useLocationTracking hook called with:', {
+    radius,
+    startTracking,
+    hasCurrentMapCenter: !!currentMapCenter,
+    hasMap: !!map
+  });
+
   const [isUserOutOfView, setIsUserOutOfView] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,15 +34,38 @@ export function useLocationTracking(
 
   const watchIdRef = useRef<number | null>(null);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastFetchedCenter = useRef<LocationData | null>(null); // Lưu center của lần fetch trước
+  const lastFetchedCenter = useRef<LocationData | null>(null); // Center của lần fetch trước
+  const lastSavedUserLocation = useRef<LocationData | null>(null); // User location đã được save để kiểm tra movement
 
   const { setLocation, currentLocation, lastLocation, setLastLocation } = useLocationStore();
   const { setStateLocationDiffValid } = useMapConditionStore();
   const { pods, setPods } = usePodStore();
 
-  // Debounced fetchPods để tránh gọi API nhiều lần
-  const debouncedFetchPods = useCallback(
-    debounce(async (center: LocationData, rad: number) => {
+  // Kiểm tra xem user có di chuyển đủ xa để cần update không
+  const shouldUpdateUserLocation = useCallback(
+    (newLocation: LocationData): boolean => {
+      if (!lastSavedUserLocation.current) return true;
+
+      const threshold = getAllowedToGetPodsThreshold(radius);
+      const distance = calculateDistanceNew(newLocation, lastSavedUserLocation.current);
+      return distance >= threshold;
+    },
+    [radius]
+  );
+
+  // Kiểm tra xem user và center có trong phạm vi hợp lệ không
+  const isUserCenterInValidRange = useCallback(
+    (userLocation: LocationData, centerLocation: LocationData): boolean => {
+      const threshold = getAllowedCenterThreshold(radius);
+      const distance = calculateDistanceNew(userLocation, centerLocation);
+      return distance <= threshold;
+    },
+    [radius]
+  );
+
+  // Define the actual (non-debounced) fetch function
+  const fetchPodsInternal = useCallback(
+    async (center: LocationData, rad: number) => {
       try {
         setLoading(true);
         setError(null);
@@ -55,18 +87,31 @@ export function useLocationTracking(
       } finally {
         setLoading(false);
       }
-    }, FETCH_DEBOUNCE_TIME),
-    [setPods]
+    },
+    [setLoading, setError, setPods]
   );
 
-  // Kiểm tra xem có nên fetch pods không
+  // Store the debounced fetchPods function in a ref
+  const debouncedFetchPodsRef = useRef(debounce(fetchPodsInternal, FETCH_DEBOUNCE_TIME));
+
+  // Update the debounced function if fetchPodsInternal changes
+  useEffect(() => {
+    debouncedFetchPodsRef.current = debounce(fetchPodsInternal, FETCH_DEBOUNCE_TIME);
+    return () => {
+      debouncedFetchPodsRef.current.cancel();
+    };
+  }, [fetchPodsInternal]);
+
+  // Kiểm tra xem có nên fetch pods không dựa trên center position
   const shouldFetchPods = useCallback(
-    (center: LocationData) => {
+    (center: LocationData): boolean => {
       if (!center) return false;
-      if (!lastFetchedCenter.current) return true; // Fetch lần đầu
-      const threshold = getAllowedToGetPodsThreshold(radius);
-      const diff = calculateDistanceNew(center, lastFetchedCenter.current);
-      return diff >= threshold;
+      if (!lastFetchedCenter.current) return true;
+
+      const threshold = getAllowedCenterThreshold(radius);
+      const distance = calculateDistanceNew(center, lastFetchedCenter.current);
+      console.log("fetch threshold-distance", threshold, distance);
+      return distance >= threshold;
     },
     [radius]
   );
@@ -89,30 +134,49 @@ export function useLocationTracking(
   }, [map, currentLocation]);
 
   // Handle successful geolocation
+  let lastUpdate = Date.now();
   const handleLocationSuccess = useCallback(
     (position: GeolocationPosition) => {
-      console.log("OK2", position)
+      const now = Date.now();
+      console.log(`Update after: ${now - lastUpdate}ms`);
+      lastUpdate = now;
+      console.log("Geolocation success",{
+        accuracy: position.coords.accuracy,        // Độ chính xác (m)
+        altitude: position.coords.altitude,        // Có GPS không
+        altitudeAccuracy: position.coords.altitudeAccuracy,
+        heading: position.coords.heading,          // Hướng di chuyển
+        speed: position.coords.speed               // Tốc độ
+      });
       const newLocation: LocationData = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       };
 
-      const threshold = getAllowedToGetPodsThreshold(radius);
-      if (!lastLocation) {
-        setLastLocation(newLocation);
-        setStateLocationDiffValid(true);
-      } else {
-        const diff = calculateDistanceNew(newLocation, lastLocation);
-        setStateLocationDiffValid(diff >= threshold);
-        if (diff >= threshold) {
-          setLastLocation(newLocation);
-        }
-      }
-
+      // Luôn update current location
       setLocation(newLocation);
       setError(null);
+
+      // Kiểm tra xem có nên update lastLocation và trigger state change không
+      if (shouldUpdateUserLocation(newLocation)) {
+        console.log("User moved enough, updating saved location");
+        setLastLocation(newLocation);
+        setStateLocationDiffValid(true);
+        lastSavedUserLocation.current = newLocation;
+      } else {
+        // Nếu chưa di chuyển đủ xa, vẫn set valid state dựa trên lastLocation hiện tại
+        if (lastLocation) {
+          const threshold = getAllowedToGetPodsThreshold(radius);
+          const diff = calculateDistanceNew(newLocation, lastLocation);
+          setStateLocationDiffValid(diff >= threshold);
+        } else {
+          // Lần đầu tiên, set lastLocation
+          setLastLocation(newLocation);
+          setStateLocationDiffValid(true);
+          lastSavedUserLocation.current = newLocation;
+        }
+      }
     },
-    [lastLocation, radius, setLocation, setLastLocation, setStateLocationDiffValid]
+    [setLocation, setLastLocation, setStateLocationDiffValid, shouldUpdateUserLocation, lastLocation, radius]
   );
 
   // Handle geolocation errors and retry
@@ -153,14 +217,23 @@ export function useLocationTracking(
 
   // Start location tracking
   useEffect(() => {
+    console.log('🌍 Geolocation useEffect triggered');
+
+    // Check geolocation support
     if (!navigator.geolocation) {
+      console.error('❌ Geolocation not supported');
       setError('Geolocation is not supported by your browser');
       return;
     }
+    console.log('✅ Navigator.geolocation exists');
 
-    if (!startTracking) return;
+    // Check HTTPS (required by some browsers)
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      console.warn('⚠️ Geolocation may require HTTPS');
+    }
 
     const cleanup = () => {
+      console.log('🧹 Cleaning up geolocation watch');
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
@@ -173,29 +246,41 @@ export function useLocationTracking(
 
     cleanup();
 
-    const watchId = navigator.geolocation.watchPosition(
-      handleLocationSuccess,
-      handleGeolocationError,
-      {
-        enableHighAccuracy: true,
-        maximumAge: 30000,
-        timeout: 10000,
-      }
-    );
+    console.log('📍 Starting geolocation.watchPosition...');
 
-    watchIdRef.current = watchId;
+    try {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          console.log('✅ Geolocation SUCCESS:', position);
+          handleLocationSuccess(position);
+        },
+        (error) => {
+          console.error('❌ Geolocation ERROR:', error);
+          handleGeolocationError(error);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000,
+        }
+      );
+
+      console.log('🎯 WatchPosition started with ID:', watchId);
+      watchIdRef.current = watchId;
+    } catch (error) {
+      console.error('💥 Exception starting watchPosition:', error);
+      setError('Failed to start location tracking');
+    }
 
     return cleanup;
-  }, [handleLocationSuccess, handleGeolocationError, startTracking]);
+  }, [handleLocationSuccess, handleGeolocationError]);
 
-  // Debounced function to center the map smoothly
-  const centerMap = useCallback(
-    debounce((location: LocationData) => {
+  // Define the actual (non-debounced) center map function
+  const centerMapInternal = useCallback(
+    (location: LocationData) => {
       if (map && !isMapInteracting && currentMapCenter) {
-        // Kiểm tra khoảng cách giữa center và location
-        const threshold = getAllowedCenterThreshold(radius);
-        const distanceToCenter = calculateDistanceNew(location, currentMapCenter);
-        if (distanceToCenter <= threshold) {
+        // Chỉ center map khi user và center trong valid range
+        if (isUserCenterInValidRange(location, currentMapCenter)) {
           try {
             map.flyTo([location.latitude, location.longitude], map.getZoom(), {
               duration: 0.5,
@@ -206,17 +291,34 @@ export function useLocationTracking(
           }
         }
       }
-    }, DEBOUNCE_TIME),
-    [map, isMapInteracting, currentMapCenter, radius]
+    },
+    [map, isMapInteracting, currentMapCenter, isUserCenterInValidRange]
   );
+
+  // Store the debounced centerMap function in a ref
+  const debouncedCenterMapRef = useRef(debounce(centerMapInternal, DEBOUNCE_TIME));
+
+  // Update the debounced function if centerMapInternal changes
+  useEffect(() => {
+    debouncedCenterMapRef.current = debounce(centerMapInternal, DEBOUNCE_TIME);
+    return () => {
+      debouncedCenterMapRef.current.cancel();
+    };
+  }, [centerMapInternal]);
 
   // Auto-center và check out of view khi location thay đổi
   useEffect(() => {
     if (currentLocation) {
-      centerMap(currentLocation);
+      // Chỉ center khi user di chuyển đủ xa (đã update saved location)
+      if (lastSavedUserLocation.current &&
+        calculateDistanceNew(currentLocation, lastSavedUserLocation.current) < getAllowedToGetPodsThreshold(radius)) {
+        // User chưa di chuyển đủ xa, không center
+      } else {
+        debouncedCenterMapRef.current(currentLocation);
+      }
       checkUserOutOfView();
     }
-  }, [currentLocation, centerMap, checkUserOutOfView]);
+  }, [currentLocation, checkUserOutOfView, radius]);
 
   // Xử lý sự kiện drag/zoom để set isMapInteracting
   useEffect(() => {
@@ -240,12 +342,14 @@ export function useLocationTracking(
     };
   }, [map]);
 
-  // Fetch pods khi currentMapCenter hoặc radius thay đổi
+  // LOGIC CHÍNH: Fetch pods chỉ theo center position
   useEffect(() => {
+    console.log("Center changed:", currentMapCenter);
     if (currentMapCenter && shouldFetchPods(currentMapCenter)) {
-      debouncedFetchPods(currentMapCenter, radius);
+      console.log("Fetching pods for center:", currentMapCenter);
+      debouncedFetchPodsRef.current(currentMapCenter, radius);
     }
-  }, [currentMapCenter, radius, debouncedFetchPods, shouldFetchPods]);
+  }, [currentMapCenter, radius, shouldFetchPods]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -256,10 +360,16 @@ export function useLocationTracking(
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
-      centerMap.cancel();
-      debouncedFetchPods.cancel();
+      debouncedCenterMapRef.current.cancel();
+      debouncedFetchPodsRef.current.cancel();
     };
-  }, [centerMap, debouncedFetchPods]);
+  }, []);
+
+  useEffect(() => {
+    if (currentLocation) {
+      console.log('📱 Current location updated:', currentLocation);
+    }
+  }, [currentLocation]);
 
   return {
     lastSearchCenter: currentLocation,
