@@ -272,7 +272,7 @@ export default function LoginPage() {
 				message: "Login successful!",
 			});
 			console.log("[auth] Redirecting to:", from);
-			router.replace(from); // Chuyển hướng mượt mà
+			window.location.href = from;
 		}
 	}, [isCheckingToken, isAuthenticated, clearAlerts, addAlert, router, from]);
 
