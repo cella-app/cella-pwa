@@ -23,7 +23,6 @@ export async function loginAction(email: string, password: string) {
 		await authApi.setCookie(data.access_token);
 
 		setAuth(data.refresh_token, data.access_token);
-		
 		// addAlert({
 		// 	severity: SERVERIFY_ALERT.SUCCESS,
 		// 	message: "Login successfully!"
