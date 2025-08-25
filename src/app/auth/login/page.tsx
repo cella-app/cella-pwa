@@ -73,12 +73,12 @@ function LoginForm() {
 
 	useEffect(()=>{
 		const from = searchParams?.get('from') || '/workspace/discovery';
+		console.log('[auth] Auth statue:',isAuthenticated )
 		if(isAuthenticated){
 			console.log('[auth] Login success: ', from)
 			router.replace(from); 
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	},[isAuthenticated])
+	},[isAuthenticated, router, searchParams])
 	
 	return (
 		<>
