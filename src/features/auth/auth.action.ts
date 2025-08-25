@@ -29,7 +29,7 @@ export async function loginAction(email: string, password: string) {
 			message: "Login successfully!"
 		})
 
-		console.log(isAuthenticated)
+		console.warn("isAuthenticated", isAuthenticated)
     
     const user = await meApi.get();
     setUser(user)
