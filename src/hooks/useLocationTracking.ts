@@ -18,24 +18,22 @@ export function useLocationTracking(
   startTracking: boolean = false,
   map?: L.Map,
 ) {
-  
-  // 🔍 DEBUG: Check hook được gọi
-  console.log('🎣 useLocationTracking hook called with:', {
-    radius,
-    startTracking,
-    hasCurrentMapCenter: !!currentMapCenter,
-    hasMap: !!map
-  });
-
   const [isUserOutOfView, setIsUserOutOfView] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
+  const [lastInteractionTime, setLastInteractionTime] = useState(0);
 
   const watchIdRef = useRef<number | null>(null);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFetchedCenter = useRef<LocationData | null>(null); // Center của lần fetch trước
   const lastSavedUserLocation = useRef<LocationData | null>(null); // User location đã được save để kiểm tra movement
+
+  // Check if user is currently controlling the map
+  const isUserInControl = useCallback(() => {
+    const COOLDOWN_TIME = 2000; // 2s after interaction stops
+    return isMapInteracting || (Date.now() - lastInteractionTime < COOLDOWN_TIME);
+  }, [isMapInteracting, lastInteractionTime]);
 
   const { setLocation, currentLocation, lastLocation, setLastLocation } = useLocationStore();
   const { setStateLocationDiffValid } = useMapConditionStore();
@@ -134,19 +132,9 @@ export function useLocationTracking(
   }, [map, currentLocation]);
 
   // Handle successful geolocation
-  let lastUpdate = Date.now();
   const handleLocationSuccess = useCallback(
     (position: GeolocationPosition) => {
-      const now = Date.now();
-      console.log(`Update after: ${now - lastUpdate}ms`);
-      lastUpdate = now;
-      console.log("Geolocation success",{
-        accuracy: position.coords.accuracy,        // Độ chính xác (m)
-        altitude: position.coords.altitude,        // Có GPS không
-        altitudeAccuracy: position.coords.altitudeAccuracy,
-        heading: position.coords.heading,          // Hướng di chuyển
-        speed: position.coords.speed               // Tốc độ
-      });
+      console.log("Geolocation success", position);
       const newLocation: LocationData = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
@@ -217,23 +205,14 @@ export function useLocationTracking(
 
   // Start location tracking
   useEffect(() => {
-    console.log('🌍 Geolocation useEffect triggered');
-
-    // Check geolocation support
     if (!navigator.geolocation) {
-      console.error('❌ Geolocation not supported');
       setError('Geolocation is not supported by your browser');
       return;
     }
-    console.log('✅ Navigator.geolocation exists');
 
-    // Check HTTPS (required by some browsers)
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-      console.warn('⚠️ Geolocation may require HTTPS');
-    }
+    if (!startTracking) return;
 
     const cleanup = () => {
-      console.log('🧹 Cleaning up geolocation watch');
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
@@ -246,31 +225,17 @@ export function useLocationTracking(
 
     cleanup();
 
-    console.log('📍 Starting geolocation.watchPosition...');
+    const watchId = navigator.geolocation.watchPosition(
+      handleLocationSuccess,
+      handleGeolocationError,
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000,
+      }
+    );
 
-    try {
-      const watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          console.log('✅ Geolocation SUCCESS:', position);
-          handleLocationSuccess(position);
-        },
-        (error) => {
-          console.error('❌ Geolocation ERROR:', error);
-          handleGeolocationError(error);
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 0,
-          timeout: 10000,
-        }
-      );
-
-      console.log('🎯 WatchPosition started with ID:', watchId);
-      watchIdRef.current = watchId;
-    } catch (error) {
-      console.error('💥 Exception starting watchPosition:', error);
-      setError('Failed to start location tracking');
-    }
+    watchIdRef.current = watchId;
 
     return cleanup;
   }, [handleLocationSuccess, handleGeolocationError]);
@@ -278,9 +243,10 @@ export function useLocationTracking(
   // Define the actual (non-debounced) center map function
   const centerMapInternal = useCallback(
     (location: LocationData) => {
-      if (map && !isMapInteracting && currentMapCenter) {
-        // Chỉ center map khi user và center trong valid range
+      if (map && !isUserInControl() && currentMapCenter) {
+        // Chỉ auto-follow khi user không đang tương tác
         if (isUserCenterInValidRange(location, currentMapCenter)) {
+          console.log('🎯 Auto-following user (not in control)');
           try {
             map.flyTo([location.latitude, location.longitude], map.getZoom(), {
               duration: 0.5,
@@ -290,11 +256,12 @@ export function useLocationTracking(
             console.error('Error centering map:', err);
           }
         }
+      } else if (isUserInControl()) {
+        console.log('⏸️ Skipping auto-follow - user in control');
       }
     },
-    [map, isMapInteracting, currentMapCenter, isUserCenterInValidRange]
+    [map, isUserInControl, currentMapCenter, isUserCenterInValidRange]
   );
-
 
   // Store the debounced centerMap function in a ref
   const debouncedCenterMapRef = useRef(debounce(centerMapInternal, DEBOUNCE_TIME));
@@ -325,10 +292,27 @@ export function useLocationTracking(
   useEffect(() => {
     if (!map) return;
 
-    const handleDragStart = () => setIsMapInteracting(true);
-    const handleDragEnd = () => setIsMapInteracting(false);
-    const handleZoomStart = () => setIsMapInteracting(true);
-    const handleZoomEnd = () => setIsMapInteracting(false);
+    const handleDragStart = () => {
+      console.log('🖱️ User starts dragging');
+      setIsMapInteracting(true);
+    };
+
+    const handleDragEnd = () => {
+      console.log('🖱️ User stops dragging');
+      setIsMapInteracting(false);
+      setLastInteractionTime(Date.now());
+    };
+
+    const handleZoomStart = () => {
+      console.log('🔍 User starts zooming');
+      setIsMapInteracting(true);
+    };
+
+    const handleZoomEnd = () => {
+      console.log('🔍 User stops zooming');
+      setIsMapInteracting(false);
+      setLastInteractionTime(Date.now());
+    };
 
     map.on('dragstart', handleDragStart);
     map.on('dragend', handleDragEnd);
@@ -365,12 +349,6 @@ export function useLocationTracking(
       debouncedFetchPodsRef.current.cancel();
     };
   }, []);
-
-  useEffect(() => {
-    if (currentLocation) {
-      console.log('📱 Current location updated:', currentLocation);
-    }
-  }, [currentLocation]);
 
   return {
     lastSearchCenter: currentLocation,
