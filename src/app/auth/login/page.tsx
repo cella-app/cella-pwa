@@ -71,48 +71,37 @@ function LoginForm() {
 	const breakpointMd = theme.breakpoints.up("md");
 
 	return (
-		<Box
-			sx={{
-				display: "flex",
-				flexDirection: "column",
-				minHeight: "100vh",
-				maxWidth: "400px",
-				mx: "auto",
-			}}
-		>
-			{/* Title */}
+		<>
 			<Box
 				sx={{
 					flex: 1,
-					display: "flex",
-					color: "black",
-					flexDirection: "column",
-					justifyContent: "center",
-					alignItems: "center",
-					padding: "20px",
-					textAlign: "center",
-					position: "relative",
-					"&::before": {
+					display: 'flex',
+					color: 'black',
+					flexDirection: 'column',
+					justifyContent: 'center',
+					alignItems: 'center',
+					padding: '10px 20px',
+					textAlign: 'center',
+					position: 'relative',
+					'&::before': {
 						content: '""',
-						position: "absolute",
+						position: 'absolute',
 						top: 0,
 						left: 0,
 						right: 0,
 						bottom: 0,
-						background:
-							"linear-gradient(180deg, rgba(12,62,46,0.1) 0%, rgba(255,255,255,0) 100%)",
 						opacity: 0.3,
 					},
 					[breakpointMd as string]: {
-						padding: "30px",
+						padding: '10px 20px',
 					},
 				}}
 			>
 				<Typography
 					variant="h1"
 					sx={{
-						fontSize: "40px",
-						fontWeight: "bold",
+						fontSize: '36px',
+						fontWeight: 'bold',
 						mb: 2,
 						fontFamily: rootStyle.titleFontFamily,
 					}}
@@ -122,61 +111,55 @@ function LoginForm() {
 				<Typography
 					variant="h3"
 					sx={{
-						fontSize: "26px !important",
-						fontWeight: "bold",
+						fontSize: '24px !important',
+						fontWeight: 'bold',
 						opacity: 0.9,
 						fontFamily: rootStyle.titleFontFamily,
 					}}
 				>
-					Welcome back
+					Welcome back.
 				</Typography>
 			</Box>
 
-			{/* Form */}
+			{/* Form Section */}
 			<Box
 				sx={{
 					flex: 1,
-					padding: "20px 30px",
-					display: "flex",
-					flexDirection: "column",
-					justifyContent: "center",
+					padding: '10px 30px',
+					display: 'flex',
+					flexDirection: 'column',
+					justifyContent: 'center',
 				}}
 			>
-				<form method="POST" onSubmit={handleSubmit(onSubmit)} noValidate>
-					<FormControl sx={{ width: "100%" }}>
+				<form method='POST' onSubmit={handleSubmit(onSubmit)} noValidate>
+					<FormControl sx={{ width: '100%' }}>
 						<TextField
 							fullWidth
 							label="Email"
 							type="email"
 							margin="normal"
-							{...register("email")}
+							{...register('email')}
 							error={!!errors.email}
 							helperText={errors.email?.message}
-							sx={{ mb: 2 }}
 						/>
 
 						<TextField
 							fullWidth
 							label="Password"
-							type={showPassword ? "text" : "password"}
+							type={showPassword ? 'text' : 'password'}
 							margin="normal"
-							{...register("password")}
+							{...register('password')}
 							error={!!errors.password}
 							helperText={errors.password?.message}
 							InputProps={{
 								endAdornment: (
 									<InputAdornment position="end">
-										<IconButton
-											onClick={togglePasswordVisibility}
-											edge="end"
-											aria-label="toggle password visibility"
-										>
+										<IconButton onClick={togglePasswordVisibility} edge="end">
 											{showPassword ? <VisibilityOff /> : <Visibility />}
 										</IconButton>
 									</InputAdornment>
 								),
 							}}
-							sx={{ mb: 2 }}
 						/>
 
 						<Button
@@ -184,33 +167,28 @@ function LoginForm() {
 							fullWidth
 							variant="contained"
 							disabled={isLoading}
-							sx={{
-								mt: 3,
-								py: 1.5,
-								backgroundColor: "#0C3E2E",
-								"&:hover": { backgroundColor: "#0A2F22" },
-							}}
+							sx={{ mt: 4 }}
 						>
-							{isLoading ? "Logging in..." : "Sign In"}
+							{isLoading ? 'Logging in...' : 'Login'}
 						</Button>
 
 						<Typography
 							variant="body2"
 							sx={{
-								textAlign: "center",
+								textAlign: 'center',
 								mt: 3,
-								color: "#333",
+								color: '#333',
 								fontWeight: 400,
 							}}
 						>
-							Don&apos;t have an account?{" "}
+							Don&#39;t have an account?{' '}
 							<Link
 								href="/auth/register"
 								sx={{
-									color: "#0C3E2E",
+									color: '#0C3E2E',
 									fontWeight: 600,
-									textDecoration: "none",
-									"&:hover": { textDecoration: "underline" },
+									textDecoration: 'none',
+									'&:hover': { textDecoration: 'underline' },
 								}}
 							>
 								Sign up
@@ -219,7 +197,7 @@ function LoginForm() {
 					</FormControl>
 				</form>
 			</Box>
-		</Box>
+		</>
 	);
 }
 
