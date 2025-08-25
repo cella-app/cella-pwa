@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import {
 	Box,
 	TextField,
@@ -13,7 +13,7 @@ import {
 	useTheme,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { loginAction } from "@/features/auth/auth.action";
+import { loginAction, syncTokenAction } from "@/features/auth/auth.action";
 import { useAuthStore } from "@/features/auth/stores/auth.store";
 import { rootStyle } from "@/theme";
 import { useForm } from "react-hook-form";
@@ -24,13 +24,14 @@ import {
 	SERVERIFY_ALERT,
 	userAlertStore,
 } from "@/features/alert/stores/alert.store";
-import { getToken } from "@/shared/utils/auth";
+import { getToken, clearAuth } from "@/shared/utils/auth";
 
 const loginSchema = z.object({
 	email: z.string().email({ message: "Please enter a valid email address" }),
 	password: z
 		.string({ message: "Password is required" })
-		.min(6, { message: "Password minimum 6 characters" }),
+		.min(6, { message: "Password must be at least 6 characters" })
+		.max(128, { message: "Password cannot exceed 128 characters" }),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -51,24 +52,34 @@ function LoginForm() {
 	const onSubmit = async (data: LoginFormData) => {
 		try {
 			await loginAction(data.email, data.password);
-		} catch (err) {
-			userAlertStore
-				.getState()
-				.addAlert({
-					severity: SERVERIFY_ALERT.ERROR,
-					message: "Login failed. Please try again.",
-				});
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} catch (err: any) {
+			const errorMessage =
+				err.message === "Invalid credentials"
+					? "Invalid email or password."
+					: "Login failed. Please try again later.";
+			userAlertStore.getState().addAlert({
+				severity: SERVERIFY_ALERT.ERROR,
+				message: errorMessage,
+			});
 			throw err;
 		}
 	};
 
-	const togglePasswordVisibility = () =>
-		setShowPassword((prev) => !prev);
+	const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
 	const breakpointMd = theme.breakpoints.up("md");
 
 	return (
-		<>
+		<Box
+			sx={{
+				display: "flex",
+				flexDirection: "column",
+				minHeight: "100vh",
+				maxWidth: "400px",
+				mx: "auto",
+			}}
+		>
 			{/* Title */}
 			<Box
 				sx={{
@@ -78,7 +89,7 @@ function LoginForm() {
 					flexDirection: "column",
 					justifyContent: "center",
 					alignItems: "center",
-					padding: "10px 20px",
+					padding: "20px",
 					textAlign: "center",
 					position: "relative",
 					"&::before": {
@@ -88,17 +99,19 @@ function LoginForm() {
 						left: 0,
 						right: 0,
 						bottom: 0,
+						background:
+							"linear-gradient(180deg, rgba(12,62,46,0.1) 0%, rgba(255,255,255,0) 100%)",
 						opacity: 0.3,
 					},
 					[breakpointMd as string]: {
-						padding: "10px 20px",
+						padding: "30px",
 					},
 				}}
 			>
 				<Typography
 					variant="h1"
 					sx={{
-						fontSize: "36px",
+						fontSize: "40px",
 						fontWeight: "bold",
 						mb: 2,
 						fontFamily: rootStyle.titleFontFamily,
@@ -109,13 +122,13 @@ function LoginForm() {
 				<Typography
 					variant="h3"
 					sx={{
-						fontSize: "24px !important",
+						fontSize: "26px !important",
 						fontWeight: "bold",
 						opacity: 0.9,
 						fontFamily: rootStyle.titleFontFamily,
 					}}
 				>
-					Welcome back.
+					Welcome back
 				</Typography>
 			</Box>
 
@@ -123,7 +136,7 @@ function LoginForm() {
 			<Box
 				sx={{
 					flex: 1,
-					padding: "10px 30px",
+					padding: "20px 30px",
 					display: "flex",
 					flexDirection: "column",
 					justifyContent: "center",
@@ -139,6 +152,7 @@ function LoginForm() {
 							{...register("email")}
 							error={!!errors.email}
 							helperText={errors.email?.message}
+							sx={{ mb: 2 }}
 						/>
 
 						<TextField
@@ -155,12 +169,14 @@ function LoginForm() {
 										<IconButton
 											onClick={togglePasswordVisibility}
 											edge="end"
+											aria-label="toggle password visibility"
 										>
 											{showPassword ? <VisibilityOff /> : <Visibility />}
 										</IconButton>
 									</InputAdornment>
 								),
 							}}
+							sx={{ mb: 2 }}
 						/>
 
 						<Button
@@ -168,9 +184,14 @@ function LoginForm() {
 							fullWidth
 							variant="contained"
 							disabled={isLoading}
-							sx={{ mt: 4 }}
+							sx={{
+								mt: 3,
+								py: 1.5,
+								backgroundColor: "#0C3E2E",
+								"&:hover": { backgroundColor: "#0A2F22" },
+							}}
 						>
-							{isLoading ? "Logging in..." : "Login"}
+							{isLoading ? "Logging in..." : "Sign In"}
 						</Button>
 
 						<Typography
@@ -182,7 +203,7 @@ function LoginForm() {
 								fontWeight: 400,
 							}}
 						>
-							Don&#39;t have an account?{" "}
+							Don&apos;t have an account?{" "}
 							<Link
 								href="/auth/register"
 								sx={{
@@ -198,35 +219,66 @@ function LoginForm() {
 					</FormControl>
 				</form>
 			</Box>
-		</>
+		</Box>
 	);
 }
 
 export default function LoginPage() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const { isAuthenticated, initializeAuth } = useAuthStore();
+	const { isAuthenticated, initializeAuth, logout } = useAuthStore(); // Giả sử logout có trong store
 	const { clearAlerts, addAlert } = userAlertStore();
 	const from = searchParams?.get("from") || "/workspace/discovery";
+	const [isCheckingToken, setIsCheckingToken] = useState(true);
+
+	const syncUpToken = useCallback(async (token: string) => {
+		try {
+			await syncTokenAction(token); // Gọi API để xác thực hoặc làm mới token
+			return true;
+		} catch (err) {
+			console.error("[auth] Token sync failed:", err);
+			return false;
+		}
+	}, []);
 
 	useEffect(() => {
-		initializeAuth();
-		router.prefetch(from);
-	}, [initializeAuth, router, from]);
+		const initialize = async () => {
+			initializeAuth(); // Khởi tạo auth
+			const token = getToken();
+			if (token) {
+				const isTokenValid = await syncUpToken(token);
+				if (!isTokenValid) {
+					logout(); // Xóa token và đặt isAuthenticated về false
+					clearAuth(); // Xóa token khỏi localStorage
+					addAlert({
+						severity: SERVERIFY_ALERT.INFO,
+						message: "Session expired. Please log in again.",
+					});
+				}
+			}
+			setIsCheckingToken(false);
+			router.prefetch(from);
+		};
+		initialize();
+	}, [initializeAuth, syncUpToken, logout, clearAlerts, addAlert, router, from]);
 
 	useEffect(() => {
+		if (isCheckingToken) return; 
 		clearAlerts();
 		const token = getToken();
-		if (token || isAuthenticated) {
+		if (token && isAuthenticated) {
 			addAlert({
 				severity: SERVERIFY_ALERT.SUCCESS,
-				message: "login successful!",
+				message: "Login successful!",
 			});
 			console.log("[auth] Redirecting to:", from);
-			// router.replace(from);
 			window.location.href = from;
 		}
-	}, [clearAlerts, isAuthenticated, addAlert, router, from]);
+	}, [isCheckingToken, isAuthenticated, clearAlerts, addAlert, router, from]);
+
+	if (isCheckingToken) {
+		return <div>Checking authentication...</div>;
+	}
 
 	return (
 		<Suspense fallback={<div>Loading...</div>}>

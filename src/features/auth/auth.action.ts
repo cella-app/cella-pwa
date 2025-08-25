@@ -5,6 +5,7 @@ import { authApi } from '@/shared/api/auth.api';
 import { meApi } from '@/shared/api/me.api';
 import { clearAuth, getRefreshToken } from '@/shared/utils/auth';
 import { userAlertStore, SERVERIFY_ALERT } from '@/features/alert/stores/alert.store';
+import { useRouter } from 'next/navigation';
 
 export async function loginAction(email: string, password: string) {
 	const { setAuth, setLoading, setError, setUser, isAuthenticated } = useAuthStore.getState();
@@ -55,7 +56,14 @@ export async function loginAction(email: string, password: string) {
 	}
 }
 
-import { useRouter } from 'next/navigation';
+export async function syncTokenAction(accessToken: string) {
+	try {
+		await authApi.setCookie(accessToken);
+	} catch (err) {
+		throw err;
+	}
+}
+
 type NextRouter = ReturnType<typeof useRouter>;
 
 export async function registerAction(email: string, password: string, router: NextRouter) {
