@@ -20,7 +20,9 @@ import { rootStyle } from '@/theme';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { userAlertStore } from '@/features/alert/stores/alert.store';
+import { getToken } from '@/shared/utils/auth';
 
 const loginSchema = z.object({
 	email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -33,8 +35,9 @@ type LoginFormData = z.infer<typeof loginSchema>;
 function LoginForm() {
 	const theme = useTheme();
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	// const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
-	const { isLoading, initializeAuth } = useAuthStore();
+	const { isLoading } = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
 
@@ -46,24 +49,16 @@ function LoginForm() {
 		resolver: zodResolver(loginSchema),
 	});
 
-	useEffect(() => {
-		initializeAuth();
-	}, [initializeAuth]);
-
-	// useEffect(() => {
-	// 	if (isAuthenticated) {
-	// 		router.push('/workspace/discovery');		
-	// 	}
-	// }, [isAuthenticated, router]);
-
 	const onSubmit = async (data: LoginFormData) => {
 		try {
 			await loginAction(data.email, data.password);
-	        router.replace('/workspace/discovery'); 
+	        const from = searchParams?.get('from') || '/workspace/discovery';
+			// dirty fix
+			router.refresh();
+			router.replace(from); 
 			
 			// setTimeout(() => {
 			// 	const from = searchParams?.get('from') || '/workspace/discovery';
-
 			// 	router.push(from);
 			// }, TIMEOUT_REDIRECT_LOGIN);
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,6 +205,27 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const { isAuthenticated, initializeAuth } = useAuthStore();
+	const { clearAlerts } = userAlertStore()
+
+
+	useEffect(() => {
+		initializeAuth();
+		clearAlerts();
+		
+		const from = searchParams?.get('from') || '/workspace/discovery';
+		router.prefetch(from)
+
+		const token = getToken();
+		if (token || isAuthenticated) {
+			router.replace(from)
+			console.log('[auth] Page redirect')
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isAuthenticated, searchParams]);
+
 	return (
 		<Suspense fallback={<div>Loading...</div>}>
 			<LoginForm />
