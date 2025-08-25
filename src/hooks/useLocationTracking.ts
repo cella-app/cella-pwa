@@ -238,7 +238,7 @@ export function useLocationTracking(
     watchIdRef.current = watchId;
 
     return cleanup;
-  }, [handleLocationSuccess, handleGeolocationError]);
+  }, [handleLocationSuccess, handleGeolocationError, startTracking]);
 
   // Define the actual (non-debounced) center map function
   const centerMapInternal = useCallback(
