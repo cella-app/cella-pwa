@@ -12,8 +12,18 @@ import { useRouter } from 'next/navigation';
 
 const MapContent = dynamic(() => import('@/features/pods/MapContent'), {
   ssr: false,
-  // để đây xử lý loader
-  loading: () => <Box>Loading map...</Box>,
+  loading: () => <Box><div
+    style={{
+      height: '100vh',
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#f5f5f5',
+    }}
+  >
+    <div>Loading...</div>
+  </div></Box>,
 });
 
 const useInitializeUser = () => {
@@ -88,7 +98,7 @@ export default function MapPage() {
 
   return (
     <Box sx={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <LocationTrackingProvider radius={600}>
+      <LocationTrackingProvider>
         <MapContent />
       </LocationTrackingProvider>
     </Box>

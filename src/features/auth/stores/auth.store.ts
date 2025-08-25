@@ -83,6 +83,7 @@ export const useAuthStore = create<AuthState>()(
 								isLoading: false,
 								error: null,
 							});
+							console.log('[auth] Initialized isAuthenticated:', true);
 						} else {
 							set({
 								token: null,
@@ -92,6 +93,7 @@ export const useAuthStore = create<AuthState>()(
 								isLoading: false,
 								error: null,
 							});
+							console.log('[auth] Initialized isAuthenticated:',  false);
 						}
 					} catch (error) {
 						console.error('Error initializing auth:', error);
@@ -108,6 +110,7 @@ export const useAuthStore = create<AuthState>()(
 					set({
 						isLoading: false,
 					});
+					console.warn('[auth] Window not found' );
 				}
 			},
 		}),

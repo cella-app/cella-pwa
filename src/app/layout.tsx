@@ -5,7 +5,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import AddToHomeScreenButton from '@/components/AddToHomeScreenButton';
 
 export const metadata: Metadata = {
-  title: 'Cella',
+  title: process.env.NODE_ENV === 'development' ? 'Cella Dev' : 'Cella',
   description: 'Discovery Workspace',
   manifest: '/manifest.json',
   themeColor: '#000000',
