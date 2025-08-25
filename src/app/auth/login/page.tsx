@@ -36,8 +36,7 @@ function LoginForm() {
 	const theme = useTheme();
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	// const { isLoading, initializeAuth, isAuthenticated } = useAuthStore();
-	const { isLoading } = useAuthStore();
+	const { isLoading ,isAuthenticated} = useAuthStore();
 
 	const [showPassword, setShowPassword] = useState(false);
 
@@ -51,12 +50,7 @@ function LoginForm() {
 
 	const onSubmit = async (data: LoginFormData) => {
 		try {
-			await loginAction(data.email, data.password);
-	        const from = searchParams?.get('from') || '/workspace/discovery';
-			// dirty fix
-			router.refresh();
-			router.replace(from); 
-			
+			await loginAction(data.email, data.password);	
 			// setTimeout(() => {
 			// 	const from = searchParams?.get('from') || '/workspace/discovery';
 			// 	router.push(from);
@@ -67,12 +61,24 @@ function LoginForm() {
 		}
 	};
 
+
+
+
 	const togglePasswordVisibility = () => {
 		setShowPassword((prev) => !prev);
 	};
 
 	const breakpointMd = theme.breakpoints.up('md');
 
+	useEffect(()=>{
+		const from = searchParams?.get('from') || '/workspace/discovery';
+		if(isAuthenticated){
+			console.log('[auth] Login success: ', from)
+			router.replace(from); 
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	},[isAuthenticated])
+	
 	return (
 		<>
 			<Box
@@ -209,19 +215,20 @@ export default function LoginPage() {
 	const searchParams = useSearchParams();
 	const { isAuthenticated, initializeAuth } = useAuthStore();
 	const { clearAlerts } = userAlertStore()
+	const from = searchParams?.get('from') || '/workspace/discovery';
 
+	useEffect(()=>{
+		initializeAuth();
+		router.prefetch(from);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	},[])
 
 	useEffect(() => {
-		initializeAuth();
 		clearAlerts();
-		
-		const from = searchParams?.get('from') || '/workspace/discovery';
-		router.prefetch(from)
-
 		const token = getToken();
 		if (token || isAuthenticated) {
 			router.replace(from)
-			console.log('[auth] Page redirect')
+			console.log('[auth] Page redirect: ', from)
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isAuthenticated, searchParams]);
