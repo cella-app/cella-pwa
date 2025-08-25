@@ -1,4 +1,5 @@
 "use client";
+"use client";
 
 import { useEffect, useState, Suspense, useCallback } from "react";
 import {
@@ -39,6 +40,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 function LoginForm() {
 	const theme = useTheme();
 	const { isLoading } = useAuthStore();
+	const { isLoading } = useAuthStore();
 	const [showPassword, setShowPassword] = useState(false);
 
 	const {
@@ -69,6 +71,7 @@ function LoginForm() {
 	const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
 	const breakpointMd = theme.breakpoints.up("md");
+	const breakpointMd = theme.breakpoints.up("md");
 
 	return (
 		<Box
@@ -94,6 +97,7 @@ function LoginForm() {
 					position: "relative",
 					"&::before": {
 						content: '""',
+						position: "absolute",
 						position: "absolute",
 						top: 0,
 						left: 0,
@@ -133,6 +137,7 @@ function LoginForm() {
 			</Box>
 
 			{/* Form */}
+			{/* Form */}
 			<Box
 				sx={{
 					flex: 1,
@@ -144,11 +149,14 @@ function LoginForm() {
 			>
 				<form method="POST" onSubmit={handleSubmit(onSubmit)} noValidate>
 					<FormControl sx={{ width: "100%" }}>
+				<form method="POST" onSubmit={handleSubmit(onSubmit)} noValidate>
+					<FormControl sx={{ width: "100%" }}>
 						<TextField
 							fullWidth
 							label="Email"
 							type="email"
 							margin="normal"
+							{...register("email")}
 							{...register("email")}
 							error={!!errors.email}
 							helperText={errors.email?.message}
@@ -159,10 +167,13 @@ function LoginForm() {
 							fullWidth
 							label="Password"
 							type={showPassword ? "text" : "password"}
+							type={showPassword ? "text" : "password"}
 							margin="normal"
+							{...register("password")}
 							{...register("password")}
 							error={!!errors.password}
 							helperText={errors.password?.message}
+							InputProps={{
 							InputProps={{
 								endAdornment: (
 									<InputAdornment position="end">
@@ -198,7 +209,9 @@ function LoginForm() {
 							variant="body2"
 							sx={{
 								textAlign: "center",
+								textAlign: "center",
 								mt: 3,
+								color: "#333",
 								color: "#333",
 								fontWeight: 400,
 							}}
@@ -208,7 +221,10 @@ function LoginForm() {
 								href="/auth/register"
 								sx={{
 									color: "#0C3E2E",
+									color: "#0C3E2E",
 									fontWeight: 600,
+									textDecoration: "none",
+									"&:hover": { textDecoration: "underline" },
 									textDecoration: "none",
 									"&:hover": { textDecoration: "underline" },
 								}}
