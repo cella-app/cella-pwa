@@ -223,7 +223,8 @@ export default function LoginPage() {
 				message: "Login successfully!",
 			});
 			console.log("[auth] Redirecting to:", from);
-			router.replace(from);
+			// router.replace(from);
+			window.location.href = from;
 		}
 	}, [clearAlerts, isAuthenticated, addAlert, router, from]);
 
