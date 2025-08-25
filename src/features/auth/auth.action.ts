@@ -24,12 +24,6 @@ export async function loginAction(email: string, password: string) {
 
 		setAuth(data.refresh_token, data.access_token);
 		
-		// addAlert({
-		// 	severity: SERVERIFY_ALERT.SUCCESS,
-		// 	message: "Login successfully!"
-		// }ź
-
-
 		console.warn("isAuthenticated", isAuthenticated)
     
     const user = await meApi.get();

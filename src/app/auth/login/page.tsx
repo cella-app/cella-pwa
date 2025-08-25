@@ -220,7 +220,7 @@ export default function LoginPage() {
 		if (token || isAuthenticated) {
 			addAlert({
 				severity: SERVERIFY_ALERT.SUCCESS,
-				message: "Login successfully!",
+				message: "login successful!",
 			});
 			console.log("[auth] Redirecting to:", from);
 			// router.replace(from);
