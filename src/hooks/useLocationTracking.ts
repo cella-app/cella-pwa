@@ -295,6 +295,7 @@ export function useLocationTracking(
     [map, isMapInteracting, currentMapCenter, isUserCenterInValidRange]
   );
 
+
   // Store the debounced centerMap function in a ref
   const debouncedCenterMapRef = useRef(debounce(centerMapInternal, DEBOUNCE_TIME));
 
