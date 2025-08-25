@@ -1,11 +1,7 @@
 'use client';
 
-import { userAlertStore } from '@/features/alert/stores/alert.store';
-import { useAuthStore } from '@/features/auth/stores/auth.store';
-import { getToken } from '@/shared/utils/auth';
 import { Box, Container, Paper, useTheme } from '@mui/material';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode,  } from 'react';
 
 interface AuthLayoutProps {
 	children: ReactNode;
@@ -14,27 +10,6 @@ interface AuthLayoutProps {
 export default function AuthLayoutWrapper({ children }: AuthLayoutProps) {
 	const theme = useTheme();
 	
-	const router = useRouter();
-	const searchParams = useSearchParams();
-	const { isAuthenticated, initializeAuth } = useAuthStore();
-	const { clearAlerts } = userAlertStore()
-
-
-	useEffect(() => {
-		initializeAuth();
-		clearAlerts();
-		
-		const from = searchParams?.get('from') || '/workspace/discovery';
-		router.prefetch(from)
-
-		const token = getToken();
-		if (token || isAuthenticated) {
-			router.push(from)
-		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isAuthenticated, searchParams]);
-
-
 	return (
 		<Box
 			sx={{
