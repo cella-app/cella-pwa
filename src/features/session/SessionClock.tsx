@@ -423,7 +423,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				<DialogActions
 					sx={{
 						justifyContent: 'center',
-						gap: 1.5,
+						gap: { xs: 1, sm: 2 },
 						pb: { xs: 1.5, sm: 2 },
 						px: { xs: 0.5, sm: 1 },
 						flexDirection: 'row',
@@ -440,10 +440,10 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 							fontWeight: 700,
 							color: rootStyle.elementColor,
 							borderColor: rootStyle.elementColor,
-							px: 2,
+							px: { xs: 0.5, sm: 2 },
 							background: 'transparent',
-							maxWidth: 180,
-							minWidth: 125
+							maxWidth: { xs: 172, sm: 180},
+							minWidth: { xs: 117, sm: 125}
 						}}
 					>
 						Keep session
@@ -457,10 +457,10 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 						sx={{
 							borderRadius: 3,
 							fontWeight: 700,
-							px: 2,
+							px: { xs: 0.5, sm: 2 },
 							background: '#C2412B',
-							maxWidth: 180,
-							minWidth: 125
+							maxWidth: { xs: 172, sm: 180},
+							minWidth: { xs: 117, sm: 125}
 						}}
 					>
 						End anyway
