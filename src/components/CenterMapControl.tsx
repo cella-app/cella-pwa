@@ -58,7 +58,7 @@ const CenterMapControl = () => {
 
 		centerMarkerRef.current = L.marker(initialCenter, {
 			icon: L.divIcon({
-				html: renderToString(<ICircle size={24} color="#007BFF" />),
+				// html: renderToString(<ICircle size={24} color="#007BFF" />),
 				className: 'center-map-icon',
 				iconSize: [24, 24],
 				iconAnchor: [12, 12],
