@@ -27,6 +27,7 @@ import Pause from '@mui/icons-material/Pause';
 import PlayArrow from '@mui/icons-material/PlayArrow';
 import LockOpen from '@mui/icons-material/LockOpen';
 import { useSessionStore } from '@/features/session/stores/session.store';
+import { LOCAL_CURRENCY_CONFIG } from '@/shared/constants/constants';
 
 export default function SessionCompletePage() {
   const params = useParams();
@@ -242,7 +243,7 @@ export default function SessionCompletePage() {
             sx={{ fontSize: "20px", fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
             onClick={handleOpenSummary}
           >
-            {Number(billing.total_cost).toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}
+            {Number(billing.total_cost).toLocaleString('en-US', LOCAL_CURRENCY_CONFIG )}
           </Typography>
         </Box>
       </Box>
@@ -356,13 +357,13 @@ export default function SessionCompletePage() {
               <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
                 <EuroIcon sx={{ color: rootStyle.elementColor, mr: 1 }} />
                 <b>Price per minute:</b>
-                  <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{summary.price_per_minute.toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}</Box>
+                  <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{summary.price_per_minute.toLocaleString('en-US', LOCAL_CURRENCY_CONFIG)}</Box>
                 </Box>
                 <hr></hr>
               <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
                   <EuroIcon sx={{ color: '#185C3C', mr: 1, fontSize: 24 }} />
                   <b style={{ fontSize: 24 }}>Total fee:</b>
-                <Box component="span" sx={{ ml: 1, color: '#185C3C', fontWeight: 900, fontSize: 24 }}>{summary.total_fee.toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}</Box>
+                <Box component="span" sx={{ ml: 1, color: '#185C3C', fontWeight: 900, fontSize: 24 }}>{summary.total_fee.toLocaleString('en-US', LOCAL_CURRENCY_CONFIG)}</Box>
               </Box>
             </Box>
           ) : (
