@@ -151,15 +151,24 @@ function LoginForm() {
 							{...register('password')}
 							error={!!errors.password}
 							helperText={errors.password?.message}
-							InputProps={{
-								endAdornment: (
-									<InputAdornment position="end">
-										<IconButton onClick={togglePasswordVisibility} edge="end">
-											{showPassword ? <VisibilityOff /> : <Visibility />}
-										</IconButton>
-									</InputAdornment>
-								),
-							}}
+							slotProps={{
+								input:{
+									endAdornment: (
+										<InputAdornment position="end">
+											<IconButton
+												onClick={togglePasswordVisibility}
+												edge="end"
+												aria-label="toggle password visibility"
+												sx={{
+													padding: '16px',
+													margin: '-8px'
+												}}
+											>
+												{showPassword ? <VisibilityOff /> : <Visibility />}
+											</IconButton>
+										</InputAdornment>
+									),}}}				
+							sx={{ mb: 2 }}
 						/>
 
 						<Button
