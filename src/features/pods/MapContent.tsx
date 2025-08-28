@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Skeleton,
 } from "@mui/material";
 import { MapContainer, useMapEvents } from "react-leaflet";
 import L, { Map as LeafletMapType, LatLng } from "leaflet";
@@ -153,6 +154,8 @@ export default memo(function MapContent() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null); // Use correct User type if available
   const [loadingUser, setLoadingUser] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
 
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -320,8 +323,16 @@ export default memo(function MapContent() {
           }}
           onClick={() => router.push("/profile")}
         >
+          {!imageLoaded  && (
+		        	<Skeleton 
+		        			variant="circular" 
+		        			width={40} 
+		        			height={40}           
+		        		/>
+		        	)}
           <Avatar
             alt="User Avatar"
+            onLoad={() => setImageLoaded(true)}
             src={user?.avatar_url}
             sx={{
               width: 44,

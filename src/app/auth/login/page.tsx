@@ -176,7 +176,13 @@ function LoginForm() {
 							fullWidth
 							variant="contained"
 							disabled={isLoading}
-							sx={{ mt: 4 }}
+							sx={{
+								mt: 3,
+								py: 1.5,
+								backgroundColor: "#0C3E2E",
+								"&:hover": { backgroundColor: "#0A2F22" },
+								color:`${isLoading? "gray": "white"}`,
+							}}
 						>
 							{isLoading ? 'Logging in...' : 'Login'}
 						</Button>
