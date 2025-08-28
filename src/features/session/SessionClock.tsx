@@ -422,30 +422,20 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 					</DialogContentText>
 				</DialogContent>
 				<DialogActions
-					sx={{
-						justifyContent: 'center',
-						gap: { xs: 1, sm: 2 },
-						pb: { xs: 1.5, sm: 2 },
-						px: { xs: 0.5, sm: 1 },
-						flexDirection: 'row',
-						alignItems: 'center',
-					}}
+					 sx={{
+						justifyContent: "center",
+						gap: 2,
+						display: "flex",
+						flexDirection: { xs: "column", sm: "row" },
+						alignItems: "center",
+						margin: 0,
+					  }}
+					  disableSpacing={true}
 				>
 					<Button
 						onClick={handleCloseMinAmountPopup}
 						disabled={isLoading}
 						variant="outlined"
-						fullWidth
-						sx={{
-							borderRadius: 3,
-							fontWeight: 700,
-							color: rootStyle.elementColor,
-							borderColor: rootStyle.elementColor,
-							px: { xs: 0.5, sm: 2 },
-							background: 'transparent',
-							maxWidth: { xs: 172, sm: 180},
-							minWidth: { xs: 117, sm: 125}
-						}}
 					>
 						Keep session
 					</Button>
@@ -454,15 +444,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 						color="error"
 						disabled={isLoading}
 						variant="contained"
-						fullWidth
-						sx={{
-							borderRadius: 3,
-							fontWeight: 700,
-							px: { xs: 0.5, sm: 2 },
-							background: '#C2412B',
-							maxWidth: { xs: 172, sm: 180},
-							minWidth: { xs: 117, sm: 125}
-						}}
 					>
 						End anyway
 					</Button>
