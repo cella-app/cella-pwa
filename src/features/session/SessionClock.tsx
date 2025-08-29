@@ -412,7 +412,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				onClose={handleCloseMinAmountPopup}
 				fullWidth
 				maxWidth="xs"
-				PaperProps={{ sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor } }}
+				slotProps={{paper:{ sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor } }}}
 			>
 				<DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>{"Minimum Amount Required"}</DialogTitle>
 				<DialogContent sx={{ pb: 0, textAlign: 'center' }}>
@@ -423,8 +423,9 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				<DialogActions
 					sx={{
 						justifyContent: 'center',
-						gap: 2,
+						gap: { xs: 1, sm: 2 },
 						pb: { xs: 1.5, sm: 2 },
+						px: { xs: 0.5, sm: 1 },
 						flexDirection: 'row',
 						alignItems: 'center',
 					}}
@@ -439,10 +440,10 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 							fontWeight: 700,
 							color: rootStyle.elementColor,
 							borderColor: rootStyle.elementColor,
-							px: 2,
+							px: { xs: 0.5, sm: 2 },
 							background: 'transparent',
-							maxWidth: 180,
-							minWidth: 125
+							maxWidth: { xs: 172, sm: 180},
+							minWidth: { xs: 117, sm: 125}
 						}}
 					>
 						Keep session
@@ -456,10 +457,10 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 						sx={{
 							borderRadius: 3,
 							fontWeight: 700,
-							px: 2,
+							px: { xs: 0.5, sm: 2 },
 							background: '#C2412B',
-							maxWidth: 180,
-							minWidth: 125
+							maxWidth: { xs: 172, sm: 180},
+							minWidth: { xs: 117, sm: 125}
 						}}
 					>
 						End anyway
