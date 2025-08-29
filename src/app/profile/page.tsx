@@ -136,6 +136,8 @@ export default function ProfilePage() {
           left: 24,
           background: 'none',
           boxShadow: 'none',
+          padding: '16px',
+					margin: '-8px'
         }}
         aria-label="Back to map"
       >
@@ -150,6 +152,8 @@ export default function ProfilePage() {
           right: 24,
           background: 'none',
           boxShadow: 'none',
+          padding: '16px',
+					margin: '-8px'
         }}
         aria-label="Logout"
       >
@@ -242,7 +246,7 @@ export default function ProfilePage() {
               No card added yet.
             </Typography>
           )}
-          <IconButton size="small" onClick={handleEdit}>
+          <IconButton size="small" onClick={handleEdit} sx={{ padding: '16px', margin: '-8px'}}>
             <EditIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -460,7 +464,7 @@ function ProfilePageSkeleton() {
           <Typography variant="body2">
             <Skeleton variant="text" width={200} />
           </Typography>
-          <IconButton size="small">
+          <IconButton size="small" sx={{ padding: '16px', margin: '-8px'}}>
             <EditIcon fontSize="small" />
           </IconButton>
         </Box>

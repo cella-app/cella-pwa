@@ -151,15 +151,24 @@ function LoginForm() {
 							{...register('password')}
 							error={!!errors.password}
 							helperText={errors.password?.message}
-							InputProps={{
-								endAdornment: (
-									<InputAdornment position="end">
-										<IconButton onClick={togglePasswordVisibility} edge="end">
-											{showPassword ? <VisibilityOff /> : <Visibility />}
-										</IconButton>
-									</InputAdornment>
-								),
-							}}
+							slotProps={{
+								input:{
+									endAdornment: (
+										<InputAdornment position="end">
+											<IconButton
+												onClick={togglePasswordVisibility}
+												edge="end"
+												aria-label="toggle password visibility"
+												sx={{
+													padding: '16px',
+													margin: '-8px'
+												}}
+											>
+												{showPassword ? <VisibilityOff /> : <Visibility />}
+											</IconButton>
+										</InputAdornment>
+									),}}}				
+							sx={{ mb: 2 }}
 						/>
 
 						<Button
@@ -167,7 +176,13 @@ function LoginForm() {
 							fullWidth
 							variant="contained"
 							disabled={isLoading}
-							sx={{ mt: 4 }}
+							sx={{
+								mt: 3,
+								py: 1.5,
+								backgroundColor: "#0C3E2E",
+								"&:hover": { backgroundColor: "#0A2F22" },
+								color:`${isLoading? "gray": "white"}`,
+							}}
 						>
 							{isLoading ? 'Logging in...' : 'Login'}
 						</Button>
