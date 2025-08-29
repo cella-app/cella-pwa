@@ -3,8 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { CircleSmall as ICircle } from 'lucide-react';
-import { renderToString } from 'react-dom/server';
 import { Circle } from 'react-leaflet';
 import { useRadiusStore } from '@/features/map/stores/radius.store';
 import { useMapStore } from '@/features/map/stores/map.store';
