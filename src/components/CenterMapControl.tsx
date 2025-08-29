@@ -6,14 +6,16 @@ import L from 'leaflet';
 import { Circle } from 'react-leaflet';
 import { useRadiusStore } from '@/features/map/stores/radius.store';
 import { useMapStore } from '@/features/map/stores/map.store';
-import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
+import { useEventStore } from '@/features/map/stores/event.store';
+import { useLoadingStore } from '@/features/map/stores/loading.store';
 
 const CenterMapControl = () => {
 	const map = useMap();
 	const centerMarkerRef = useRef<L.Marker | null>(null);
 	const { radius } = useRadiusStore();
 	const { currentMapCenter } = useMapStore();
-	const { loading } = useLocationTrackingContext();
+	const { loading } = useLoadingStore();
+	const { changeState } = useEventStore()
 
 	// Tọa độ trung tâm
 	const [circleCenter, setCircleCenter] = useState(() => {
@@ -77,7 +79,11 @@ const CenterMapControl = () => {
 			const newCenter = map.getCenter();
 			centerMarkerRef.current?.setLatLng(newCenter);
 			setCircleCenter(newCenter);
+			changeState(false)
 		},
+		zoom: () => {
+			changeState(false);
+		}
 	});
 
 	// Tạo nhiều sóng radar

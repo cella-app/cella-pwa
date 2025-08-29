@@ -14,7 +14,6 @@ interface LocationTrackingContextType {
   isUserOutOfView: boolean;
   pods: PodList[];
   error: string | null;
-  loading: boolean;
   setPods: (pods: PodList[]) => void;
   setStartTracking: (value: boolean) => void;
 }
@@ -26,7 +25,7 @@ interface LocationTrackingProviderProps {
 }
 
 export const LocationTrackingProvider = ({ children }: LocationTrackingProviderProps) => {
-  const { currentMapCenter } = useMapStore();
+  const { map } = useMapStore(); // Get map from store
   const { radius } = useRadiusStore();
   const [startTracking, setStartTracking] = useState(false); // Default to false during SSR
 
@@ -59,7 +58,7 @@ export const LocationTrackingProvider = ({ children }: LocationTrackingProviderP
     }
   }, [startTracking]);
 
-  const locationTracking = useLocationTracking(radius, currentMapCenter, startTracking);
+  const locationTracking = useLocationTracking(radius, startTracking, map || undefined); // Pass map to hook, converting null to undefined
 
   // Log để debug
   console.log('LocationTrackingProvider render:', {

@@ -3,9 +3,11 @@
 
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 import { Loader2 } from 'lucide-react';
+import { useLoadingStore } from '@/features/map/stores/loading.store';
 
 const MapLoadingIndicator = () => {
-	const { loading, pods } = useLocationTrackingContext();
+	const { pods } = useLocationTrackingContext();
+	const { loading } = useLoadingStore();
 
 	// Hiển thị loading khi đang fetch hoặc khi pods bị clear (length = 0 và đang loading)
 	const showLoading = loading || (pods.length === 0 && loading);

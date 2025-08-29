@@ -2,48 +2,44 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import L from 'leaflet';
 import { useLocationStore } from '@/features/map/stores/location.store';
 import { LocationData } from '@/shared/data/models/Location';
-import { calculateDistanceNew, getAllowedToGetPodsThreshold, getAllowedCenterThreshold } from '@/shared/utils/location';
+import { calculateDistanceNew, getAllowedToGetPodsThreshold, getAllowedCenterThreshold, getNoiseThreshold } from '@/shared/utils/location';
 import { useMapConditionStore } from '@/features/map/stores/mapCondition.store';
 import { usePodStore } from '@/features/pods/stores/pod.store';
 import { getPodsNearMe } from '@/features/pods/pods.action';
 import debounce from 'lodash/debounce';
+import { useEventStore } from '@/features/map/stores/event.store';
+import { useLoadingStore } from '@/features/map/stores/loading.store';
+import { useMapStore } from '@/features/map/stores/map.store';
 
-const RETRY_DELAY = 500; // Thời gian chờ trước khi thử lại khi có lỗi geolocation
-const DEBOUNCE_TIME = 300; // Thời gian debounce (ms) cho centerMap
-const FETCH_DEBOUNCE_TIME = 500; // Thời gian debounce cho fetchPods
+const RETRY_DELAY = 500;
+const DEBOUNCE_TIME = 300;
+const FETCH_DEBOUNCE_TIME = 1000;
 
 export function useLocationTracking(
   radius: number = 600,
-  currentMapCenter?: LocationData | null,
   startTracking: boolean = false,
   map?: L.Map,
 ) {
   const [isUserOutOfView, setIsUserOutOfView] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [isMapInteracting, setIsMapInteracting] = useState(false);
-  const [lastInteractionTime, setLastInteractionTime] = useState(0);
 
   const watchIdRef = useRef<number | null>(null);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastFetchedCenter = useRef<LocationData | null>(null); // Center của lần fetch trước
-  const lastSavedUserLocation = useRef<LocationData | null>(null); // User location đã được save để kiểm tra movement
-
-  // Check if user is currently controlling the map
-  const isUserInControl = useCallback(() => {
-    const COOLDOWN_TIME = 2000; // 2s after interaction stops
-    return isMapInteracting || (Date.now() - lastInteractionTime < COOLDOWN_TIME);
-  }, [isMapInteracting, lastInteractionTime]);
+  const lastFetchedCenter = useRef<LocationData | null>(null);
+  const lastSavedUserLocation = useRef<LocationData | null>(null);
 
   const { setLocation, currentLocation, lastLocation, setLastLocation } = useLocationStore();
   const { setStateLocationDiffValid } = useMapConditionStore();
   const { pods, setPods } = usePodStore();
+  const { changeState } = useEventStore()
+  const { setLoading } = useLoadingStore()
+  const { currentMapCenter } = useMapStore(); // Get map from store
+  
 
   // Kiểm tra xem user có di chuyển đủ xa để cần update không
   const shouldUpdateUserLocation = useCallback(
     (newLocation: LocationData): boolean => {
       if (!lastSavedUserLocation.current) return true;
-
       const threshold = getAllowedToGetPodsThreshold(radius);
       const distance = calculateDistanceNew(newLocation, lastSavedUserLocation.current);
       return distance >= threshold;
@@ -61,7 +57,7 @@ export function useLocationTracking(
     [radius]
   );
 
-  // Define the actual (non-debounced) fetch function
+  // Fetch pods function
   const fetchPodsInternal = useCallback(
     async (center: LocationData, rad: number) => {
       try {
@@ -74,7 +70,7 @@ export function useLocationTracking(
         });
         if (response?.data?.pods) {
           setPods(response.data.pods);
-          lastFetchedCenter.current = center; // Cập nhật sau fetch thành công
+          lastFetchedCenter.current = center;
         } else {
           throw new Error('Invalid response format from server');
         }
@@ -89,10 +85,8 @@ export function useLocationTracking(
     [setLoading, setError, setPods]
   );
 
-  // Store the debounced fetchPods function in a ref
   const debouncedFetchPodsRef = useRef(debounce(fetchPodsInternal, FETCH_DEBOUNCE_TIME));
 
-  // Update the debounced function if fetchPodsInternal changes
   useEffect(() => {
     debouncedFetchPodsRef.current = debounce(fetchPodsInternal, FETCH_DEBOUNCE_TIME);
     return () => {
@@ -100,16 +94,15 @@ export function useLocationTracking(
     };
   }, [fetchPodsInternal]);
 
-  // Kiểm tra xem có nên fetch pods không dựa trên center position
+  // Kiểm tra có nên fetch pods không
   const shouldFetchPods = useCallback(
     (center: LocationData): boolean => {
+      console.log("abc")
       if (!center) return false;
       if (!lastFetchedCenter.current) return true;
-
       const threshold = getAllowedCenterThreshold(radius);
       const distance = calculateDistanceNew(center, lastFetchedCenter.current);
-      console.log("fetch threshold-distance", threshold, distance);
-      return distance >= threshold;
+      return distance >= threshold || distance <= 10;
     },
     [radius]
   );
@@ -134,30 +127,24 @@ export function useLocationTracking(
   // Handle successful geolocation
   const handleLocationSuccess = useCallback(
     (position: GeolocationPosition) => {
-      console.log("Geolocation success", position);
       const newLocation: LocationData = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       };
 
-      // Luôn update current location
       setLocation(newLocation);
       setError(null);
 
-      // Kiểm tra xem có nên update lastLocation và trigger state change không
       if (shouldUpdateUserLocation(newLocation)) {
-        console.log("User moved enough, updating saved location");
         setLastLocation(newLocation);
         setStateLocationDiffValid(true);
         lastSavedUserLocation.current = newLocation;
       } else {
-        // Nếu chưa di chuyển đủ xa, vẫn set valid state dựa trên lastLocation hiện tại
         if (lastLocation) {
           const threshold = getAllowedToGetPodsThreshold(radius);
           const diff = calculateDistanceNew(newLocation, lastLocation);
           setStateLocationDiffValid(diff >= threshold);
         } else {
-          // Lần đầu tiên, set lastLocation
           setLastLocation(newLocation);
           setStateLocationDiffValid(true);
           lastSavedUserLocation.current = newLocation;
@@ -167,7 +154,7 @@ export function useLocationTracking(
     [setLocation, setLastLocation, setStateLocationDiffValid, shouldUpdateUserLocation, lastLocation, radius]
   );
 
-  // Handle geolocation errors and retry
+  // Handle geolocation errors
   const handleGeolocationError = useCallback(
     (error: GeolocationPositionError) => {
       console.error('Geolocation error:', error);
@@ -240,13 +227,24 @@ export function useLocationTracking(
     return cleanup;
   }, [handleLocationSuccess, handleGeolocationError, startTracking]);
 
-  // Define the actual (non-debounced) center map function
+  // Kiểm tra user có di chuyển đủ xa để cần center map không (tránh GPS noise)
+  const shouldCenterMap = useCallback(
+    (newLocation: LocationData, currentCenter: LocationData): boolean => {
+      const GPS_NOISE_THRESHOLD = getNoiseThreshold(radius);
+      const distance = calculateDistanceNew(newLocation, currentCenter);
+      return distance >= GPS_NOISE_THRESHOLD;
+    },
+    [radius]
+  );
+
+  // Center map function - đơn giản hóa logic với GPS noise filter
   const centerMapInternal = useCallback(
     (location: LocationData) => {
-      if (map && !isUserInControl() && currentMapCenter) {
-        // Chỉ auto-follow khi user không đang tương tác
-        if (isUserCenterInValidRange(location, currentMapCenter)) {
-          console.log('🎯 Auto-following user (not in control)');
+      if (map && currentMapCenter) {
+        // Check: center trong phạm vi với user VÀ user di chuyển đủ xa
+        if (isUserCenterInValidRange(location, currentMapCenter) &&
+          shouldCenterMap(location, currentMapCenter)) {
+          console.log("Centering map - user moved significantly:", location);
           try {
             map.flyTo([location.latitude, location.longitude], map.getZoom(), {
               duration: 0.5,
@@ -256,17 +254,13 @@ export function useLocationTracking(
             console.error('Error centering map:', err);
           }
         }
-      } else if (isUserInControl()) {
-        console.log('⏸️ Skipping auto-follow - user in control');
       }
     },
-    [map, isUserInControl, currentMapCenter, isUserCenterInValidRange]
+    [map, currentMapCenter, isUserCenterInValidRange, shouldCenterMap]
   );
 
-  // Store the debounced centerMap function in a ref
   const debouncedCenterMapRef = useRef(debounce(centerMapInternal, DEBOUNCE_TIME));
 
-  // Update the debounced function if centerMapInternal changes
   useEffect(() => {
     debouncedCenterMapRef.current = debounce(centerMapInternal, DEBOUNCE_TIME);
     return () => {
@@ -274,67 +268,52 @@ export function useLocationTracking(
     };
   }, [centerMapInternal]);
 
-  // Auto-center và check out of view khi location thay đổi
+  // Auto-center khi location thay đổi
   useEffect(() => {
     if (currentLocation) {
-      // Chỉ center khi user di chuyển đủ xa (đã update saved location)
-      if (lastSavedUserLocation.current &&
-        calculateDistanceNew(currentLocation, lastSavedUserLocation.current) < getAllowedToGetPodsThreshold(radius)) {
-        // User chưa di chuyển đủ xa, không center
-      } else {
-        debouncedCenterMapRef.current(currentLocation);
-      }
+      debouncedCenterMapRef.current(currentLocation);
       checkUserOutOfView();
     }
-  }, [currentLocation, checkUserOutOfView, radius]);
+  }, [currentLocation, checkUserOutOfView]);
 
-  // Xử lý sự kiện drag/zoom để set isMapInteracting
+  // LOGIC CHÍNH: Fetch khi user location thay đổi và center trong phạm vi
   useEffect(() => {
-    if (!map) return;
+    if (!currentLocation || !currentMapCenter) return;
 
-    const handleDragStart = () => {
-      console.log('🖱️ User starts dragging');
-      setIsMapInteracting(true);
-    };
-
-    const handleDragEnd = () => {
-      console.log('🖱️ User stops dragging');
-      setIsMapInteracting(false);
-      setLastInteractionTime(Date.now());
-    };
-
-    const handleZoomStart = () => {
-      console.log('🔍 User starts zooming');
-      setIsMapInteracting(true);
-    };
-
-    const handleZoomEnd = () => {
-      console.log('🔍 User stops zooming');
-      setIsMapInteracting(false);
-      setLastInteractionTime(Date.now());
-    };
-
-    map.on('dragstart', handleDragStart);
-    map.on('dragend', handleDragEnd);
-    map.on('zoomstart', handleZoomStart);
-    map.on('zoomend', handleZoomEnd);
-
-    return () => {
-      map.off('dragstart', handleDragStart);
-      map.off('dragend', handleDragEnd);
-      map.off('zoomstart', handleZoomStart);
-      map.off('zoomend', handleZoomEnd);
-    };
-  }, [map]);
-
-  // LOGIC CHÍNH: Fetch pods chỉ theo center position
-  useEffect(() => {
-    console.log("Center changed:", currentMapCenter);
-    if (currentMapCenter && shouldFetchPods(currentMapCenter)) {
-      console.log("Fetching pods for center:", currentMapCenter);
-      debouncedFetchPodsRef.current(currentMapCenter, radius);
+    // Chỉ fetch khi user và center trong phạm vi hợp lệ
+    if (isUserCenterInValidRange(currentLocation, currentMapCenter)) {
+      changeState(false);
+      if (shouldFetchPods(currentMapCenter)) {
+        console.log("Fetching pods - user in range with center:", currentMapCenter);
+        debouncedFetchPodsRef.current(currentMapCenter, radius);
+      }
     }
-  }, [currentMapCenter, radius, shouldFetchPods]);
+  }, [currentLocation, radius, shouldFetchPods, isUserCenterInValidRange, currentMapCenter, changeState]);
+
+  // LOGIC BỔ SUNG: Khi center thay đổi và trong khoảng hợp lệ với user thì fly về user (với GPS noise filter)
+  useEffect(() => {
+    if (!currentLocation || !currentMapCenter || !map) return;
+
+    // Khi center thay đổi, nếu nó trong khoảng hợp lệ với user VÀ đủ xa để đáng fly thì fly về user
+    if (isUserCenterInValidRange(currentLocation, currentMapCenter)) {
+      if (shouldCenterMap(currentLocation, currentMapCenter)) {
+        console.log("Center in range with user - flying to user location:", currentLocation);
+        try {
+          map.flyTo([currentLocation.latitude, currentLocation.longitude], map.getZoom(), {
+            duration: 0.5,
+            easeLinearity: 0.25,
+          });
+          // Fetch với user location thay vì center
+          if (shouldFetchPods(currentLocation)) {
+            console.log("Fetching pods at user location:", currentLocation);
+            debouncedFetchPodsRef.current(currentLocation, radius);
+          }
+        } catch (err) {
+          console.error('Error flying to user location:', err);
+        }
+      }
+    }
+  }, [currentMapCenter, map, currentLocation, isUserCenterInValidRange, shouldCenterMap, shouldFetchPods, radius, changeState]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -356,7 +335,6 @@ export function useLocationTracking(
     isUserOutOfView,
     pods,
     error,
-    loading,
     setPods,
   };
 }

@@ -7,6 +7,14 @@ import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 import UserLocalPointIcon from '@/components/icons/UserLocalPointIcon';
 import { renderToString } from 'react-dom/server';
 import { PodList } from '@/shared/data/models/Pod';
+import { useEventStore } from '../map/stores/event.store';
+import { useMapStore } from '@/features/map/stores/map.store';
+import { useRadiusStore } from '@/features/map/stores/radius.store';
+import { getPodsNearMe } from '@/features/pods/pods.action';
+import {
+  Button,
+} from "@mui/material";
+import { useLoadingStore } from '@/features/map/stores/loading.store';
 
 // Dynamically import Leaflet components with no SSR
 const TileLayer = dynamic(
@@ -38,9 +46,13 @@ export const MapLayersAndControls = ({
   const [myLocationIcon, setMyLocationIcon] = useState<DivIcon | null>(null);
   const [podIcon, setPodIcon] = useState<Icon | null>(null);
   const [fadingPodIcon, setFadingPodIcon] = useState<Icon | null>(null);
-  const { currentLocation, pods } = useLocationTrackingContext();
+  const { currentLocation, pods, setPods } = useLocationTrackingContext();
+  const { currentMapCenter } = useMapStore();
+  const { radius } = useRadiusStore();
   const clickLock = useRef(false);
   const [displayedPods, setDisplayedPods] = useState<PodWithVisibility[]>([]);
+  const { showButtonSearch, changeState } = useEventStore()
+  const { setLoading } = useLoadingStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -98,6 +110,10 @@ export const MapLayersAndControls = ({
   }, [map, currentLocation, mapLoaded, onMapLoad, isClient]);
 
   useEffect(() => {
+    console.warn("showButtonSearch",showButtonSearch)
+  }, [showButtonSearch]);
+
+  useEffect(() => {
     if (!pods || !isClient) return;
 
     // Compare new pods with displayed pods
@@ -138,6 +154,29 @@ export const MapLayersAndControls = ({
     }, 300);
   };
 
+  const handleSearchButtonClick = async () => {
+    changeState(false);
+    setLoading(true);
+    if (!currentMapCenter || !radius) return;
+
+    try {
+      const response = await getPodsNearMe({
+        latitude: currentMapCenter.latitude,
+        longitude: currentMapCenter.longitude,
+        radius: radius,
+      });
+      if (response?.data?.pods) {
+        setPods(response.data.pods);
+      } else {
+        console.error('Invalid response format from server during search');
+      }
+    } catch (err) {
+      console.error('Error fetching pods on search button click:', err);
+    }
+
+    setLoading(false);
+  };
+
   if (!isClient) {
     return null;
   }
@@ -152,6 +191,26 @@ export const MapLayersAndControls = ({
           .pod-marker.fading {
             opacity: 0;
           }
+          .search-button-container {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+          }
+          .search-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          }
+          .search-button:hover {
+            background-color: #0056b3;
+          }
         `}
       </style>
       <TileLayer
@@ -159,6 +218,19 @@ export const MapLayersAndControls = ({
         noWrap={true}
         bounds={[[-90, -180], [90, 180]]}
       />
+
+      {showButtonSearch && (
+        <div className="search-button-container">
+          <Button
+            onClick={handleSearchButtonClick}
+            variant="contained"
+            color="primary"
+            size="medium"
+          >
+            Search this area
+          </Button>
+        </div>
+      )}
 
       {currentLocation && myLocationIcon && (
         <Marker
