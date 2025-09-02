@@ -20,6 +20,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
+import { LOCAL_CURRENCY_CONFIG } from "@/shared/constants/constants";
 
 interface SessionClockProps {
 	session: Session;
@@ -412,38 +413,29 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				onClose={handleCloseMinAmountPopup}
 				fullWidth
 				maxWidth="xs"
-				PaperProps={{ sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor } }}
+				slotProps={{paper:{ sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor } }}}
 			>
 				<DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>{"Minimum Amount Required"}</DialogTitle>
 				<DialogContent sx={{ pb: 0, textAlign: 'center' }}>
 					<DialogContentText sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}>
-						{`The minimum amount to pay is ${MIN_AMOUNT.toLocaleString('en-US', { style: 'currency', currency: 'EUR' })}. Your current calculated amount is ${calculatedAmount.toLocaleString('en-US', { style: 'currency', currency: 'EUR' }) }. Do you still want to end the session?`}
+						{`The minimum amount to pay is ${MIN_AMOUNT.toLocaleString('en-US', LOCAL_CURRENCY_CONFIG)}. Your current calculated amount is ${calculatedAmount.toLocaleString('en-US', LOCAL_CURRENCY_CONFIG) }. Do you still want to end the session?`}
 					</DialogContentText>
 				</DialogContent>
 				<DialogActions
-					sx={{
-						justifyContent: 'center',
+					 sx={{
+						justifyContent: "center",
 						gap: 2,
-						pb: { xs: 1.5, sm: 2 },
-						flexDirection: 'row',
-						alignItems: 'center',
-					}}
+						display: "flex",
+						flexDirection: { xs: "column", sm: "row" },
+						alignItems: "center",
+						margin: 0,
+					  }}
+					  disableSpacing={true}
 				>
 					<Button
 						onClick={handleCloseMinAmountPopup}
 						disabled={isLoading}
 						variant="outlined"
-						fullWidth
-						sx={{
-							borderRadius: 3,
-							fontWeight: 700,
-							color: rootStyle.elementColor,
-							borderColor: rootStyle.elementColor,
-							px: 2,
-							background: 'transparent',
-							maxWidth: 180,
-							minWidth: 125
-						}}
 					>
 						Keep session
 					</Button>
@@ -452,15 +444,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 						color="error"
 						disabled={isLoading}
 						variant="contained"
-						fullWidth
-						sx={{
-							borderRadius: 3,
-							fontWeight: 700,
-							px: 2,
-							background: '#C2412B',
-							maxWidth: 180,
-							minWidth: 125
-						}}
 					>
 						End anyway
 					</Button>

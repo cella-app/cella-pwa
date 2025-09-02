@@ -301,7 +301,15 @@ export default function WorkspacePopup({
       <PriceServicesRow>
         <PriceBox>
           <Typography variant="body1" sx={{ fontWeight: 600, margin: "-2px" }}>
-            {loading ? 'Loading price...' : `${price ?? 'N/A'}€/min`}
+          {loading 
+	            ? 'Loading price...' 
+	            : price != null 
+	            	? `${Number(price).toLocaleString('en-US', { 
+	            			minimumFractionDigits: 2,
+	            			maximumFractionDigits: 2
+	            		})}€/min`
+	            	: 'N/A€/min'
+          }
           </Typography>
         </PriceBox>
 

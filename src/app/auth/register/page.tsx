@@ -167,19 +167,24 @@ export default function RegisterPage() {
 						required
 						margin="normal"
 						variant="outlined"
-						InputProps={{
-							endAdornment: (
-								<InputAdornment position="end">
-									<IconButton
-										aria-label="toggle password visibility"
-										onClick={togglePasswordVisibility}
-										edge="end"
-									>
-										{showPassword ? <VisibilityOff /> : <Visibility />}
-									</IconButton>
-								</InputAdornment>
-							),
-						}}
+						slotProps={{
+							input:
+							{
+								endAdornment: (
+									<InputAdornment position="end">
+											<IconButton
+												aria-label="toggle password visibility"
+												onClick={togglePasswordVisibility}
+												edge="end"
+												sx={{
+													padding: '16px',
+													margin: '-8px'
+												}}
+											>
+												{showPassword ? <VisibilityOff /> : <Visibility />}
+											</IconButton>
+									</InputAdornment>
+						)}}}
 					/>
 
 					<Button

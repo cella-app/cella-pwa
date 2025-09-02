@@ -11,7 +11,7 @@ const UserLocalPointIcon: React.FC<UserLocalPointIconProps> = ({
 	fill = '#4285F4',
 }) => {
 	return (
-			<Dot size={'172'} strokeWidth={'3'} color={fill} />
+			<Dot size={'172'} strokeWidth={5} color={fill} />
 	);
 };
 
