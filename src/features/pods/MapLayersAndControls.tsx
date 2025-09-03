@@ -193,7 +193,7 @@ export const MapLayersAndControls = ({
           }
           .search-button-container {
             position: absolute;
-            top: 10px;
+            bottom: 15%;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
