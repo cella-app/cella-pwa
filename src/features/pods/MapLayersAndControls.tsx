@@ -240,7 +240,6 @@ export const MapLayersAndControls = ({
           icon={myLocationIcon}
         />
       )}
-
       {displayedPods.length > 0 && podIcon && fadingPodIcon && displayedPods.map((pod) => {
         const position = [pod.location[1], pod.location[0]] as [number, number];
         return (
