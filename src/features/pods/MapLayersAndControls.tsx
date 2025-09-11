@@ -193,19 +193,21 @@ export const MapLayersAndControls = ({
           }
           .search-button-container {
             position: absolute;
-            bottom: 15%;
+            top: 10%;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
           }
           .search-button {
-            background-color: #007bff;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 8px 16px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 12px;
+            min-width: auto;
+            min-height: 40px;
+            height: auto;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
           }
           .search-button:hover {
@@ -225,7 +227,7 @@ export const MapLayersAndControls = ({
             onClick={handleSearchButtonClick}
             variant="contained"
             color="primary"
-            size="medium"
+            className='search-button'
           >
             Search this area
           </Button>

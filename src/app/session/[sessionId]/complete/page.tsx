@@ -254,7 +254,7 @@ export default function SessionCompletePage() {
       </Typography>
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
         {[0, 1, 2, 3, 4].map(idx => (
-          <IconButton key={idx} onClick={() => handleStarClick(idx)}>
+          <IconButton key={idx} onClick={() => handleStarClick(idx)} sx={{ p: 1.5, minWidth: 44, minHeight: 44 }}>
             <StarIcon sx={{ color: idx < rating ? '#185C3C' : '#E0E0E0', fontSize: 32 }} />
           </IconButton>
         ))}

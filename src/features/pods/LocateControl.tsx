@@ -25,8 +25,8 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 				button.innerHTML = innerHTML;
 
 				Object.assign(button.style, {
-					width: '36px',
-					height: '36px',
+					width: '40px',
+					height: '40px',
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'center',
