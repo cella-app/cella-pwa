@@ -4,9 +4,10 @@ import { ENV } from '@/shared/config/env';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { fileId: string } }
+  { params }: { params: Promise<{ fileId: string }> }
 ) {
   try {
+    const { fileId } = await params;
     const cookieStore = cookies();
     const authToken = (await cookieStore).get('authToken')?.value || (await cookieStore).get('directus_session_token')?.value;
 
@@ -15,7 +16,7 @@ export async function GET(
     }
 
     // Get file info from Directus to get filename_disk
-    const fileResponse = await fetch(`${ENV.API_URL}/files/${params.fileId}`, {
+    const fileResponse = await fetch(`${ENV.API_URL}/files/${fileId}`, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Cookie': `directus_session_token=${authToken}`,
