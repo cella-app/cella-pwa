@@ -74,6 +74,10 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 
 			const focusSeconds = Math.floor((now - start - totalPauseMs) / 1000);
 			setFocusTime(focusSeconds > 0 ? focusSeconds : 0);
+
+			// Update pauseTime to show total accumulated pause time
+			const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
+			setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
 		}
 	}, [session?.start_time, pauseLogs, isPaused, currentPause]);
 
@@ -142,16 +146,16 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 		}
 	}, [session?.id, loadPauseLogs]);
 
-	useEffect(() => {
-		if (isPaused && currentPause?.pause_at) {
-			const pauseStart = new Date(currentPause.pause_at).getTime();
-			const now = Date.now();
-			const pauseSeconds = Math.floor((now - pauseStart) / 1000);
-			setPauseTime(pauseSeconds);
-		} else {
-			// setPauseTime(0); // Commented out to keep clock continuous when switching between pause/resume
-		}
-	}, [isPaused, currentPause?.pause_at]);
+	// useEffect(() => {
+	// 	if (isPaused && currentPause?.pause_at) {
+	// 		const pauseStart = new Date(currentPause.pause_at).getTime();
+	// 		const now = Date.now();
+	// 		const pauseSeconds = Math.floor((now - pauseStart) / 1000);
+	// 		setPauseTime(pauseSeconds);
+	// 	} else {
+	// 		// setPauseTime(0); // Commented out to keep clock continuous when switching between pause/resume
+	// 	}
+	// }, [isPaused, currentPause?.pause_at]);
 
 	const formatTime = (seconds: number) => {
 		const hrs = Math.floor(seconds / 3600);
@@ -426,7 +430,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 						justifyContent: "center",
 						gap: 2,
 						display: "flex",
-						flexDirection: { xs: "column", sm: "row" },
+						flexDirection: { xs: "column", lg: "row" },
 						alignItems: "center",
 						margin: 0,
 					  }}
