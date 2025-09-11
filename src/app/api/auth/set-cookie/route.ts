@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   });
 
   response.cookies.set('directus_session_token', token, {
-    httpOnly: true,
+    httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',

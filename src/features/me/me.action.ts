@@ -1,6 +1,5 @@
 import { meApi } from '@/shared/api/me.api';
 import { User } from '@/shared/data/models/User';
-import { ENV } from '@/shared/config/env';
 import { fileApi } from '@/shared/api/file.api';
 import { userAlertStore, SERVERIFY_ALERT } from '@/features/alert/stores/alert.store';
 
@@ -8,12 +7,8 @@ import { userAlertStore, SERVERIFY_ALERT } from '@/features/alert/stores/alert.s
 export async function getAvatarUrl(avatarId: string): Promise<string | undefined> {
   if (!avatarId) return undefined;
   
-  const avatar = await fileApi.getFile(avatarId);
-
-  if (avatar) {
-    return `${ENV.API_URL}/assets/${avatar.filename_disk}`;
-  }
-  return undefined;
+  // Use Next.js API proxy instead of direct Directus assets URL
+  return `/api/avatar/${avatarId}`;
 }
 
 export async function getMe(): Promise<User & { avatar_url?: string, avatar_filename_disk?: string }> {
