@@ -149,7 +149,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 			const pauseSeconds = Math.floor((now - pauseStart) / 1000);
 			setPauseTime(pauseSeconds);
 		} else {
-			setPauseTime(0);
+			// setPauseTime(0); // Commented out to keep clock continuous when switching between pause/resume
 		}
 	}, [isPaused, currentPause?.pause_at]);
 
@@ -450,7 +450,8 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 				</DialogActions>
 			</Dialog>
 
-			{pauseLogs.filter(log => log.resume_at).map((pauseLog, idx) => {
+      {/*Note: Hidden by requirement update */}
+      {/* {pauseLogs.filter(log => log.resume_at).map((pauseLog, idx) => {
 				const pauseStart = new Date(pauseLog.pause_at);
 				const pauseEnd = pauseLog.resume_at ? new Date(pauseLog.resume_at) : null;
 				const duration = pauseEnd ? Math.floor((pauseEnd.getTime() - pauseStart.getTime()) / 1000) : 0;
@@ -460,7 +461,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 						{`#${idx + 1} — Paused ${formatTime(duration)}`}
 					</Typography>
 				);
-			})}
+			})} */}
 		</Card>
 	);
 };

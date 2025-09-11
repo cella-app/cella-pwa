@@ -177,8 +177,9 @@ export default function RegisterPage() {
 												onClick={togglePasswordVisibility}
 												edge="end"
 												sx={{
-													padding: '16px',
-													margin: '-8px'
+													p: 1.5,
+													minWidth: 44,
+													minHeight: 44
 												}}
 											>
 												{showPassword ? <VisibilityOff /> : <Visibility />}
