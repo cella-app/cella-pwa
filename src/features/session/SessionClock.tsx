@@ -76,9 +76,11 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 			const focusSeconds = Math.floor((now - start - totalPauseMs) / 1000);
 			setFocusTime(focusSeconds > 0 ? focusSeconds : 0);
 
-			// Update pauseTime to show total accumulated pause time
-			const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
-			setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
+			// Only set pauseTime if we're not currently paused (to avoid overriding the real-time increment)
+			if (!isPaused) {
+				const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
+				setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
+			}
 		}
 	}, [session?.start_time, pauseLogs, isPaused, currentPause]);
 
@@ -118,15 +120,22 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 		return () => clearInterval(focusInterval.current!);
 	}, [isPaused]);
 
+	// Keep pause interval for real-time updates, but only increment when paused
 	useEffect(() => {
 		if (isPaused) {
 			pauseInterval.current = setInterval(() => {
 				setPauseTime((prev) => prev + 1);
 			}, 1000);
 		} else {
-			clearInterval(pauseInterval.current!);
+			if (pauseInterval.current) {
+				clearInterval(pauseInterval.current);
+			}
 		}
-		return () => clearInterval(pauseInterval.current!);
+		return () => {
+			if (pauseInterval.current) {
+				clearInterval(pauseInterval.current);
+			}
+		};
 	}, [isPaused]);
 
 	useEffect(() => {
@@ -135,11 +144,26 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 			if (session.id) {
 				loadCurrentPause(session.id);
 			}
+			// Initialize pauseTime when entering pause state
+			if (session?.start_time) {
+				let totalPauseMs = 0;
+				if (pauseLogs && pauseLogs.length > 0) {
+					for (const log of pauseLogs) {
+						if (log.pause_at && log.resume_at) {
+							const pauseStart = new Date(log.pause_at).getTime();
+							const pauseEnd = new Date(log.resume_at).getTime();
+							totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+						}
+					}
+				}
+				const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
+				setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
+			}
 		} else {
 			setIsPaused(false);
 			setCurrentPause(null);
 		}
-	}, [session?.status, session?.id, loadCurrentPause, setCurrentPause]);
+	}, [session?.status, session?.id, session?.start_time, pauseLogs, loadCurrentPause, setCurrentPause]);
 
 	useEffect(() => {
 		if (session?.id) {
@@ -250,7 +274,9 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 
 	const fakeMaxTime = 60;
 
-	const progress = (focusTime % fakeMaxTime) / fakeMaxTime;
+	// Use current time based on pause state for smooth animation
+	const currentTime = isPaused ? pauseTime : focusTime;
+	const progress = (currentTime % fakeMaxTime) / fakeMaxTime;
 	const rotation = progress * 360;
 
 	return (
