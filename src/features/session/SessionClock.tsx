@@ -253,206 +253,283 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 	const rotation = progress * 360;
 
 	return (
-		<Card
+    <Card
+      sx={{
+        height: "100vh",
+        p: 4,
+        background: "transparent",
+        width: "100%",
+        maxWidth: 400,
+        textAlign: "center",
+        border: "none !important",
+        boxShadow: "none !important",
+        fontFamily: rootStyle.mainFontFamily,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "flex-start",
+        alignItems: "center",
+      }}
+    >
+      {/* Toggle */}
+      <Box
+        onClick={handleToggle}
+        sx={{
+          width: 44,
+          height: 24,
+          borderRadius: 12,
+          backgroundColor: !isPaused ? rootStyle.elementColor : "#e0e0e0",
+          position: "relative",
+          cursor: isLoading ? "not-allowed" : "pointer", // Disable cursor when loading
+          opacity: isLoading ? 0.7 : 1, // Reduce opacity when loading
+          alignSelf: "flex-end",
+          mb: 2,
+        }}
+      >
+        {/* Inner Box for the toggle switch */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: "2px",
+            left: !isPaused ? "22px" : "2px",
+            width: 20,
+            height: 20,
+            bgcolor: "white",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "all 0.3s ease",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+          }}
+        >
+          <SvgIcon fontSize="inherit">
+            {!isPaused ? (
+              <LockOpen fontSize="small" />
+            ) : (
+              <Lock fontSize="small" />
+            )}
+          </SvgIcon>
+        </Box>
+      </Box>
+
+      {/* Trạng thái */}
+      <Typography
+        variant="h4"
+        fontWeight={700}
+        mb={2}
+        sx={{
+          fontSize: "36px",
+          fontFamily: rootStyle.titleFontFamily,
+        }}
+      >
+        {isPaused ? "Session Paused" : "In Session"}
+      </Typography>
+
+      {/* Vòng đồng hồ */}
+      <Box
+        sx={{
+          position: "relative",
+          width: 260,
+          height: 260,
+          mx: "auto",
+          mb: 3,
+        }}
+      >
+        <svg width="260" height="260" style={{ transform: "rotate(-90deg)" }}>
+          {/* Định nghĩa gradient */}
+          <defs>
+            <linearGradient
+              id="progressGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="0%"
+              gradientUnits="objectBoundingBox"
+            >
+              <stop offset="10%" stopColor="#20A48C" stopOpacity="1" />
+              <stop offset="75%" stopColor="#0C3E35" stopOpacity="1" />
+              <stop offset="100%" stopColor="#20A48C" stopOpacity="1" />
+            </linearGradient>
+          </defs>
+
+          {/* Nền đầy đủ màu 20A48C */}
+          <circle
+            cx="130"
+            cy="130"
+            r={radius}
+            stroke="#20A48C"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+          />
+
+          {/* Đoạn đậm chạy quanh với gradient hòa trộn */}
+          <circle
+            cx="130"
+            cy="130"
+            r={radius}
+            stroke="url(#progressGradient)"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={dashArray}
+            strokeDashoffset="0"
+            strokeLinecap="round"
+            style={{
+              // Chỉ áp dụng transition khi đã render lần đầu
+              transition: hasRenderedOnce ? "transform 0.5s ease-out" : "none",
+              transform: `rotate(${rotation}deg)`,
+              transformOrigin: "center",
+            }}
+          />
+        </svg>
+
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            sx={{
+              fontSize: "60px",
+            }}
+          >
+            {isPaused ? formatTime(pauseTime) : formatTime(focusTime)}
+          </Typography>
+          <Typography
+            color="text.secondary"
+            sx={{
+              fontSize: "24px",
+              fontWeight: 700,
+              fontFamily: rootStyle.mainFontFamily,
+              mb: 2,
+              display: isPaused ? "none" : "block",
+              color: "black",
+            }}
+          >
+            {"Stay focused"}
+          </Typography>
+          <Typography
+            color="text.secondary"
+            sx={{
+              fontSize: "16px",
+              fontWeight: 200,
+              fontFamily: rootStyle.mainFontFamily,
+              display: isPaused ? "block" : "none",
+              textAlign: "center",
+              color: "black",
+            }}
+          >
+            {"Free 5-minute break after 50 minutes!"}
+          </Typography>
+        </Box>
+      </Box>
+      <Typography
+        sx={{
+          fontSize: "24px",
+          fontWeight: 700,
+          fontFamily: rootStyle.mainFontFamily,
+          mb: 2,
+        }}
+      >
+        {isPaused ? "Pod Locked" : "Pod Unlocked"}
+      </Typography>
+
+      <Button
+        variant="contained"
+        fullWidth
+        onClick={handleToggle}
+        sx={{ mb: 4, fontWeight: 600, fontSize: 16 }}
+        startIcon={!isPaused ? <Pause /> : <Play />}
+        disabled={isLoading}
+      >
+        {!isPaused ? "Pause Session" : "Resume Session"}
+      </Button>
+
+      <Button
+        variant="outlined"
+        fullWidth
+        color="error"
+        onClick={handleEndSession}
+        disabled={isLoading}
+      >
+        {endSessionButtonText}
+      </Button>
+
+      <Dialog
+        open={showMinAmountPopup}
+        onClose={handleCloseMinAmountPopup}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 3,
+              p: { xs: 1, sm: 2 },
+              background: rootStyle.backgroundColor,
+            },
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: "center" }}
+        >
+          {"Minimum Amount Required"}
+        </DialogTitle>
+        <DialogContent sx={{ pb: 0, textAlign: "center" }}>
+          <DialogContentText
+            sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}
+          >
+            {`The minimum amount to pay is ${MIN_AMOUNT.toLocaleString(
+              "en-US",
+              LOCAL_CURRENCY_CONFIG
+            )}. Your current calculated amount is ${calculatedAmount.toLocaleString(
+              "en-US",
+              LOCAL_CURRENCY_CONFIG
+            )}. Do you still want to end the session?`}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            gap: 2,
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            alignItems: "center",
+            overflow: "hidden",
+          }}
+          disableSpacing={true}
+        >
+          <Button
+            onClick={handleCloseMinAmountPopup}
+            disabled={isLoading}
+            variant="outlined"
+            sx={{
+				flex:1,
+              maxWidth: 180,
+              minWidth: {xs:"100%", md:125},
+            }}
+          >
+            Keep session
+          </Button>
+          <Button
+            onClick={handleConfirmEndSession}
+            color="error"
+            disabled={isLoading}
+            variant="contained"
 			sx={{
-				height: "100vh",
-				p: 4,
-				background: "transparent",
-				width: "100%",
-				maxWidth: 400,
-				textAlign: "center",
-				border: "none !important",
-				boxShadow: "none !important",
-				fontFamily: rootStyle.mainFontFamily,
-				display: "flex",
-				flexDirection: "column",
-				justifyContent: "flex-start",
-				alignItems: "center",
-			}}
-		>
-			{/* Toggle */}
-			<Box
-				onClick={handleToggle}
-				sx={{
-					width: 44,
-					height: 24,
-					borderRadius: 12,
-					backgroundColor: !isPaused ? rootStyle.elementColor : "#e0e0e0",
-					position: "relative",
-					cursor: isLoading ? "not-allowed" : "pointer", // Disable cursor when loading
-					opacity: isLoading ? 0.7 : 1, // Reduce opacity when loading
-					alignSelf: "flex-end",
-					mb: 2,
-				}}
-			>
-				{/* Inner Box for the toggle switch */}
-				<Box
-					sx={{
-						position: "absolute",
-						top: "2px",
-						left: !isPaused ? "22px" : "2px",
-						width: 20,
-						height: 20,
-						bgcolor: "white",
-						borderRadius: "50%",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-						transition: "all 0.3s ease",
-						boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-					}}
-				>
-					<SvgIcon fontSize="inherit" >
-						{!isPaused ? <LockOpen fontSize="small" /> : <Lock fontSize="small" />}
-					</SvgIcon>
-				</Box>
-			</Box>
-
-			{/* Trạng thái */}
-			<Typography variant="h4" fontWeight={700} mb={2} sx={{
-				fontSize: "36px",
-				fontFamily: rootStyle.titleFontFamily
-			}}>
-				{isPaused ? "Session Paused" : "In Session"}
-			</Typography>
-
-			{/* Vòng đồng hồ */}
-			<Box sx={{ position: "relative", width: 260, height: 260, mx: "auto", mb: 3 }}>
-				<svg width="260" height="260" style={{ transform: "rotate(-90deg)" }}>
-					{/* Định nghĩa gradient */}
-					<defs>
-						<linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="objectBoundingBox">
-							<stop offset="10%" stopColor="#20A48C" stopOpacity="1" />
-							<stop offset="75%" stopColor="#0C3E35" stopOpacity="1" />
-							<stop offset="100%" stopColor="#20A48C" stopOpacity="1" />
-						</linearGradient>
-					</defs>
-
-					{/* Nền đầy đủ màu 20A48C */}
-					<circle
-						cx="130"
-						cy="130"
-						r={radius}
-						stroke="#20A48C"
-						strokeWidth={strokeWidth}
-						fill="transparent"
-					/>
-
-					{/* Đoạn đậm chạy quanh với gradient hòa trộn */}
-					<circle
-						cx="130"
-						cy="130"
-						r={radius}
-						stroke="url(#progressGradient)"
-						strokeWidth={strokeWidth}
-						fill="transparent"
-						strokeDasharray={dashArray}
-						strokeDashoffset="0"
-						strokeLinecap="round"
-						style={{
-							// Chỉ áp dụng transition khi đã render lần đầu
-							transition: hasRenderedOnce ? "transform 0.5s ease-out" : "none",
-							transform: `rotate(${rotation}deg)`,
-							transformOrigin: "center"
-						}}
-					/>
-				</svg>
-
-				<Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
-					<Typography variant="h4" fontWeight={700} sx={{
-						fontSize: "60px"
-					}}>
-						{isPaused ? formatTime(pauseTime) : formatTime(focusTime)}
-					</Typography>
-					<Typography color="text.secondary" sx={{
-						fontSize: "24px",
-						fontWeight: 700,
-						fontFamily: rootStyle.mainFontFamily,
-						mb: 2,
-						display: isPaused ? "none" : "block",
-						color: "black"
-					}}>
-						{"Stay focused"}
-					</Typography>
-					<Typography color="text.secondary" sx={{
-						fontSize: "16px",
-						fontWeight: 200,
-						fontFamily: rootStyle.mainFontFamily,
-						display: isPaused ? "block" : "none",
-						textAlign: "center",
-						color: "black",
-					}}>
-						{"Free 5-minute break after 50 minutes!"}
-					</Typography>
-				</Box>
-			</Box>
-			<Typography sx={{ fontSize: "24px", fontWeight: 700, fontFamily: rootStyle.mainFontFamily, mb: 2 }}>
-				{isPaused ? "Pod Locked" : "Pod Unlocked"}
-			</Typography>
-
-
-			<Button
-				variant="contained"
-				fullWidth
-				onClick={handleToggle}
-				sx={{ mb: 4, fontWeight: 600, fontSize: 16 }}
-				startIcon={!isPaused ? <Pause /> : <Play />}
-				disabled={isLoading}
-			>
-				{!isPaused ? "Pause Session" : "Resume Session"}
-			</Button>
-
-			<Button
-				variant="outlined"
-				fullWidth
-				color="error"
-				onClick={handleEndSession}
-				disabled={isLoading}
-			>
-				{endSessionButtonText}
-			</Button>
-
-			<Dialog
-				open={showMinAmountPopup}
-				onClose={handleCloseMinAmountPopup}
-				fullWidth
-				maxWidth="xs"
-				slotProps={{paper:{ sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor } }}}
-			>
-				<DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>{"Minimum Amount Required"}</DialogTitle>
-				<DialogContent sx={{ pb: 0, textAlign: 'center' }}>
-					<DialogContentText sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}>
-						{`The minimum amount to pay is ${MIN_AMOUNT.toLocaleString('en-US', LOCAL_CURRENCY_CONFIG)}. Your current calculated amount is ${calculatedAmount.toLocaleString('en-US', LOCAL_CURRENCY_CONFIG) }. Do you still want to end the session?`}
-					</DialogContentText>
-				</DialogContent>
-				<DialogActions
-					 sx={{
-						justifyContent: "center",
-						gap: 2,
-						display: "flex",
-						flexDirection: { xs: "column", lg: "row" },
-						alignItems: "center",
-						margin: 0,
-					  }}
-					  disableSpacing={true}
-				>
-					<Button
-						onClick={handleCloseMinAmountPopup}
-						disabled={isLoading}
-						variant="outlined"
-					>
-						Keep session
-					</Button>
-					<Button
-						onClick={handleConfirmEndSession}
-						color="error"
-						disabled={isLoading}
-						variant="contained"
-					>
-						End anyway
-					</Button>
-				</DialogActions>
-			</Dialog>
+				flex:1,
+				maxWidth: 180,
+				minWidth: {xs:"100%", md:125},
+			  }}
+          >
+            End anyway
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/*Note: Hidden by requirement update */}
       {/* {pauseLogs.filter(log => log.resume_at).map((pauseLog, idx) => {
@@ -466,8 +543,8 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 					</Typography>
 				);
 			})} */}
-		</Card>
-	);
+    </Card>
+  );
 };
 
 export default SessionClock;
