@@ -16,6 +16,10 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 	useEffect(() => {
 		if (!map) return;
 
+		// Detect Safari browser
+		const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+		
 		const createButtonControl = (title: string, innerHTML: string, onClick: () => void) => {
 			const control = new L.Control({ position: 'bottomright' });
 
@@ -35,6 +39,7 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 					border: '1px solid #ccc',
 					borderRadius: '4px',
 					boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+					zIndex: '1000',
 				});
 
 				L.DomEvent.disableClickPropagation(button);
@@ -73,10 +78,16 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 		locateControl.addTo(map);
 		reloadControl.addTo(map);
 
-		// Apply bottom margin to the entire control container
+		// Apply bottom margin to the entire control container with Safari-specific adjustments
 		const controlCorner = document.querySelector('.leaflet-bottom.leaflet-right') as HTMLElement;
 		if (controlCorner) {
-			controlCorner.style.bottom = '0.75rem';
+			if (isSafari || isIOS) {
+				// Add extra bottom margin for Safari/iOS to avoid Safari UI elements
+				controlCorner.style.bottom = isIOS ? '6rem' : '2rem';
+				controlCorner.style.right = '1rem';
+			} else {
+				controlCorner.style.bottom = '0.75rem';
+			}
 		}
 
 		const locateButtonElement = locateControl.getContainer();
