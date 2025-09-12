@@ -14,7 +14,6 @@ import { getPodsNearMe } from '@/features/pods/pods.action';
 import {
   Button,
 } from "@mui/material";
-import { useSessionStore } from '@/features/session/stores/session.store';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
 
 // Dynamically import Leaflet components with no SSR
@@ -52,9 +51,8 @@ export const MapLayersAndControls = ({
   const { radius } = useRadiusStore();
   const clickLock = useRef(false);
   const [displayedPods, setDisplayedPods] = useState<PodWithVisibility[]>([]);
-  const { showButtonSearch, changeState, isPodUnlocked, setPodUnlocked } = useEventStore()
+  const { showButtonSearch, changeState } = useEventStore()
   const { setLoading } = useLoadingStore();
-  const { current: currentSession } = useSessionStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -112,14 +110,8 @@ export const MapLayersAndControls = ({
   }, [map, currentLocation, mapLoaded, onMapLoad, isClient]);
 
   useEffect(() => {
-    console.warn("showButtonSearch",showButtonSearch)
+    console.warn("showButtonSearch", showButtonSearch)
   }, [showButtonSearch]);
-
-  useEffect(() => {
-    if (currentSession?.id) {
-      setPodUnlocked(true);
-    }
-  }, [currentSession]);
 
   useEffect(() => {
     if (!pods || !isClient) return;
@@ -189,10 +181,6 @@ export const MapLayersAndControls = ({
     return null;
   }
 
-  if (isPodUnlocked) {
-    return null;
-  }
-
   return (
     <>
       <style>
@@ -222,6 +210,9 @@ export const MapLayersAndControls = ({
             height: auto;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
           }
+          .search-button:hover {
+            background-color: #0056b3;
+          }
         `}
       </style>
       <TileLayer
@@ -237,14 +228,6 @@ export const MapLayersAndControls = ({
             variant="contained"
             color="primary"
             className='search-button'
-            sx={{
-              boxShadow: 'none',
-              maxWidth: "200px",
-              color: 'white',
-              py: 1.5,
-              fontWeight: 600,
-              '&:hover': { boxShadow: 'none' },
-            }}
           >
             Search this area
           </Button>
