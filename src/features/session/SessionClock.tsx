@@ -100,7 +100,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 		if (!session?.id || isPaused) return;
 
 		const interval = setInterval(() => {
-			tracking(session.id).catch(console.error);
+			// tracking(session.id).catch(console.error);
 		}, TRACKING_TIME);
 
 		return () => clearInterval(interval);
@@ -462,7 +462,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
       <Dialog
         open={showMinAmountPopup}
         onClose={handleCloseMinAmountPopup}
-        maxWidth="xs"
+        maxWidth="sm"
         fullWidth
         slotProps={{
           paper: {
@@ -475,7 +475,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         }}
       >
         <DialogTitle
-          sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: "center" }}
+          sx={{ textAlign: "center" }}
         >
           {"Minimum Amount Required"}
         </DialogTitle>
@@ -495,11 +495,11 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         <DialogActions
           sx={{
             justifyContent: "center",
-            gap: 2,
+            gap: 3,
             display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            alignItems: "center",
-            overflow: "hidden",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: "center ",
+            margin: 0,
           }}
           disableSpacing={true}
         >
@@ -507,11 +507,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             onClick={handleCloseMinAmountPopup}
             disabled={isLoading}
             variant="outlined"
-            sx={{
-				flex:1,
-              maxWidth: 180,
-              minWidth: {xs:"100%", md:125},
-            }}
+            size="medium"
           >
             Keep session
           </Button>
@@ -520,11 +516,9 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             color="error"
             disabled={isLoading}
             variant="contained"
-			sx={{
-				flex:1,
-				maxWidth: 180,
-				minWidth: {xs:"100%", md:125},
-			  }}
+            sx={{
+              margin: 0,
+            }}
           >
             End anyway
           </Button>
