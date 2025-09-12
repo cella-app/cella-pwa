@@ -11,7 +11,8 @@ import {
 import { Pause, Play, Lock, LockOpen } from "lucide-react";
 import { rootStyle } from "@/theme";
 import { Session, SessionStatusEnum } from "@/shared/data/models/Session";
-import { tracking, pause, resume, end, getAmount } from '@/features/session/session.action';
+// import { tracking, pause, resume, end, getAmount } from '@/features/session/session.action';
+import { pause, resume, end, getAmount } from '@/features/session/session.action';
 import { useSessionStore } from '@/features/session/stores/session.store';
 import { useRouter } from 'next/navigation';
 import { MIN_AMOUNT } from '@/shared/config/payment';
