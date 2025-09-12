@@ -210,9 +210,6 @@ export const MapLayersAndControls = ({
             height: auto;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
           }
-          .search-button:hover {
-            background-color: #0056b3;
-          }
         `}
       </style>
       <TileLayer
@@ -228,6 +225,14 @@ export const MapLayersAndControls = ({
             variant="contained"
             color="primary"
             className='search-button'
+            sx={{
+              boxShadow: 'none',
+              maxWidth: "200px",
+              color: 'white',
+              py: 1.5,
+              fontWeight: 600,
+              '&:hover': { boxShadow: 'none' },
+            }}
           >
             Search this area
           </Button>
