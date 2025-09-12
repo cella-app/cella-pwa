@@ -228,7 +228,8 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 			setCalculatedAmount(amount);
 
 			if (amount < MIN_AMOUNT) {
-				setShowMinAmountPopup(true);
+        setShowMinAmountPopup(true);
+        setIsLoading(false);
 			} else {
 				setEndSessionButtonText("Ending...");
 				await end(session.id);
@@ -236,10 +237,8 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 			}
 		} catch (error) {
 			console.error("Error ending session:", error);
-			setEndSessionButtonText("End Session"); // Reset button text on error
-		} finally {
-			setIsLoading(false);
-			console.log("handleEndSession: Setting isLoading to false");
+      setEndSessionButtonText("End Session"); // Reset button text on error
+      setIsLoading(false);
 		}
 	};
 
@@ -254,9 +253,8 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 			router.push(`/session/${session.id}/checkout`);
 		} catch (error) {
 			console.error("Error ending session after confirmation:", error);
-			setEndSessionButtonText("End Session"); // Reset button text on error
-		} finally {
-			setIsLoading(false);
+      setEndSessionButtonText("End Session"); // Reset button text on error
+      setIsLoading(false);
 		}
 	};
 

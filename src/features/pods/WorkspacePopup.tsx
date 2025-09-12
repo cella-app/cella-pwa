@@ -215,7 +215,6 @@ export default function WorkspacePopup({
         router.push(`/payment/add-to-card?frm=/workspace/discovery?opw=${id}`);
       }
       console.error('Unlock failed:', err);
-    } finally {
       setIsLoading(false);
     }
   };
