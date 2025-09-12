@@ -11,7 +11,7 @@ export function alertError(error: any) {
 			severity: SERVERIFY_ALERT.ERROR,
 			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 			//@ts-ignore
-			message: err.message
+			message: error.message
 		});
 	} else {
 		addAlert({

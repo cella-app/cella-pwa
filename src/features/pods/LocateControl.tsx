@@ -25,8 +25,8 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 				button.innerHTML = innerHTML;
 
 				Object.assign(button.style, {
-					width: '40px',
-					height: '40px',
+					width: '44px',
+					height: '44px',
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'center',
@@ -73,13 +73,22 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 		locateControl.addTo(map);
 		reloadControl.addTo(map);
 
+		// Apply bottom margin to the entire control container
+		const controlCorner = document.querySelector('.leaflet-bottom.leaflet-right') as HTMLElement;
+		if (controlCorner) {
+			controlCorner.style.bottom = '0.75rem';
+		}
+
 		const locateButtonElement = locateControl.getContainer();
 		const reloadButtonElement = reloadControl.getContainer();
 
 		if (locateButtonElement) {
-			locateButtonElement.style.cursor = currentLocation ? 'pointer' : 'not-allowed';
-			locateButtonElement.style.opacity = currentLocation ? '1' : '0.5';
-			(locateButtonElement as HTMLButtonElement).disabled = !currentLocation;
+			const button = locateButtonElement.querySelector('button') as HTMLButtonElement;
+			if (button) {
+				button.style.cursor = currentLocation ? 'pointer' : 'not-allowed';
+				button.style.opacity = currentLocation ? '1' : '0.5';
+				button.disabled = !currentLocation;
+			}
 		}
 
 		if (locateButtonElement && reloadButtonElement) {

@@ -1,28 +1,31 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ArrowDownToLine } from "lucide-react";
 import InstallGuidePopup from "./InstallGuidePopup";
 import { useAddToHomeScreenStore } from "@/features/add-to-home-screen/stores/add-to-home-screen.store";
 
-const buttonStyle: React.CSSProperties = {
+const getButtonStyle = (isDragging: boolean, position: { x: number; y: number }): React.CSSProperties => ({
   position: "fixed",
-  bottom: 20,
-  left: 20,
+  left: position.x,
+  top: position.y,
   zIndex: 1000,
   background: "#fff",
   border: "1px solid #ccc",
   borderRadius: "50%",
   width: 48,
   height: 48,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+  boxShadow: isDragging ? "0 4px 16px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.15)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   fontSize: 24,
-  cursor: "pointer",
-};
+  cursor: isDragging ? "grabbing" : "grab",
+  userSelect: "none",
+  transition: isDragging ? "none" : "box-shadow 0.2s ease",
+  opacity: isDragging ? 0.8 : 1,
+});
 
 function isIOS() {
   if (typeof window === "undefined") return false;
@@ -63,6 +66,17 @@ export default function AddToHomeScreenButton() {
   const [browserType, setBrowserType] = useState<"safari" | "chrome" | "other">(
     "other"
   );
+  const [position, setPosition] = useState({ x: 20, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Initialize position
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setPosition({ x: 20, y: window.innerHeight - 68 });
+    }
+  }, []);
 
   useEffect(() => {
     if (isInStandaloneMode()) {
@@ -92,7 +106,103 @@ export default function AddToHomeScreenButton() {
     }
   }, [setShowButton, setShowIOSPopup]);
 
-  const handleClick = () => {
+  // Drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    });
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const mouseX = e.clientX - dragStart.x + 24; // +24 for button center
+    const mouseY = e.clientY - dragStart.y + 24;
+    
+    // Only snap to left or right edge (like iPhone AssistiveTouch)
+    const centerX = window.innerWidth / 2;
+    const newY = Math.max(20, Math.min(window.innerHeight - 68, mouseY - 24));
+    
+    let newX;
+    if (mouseX < centerX) {
+      // Snap to left edge
+      newX = 20;
+    } else {
+      // Snap to right edge
+      newX = window.innerWidth - 68;
+    }
+    
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setDragStart({
+      x: touch.clientX - position.x,
+      y: touch.clientY - position.y,
+    });
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const mouseX = touch.clientX - dragStart.x + 24; // +24 for button center
+    const mouseY = touch.clientY - dragStart.y + 24;
+    
+    // Only snap to left or right edge (like iPhone AssistiveTouch)
+    const centerX = window.innerWidth / 2;
+    const newY = Math.max(20, Math.min(window.innerHeight - 68, mouseY - 24));
+    
+    let newX;
+    if (mouseX < centerX) {
+      // Snap to left edge
+      newX = 20;
+    } else {
+      // Snap to right edge
+      newX = window.innerWidth - 68;
+    }
+    
+    setPosition({ x: newX, y: newY });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Add event listeners
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      };
+    }
+  }, [isDragging, dragStart]);
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Only handle click if not dragging
+    if (isDragging) {
+      e.preventDefault();
+      return;
+    }
     if (isIOS()) {
       // iOS: luôn mở popup với guideType dựa trên browserType
       setShowIOSPopup(true);
@@ -130,8 +240,11 @@ export default function AddToHomeScreenButton() {
   return (
     <>
       <button
+        ref={buttonRef}
         onClick={handleClick}
-        style={buttonStyle}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        style={getButtonStyle(isDragging, position)}
         aria-label={isIOS() ? "Add to Home Screen Guide" : "Install App"}
         title={isIOS() ? "Add to Home Screen Guide" : "Install App"}
       >
