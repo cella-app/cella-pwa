@@ -332,9 +332,9 @@ export default function ProfilePage() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={editNameDialogOpen} onClose={() => setEditNameDialogOpen(false)} maxWidth="xs" fullWidth slotProps={{paper: {sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor }}}}>
+      <Dialog open={editNameDialogOpen} onClose={() => setEditNameDialogOpen(false)} maxWidth="xs" fullWidth slotProps={{paper: {sx: { borderRadius: 3, p: { xs: 0, sm: 2 }, background: rootStyle.backgroundColor }}}}>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>Update Name</DialogTitle>
-        <DialogContent sx={{ paddingTop: "2rem !important" }}>
+        <DialogContent sx={{ paddingTop: "2rem !important", paddingX:{xs:2} }}>
           <Stack spacing={2} direction="column" alignItems="center" width="100%">
             <TextField
               size="medium"
@@ -349,6 +349,7 @@ export default function ProfilePage() {
                 }
               }}
               autoFocus
+              sx={{minWidth:{xs:"100%", lg:125},}}
             />
             <TextField
               size="medium"
@@ -362,10 +363,19 @@ export default function ProfilePage() {
                   style: { fontSize: 18 }
                 }
               }}
+              sx={{minWidth:{xs:"100%", lg:125},}}
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
+        <DialogActions sx={{
+            justifyContent: "center",
+            gap: 2,
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            alignItems: "center",
+            // overflow: "hidden",
+          }}
+          disableSpacing={true}>
           <Button
             variant="contained"
             color="primary"
@@ -383,7 +393,10 @@ export default function ProfilePage() {
               }
             }}
             disabled={savingName}
-            sx={{ minWidth: 100, fontWeight: 700 }}
+            sx={{ flex: 1,
+                  maxWidth: 180,
+                  minWidth: {xs:"100%", md:125},
+                  fontWeight: 700 }}
           >
             Save
           </Button>
@@ -395,7 +408,10 @@ export default function ProfilePage() {
               setFirstName(user?.first_name || '');
               setLastName(user?.last_name || '');
             }}
-            sx={{ minWidth: 100, fontWeight: 700 }}
+            sx={{ flex: 1,
+                  maxWidth: 180,
+                  minWidth: {xs:"100%", md:125},
+                  fontWeight: 700 }}
           >
             Cancel
           </Button>
