@@ -16,6 +16,7 @@ import { useSessionStore } from '@/features/session/stores/session.store';
 import { Reservation } from '@/shared/data/models/Reservation';
 import { useRouter } from 'next/navigation';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import { useEventStore } from '@/features/map/stores/event.store';
 
 const PopupContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
@@ -106,6 +107,7 @@ export default function WorkspacePopup({
 
   const { current: currentReservation, setReservation, clearReservation } = useReservationStore();
   const { setSession } = useSessionStore();
+  const { setPodUnlocked } = useEventStore(); // Get setPodUnlocked from event store
   const isAvailable = status === 'available';
   // Countdown calculation
   const getCountdownFromReservation = (unlock_due: string | Date): number => {
@@ -208,6 +210,7 @@ export default function WorkspacePopup({
       setTimeout(() => {
         router.push(`/session/${session.id}/progress`);
       });
+      setPodUnlocked(true); // Set the state to true after successful unlock
     } catch (err) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-ignore

@@ -14,6 +14,7 @@ import { getPodsNearMe } from '@/features/pods/pods.action';
 import {
   Button,
 } from "@mui/material";
+import { useSessionStore } from '@/features/session/stores/session.store';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
 
 // Dynamically import Leaflet components with no SSR
@@ -51,8 +52,9 @@ export const MapLayersAndControls = ({
   const { radius } = useRadiusStore();
   const clickLock = useRef(false);
   const [displayedPods, setDisplayedPods] = useState<PodWithVisibility[]>([]);
-  const { showButtonSearch, changeState } = useEventStore()
+  const { showButtonSearch, changeState, isPodUnlocked, setPodUnlocked } = useEventStore()
   const { setLoading } = useLoadingStore();
+  const { current: currentSession } = useSessionStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -112,6 +114,12 @@ export const MapLayersAndControls = ({
   useEffect(() => {
     console.warn("showButtonSearch",showButtonSearch)
   }, [showButtonSearch]);
+
+  useEffect(() => {
+    if (currentSession?.id) {
+      setPodUnlocked(true);
+    }
+  }, [currentSession]);
 
   useEffect(() => {
     if (!pods || !isClient) return;
@@ -178,6 +186,10 @@ export const MapLayersAndControls = ({
   };
 
   if (!isClient) {
+    return null;
+  }
+
+  if (isPodUnlocked) {
     return null;
   }
 
