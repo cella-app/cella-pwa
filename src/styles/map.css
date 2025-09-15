@@ -7,8 +7,8 @@
 
 .user-location-marker {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -38,6 +38,8 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  width: 44pt;
+  height: 44pt;
 }
 
 .pod-marker-icon.available {

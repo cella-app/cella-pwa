@@ -66,17 +66,8 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 			}
 		);
 
-		const reloadControl = createButtonControl(
-			'Reload Pod Data',
-			`<i class="fa-solid fa-rotate-right"></i>`,
-			() => {
-				// const currentCenter = map.getCenter();
-				// const currentZoom = map.getZoom();
-			}
-		);
 
 		locateControl.addTo(map);
-		reloadControl.addTo(map);
 
 		// Apply bottom margin to the entire control container with Safari-specific adjustments
 		const controlCorner = document.querySelector('.leaflet-bottom.leaflet-right') as HTMLElement;
@@ -91,7 +82,6 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 		}
 
 		const locateButtonElement = locateControl.getContainer();
-		const reloadButtonElement = reloadControl.getContainer();
 
 		if (locateButtonElement) {
 			const button = locateButtonElement.querySelector('button') as HTMLButtonElement;
@@ -102,13 +92,8 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 			}
 		}
 
-		if (locateButtonElement && reloadButtonElement) {
-			reloadButtonElement.style.marginTop = '8px';
-		}
-
 		return () => {
 			locateControl.remove();
-			reloadControl.remove();
 		};
 	}, [map, currentLocation, onLocate]);
 

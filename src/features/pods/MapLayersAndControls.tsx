@@ -65,11 +65,11 @@ export const MapLayersAndControls = ({
           className: 'user-location-marker',
           html: `
             <div class="user-location-icon">
-              ${renderToString(<UserLocalPointIcon width="32" height="32" fill="#007BFF" />)}
+              ${renderToString(<UserLocalPointIcon width="44" height="44" fill="#007BFF" />)}
             </div>
           `,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
         })
       );
 
@@ -77,8 +77,8 @@ export const MapLayersAndControls = ({
         L.icon({
           iconUrl: '/point.png',
           shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
+          iconSize: [44, 44],
+          iconAnchor: [22, 44],
           className: 'pod-marker',
         })
       );
@@ -87,7 +87,7 @@ export const MapLayersAndControls = ({
         L.icon({
           iconUrl: '/point.png',
           shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png',
-          iconSize: [32, 32],
+          iconSize: [44, 44],
           iconAnchor: [16, 32],
           className: 'pod-marker fading',
         })
@@ -206,7 +206,7 @@ export const MapLayersAndControls = ({
             cursor: pointer;
             font-size: 12px;
             min-width: auto;
-            min-height: 40px;
+            min-height: 2.75rem; /* Adjusted height */
             height: auto;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
           }
