@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { ArrowDownToLine } from "lucide-react";
+import Image from "next/image";
 import InstallGuidePopup from "./InstallGuidePopup";
 import { useAddToHomeScreenStore } from "@/features/add-to-home-screen/stores/add-to-home-screen.store";
 
@@ -20,7 +20,6 @@ const getButtonStyle = (isDragging: boolean, position: { x: number; y: number })
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: 24,
   cursor: isDragging ? "grabbing" : "grab",
   userSelect: "none",
   transition: isDragging ? "none" : "box-shadow 0.2s ease",
@@ -248,7 +247,7 @@ export default function AddToHomeScreenButton() {
         aria-label={isIOS() ? "Add to Home Screen Guide" : "Install App"}
         title={isIOS() ? "Add to Home Screen Guide" : "Install App"}
       >
-        <ArrowDownToLine size={24} />
+        <Image src="/pwa/icon.png" alt="Add to Home Screen" width={20} height={24} />
       </button>
 
       <InstallGuidePopup

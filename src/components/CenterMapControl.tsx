@@ -98,7 +98,7 @@ const CenterMapControl = () => {
 				pathOptions={{
 					color: 'transparent',
 					fillColor: '#007BFF',
-					fillOpacity: 0.15,
+					fillOpacity: 0,
 				}}
 			/>
 
@@ -107,7 +107,8 @@ const CenterMapControl = () => {
 				waves.map((offset, i) => {
 					const progress = (pulse + offset) % 1; // 0 → 1
 					const waveRadius = progress * radius; // lan từ 0 → radius
-					const opacity = 0.4 * (1 - progress); // mờ dần khi gần biên
+					// const opacity = 0.4 * (1 - progress); // mờ dần khi gần biên
+					const opacity = 0; // mờ dần khi gần biên
 
 					return (
 						<Circle
