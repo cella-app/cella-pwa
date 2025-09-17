@@ -190,7 +190,38 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 			return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 		}
 		return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-	};
+  };
+  
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        console.log("User came back to the tab / screen");
+
+        // 👉 Gọi lại logic bạn muốn, ví dụ:
+        if (session?.id) {
+          loadPauseLogs(session.id);
+          loadCurrentPause(session.id);
+        }
+      }
+    };
+
+    const handleFocus = () => {
+      console.log("Window focused again");
+      if (session?.id) {
+        loadPauseLogs(session.id);
+        loadCurrentPause(session.id);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [session?.id, loadPauseLogs, loadCurrentPause]);
+
 
 	const handleToggle = async () => {
 		if (!session?.id || isLoading) return;
