@@ -339,13 +339,9 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 
       {/* Trạng thái */}
       <Typography
-        variant="h4"
+        variant="h3"
         fontWeight={700}
         mb={2}
-        sx={{
-          fontSize: "36px",
-          fontFamily: rootStyle.titleFontFamily,
-        }}
       >
         {isPaused ? "Session Paused" : "In Session"}
       </Typography>
@@ -358,9 +354,22 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           height: 260,
           mx: "auto",
           mb: 3,
+          "@media (max-width:330px)": {
+            width: 200,
+            height: 200,
+          },
+          "@media (max-width:280px)": {
+            width: 160,
+            height: 160,
+          },
         }}
       >
-        <svg width="260" height="260" style={{ transform: "rotate(-90deg)" }}>
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 260 260"
+          style={{ transform: "rotate(-90deg)" }}
+        >
           {/* Định nghĩa gradient */}
           <defs>
             <linearGradient
@@ -419,13 +428,14 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             variant="h4"
             fontWeight={700}
             sx={{
-              fontSize: "60px",
+              fontSize: { xs: "36px", sm: "60px" }, // responsive font size
             }}
           >
             {isPaused ? formatTime(pauseTime) : formatTime(focusTime)}
           </Typography>
           <Typography
             color="text.secondary"
+            variant="h6"
             sx={{
               fontSize: "24px",
               fontWeight: 700,
@@ -439,6 +449,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           </Typography>
           <Typography
             color="text.secondary"
+            variant="body1"
             sx={{
               fontSize: "16px",
               fontWeight: 200,
@@ -453,9 +464,8 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         </Box>
       </Box>
       <Typography
+        variant="h5"
         sx={{
-          fontSize: "24px",
-          fontWeight: 700,
           fontFamily: rootStyle.mainFontFamily,
           mb: 2,
         }}

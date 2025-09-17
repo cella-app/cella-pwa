@@ -248,22 +248,31 @@ export default function WorkspacePopup({
   return (
     <PopupContainer>
       <PopupHeader>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-          <Box sx={{ width: 80, height: 80, mr: 2 }}>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'flex-start'
+        }}>
+          <Box sx={{
+            width: 80,
+            height: 80,
+            mr: 2,
+            "@media (max-width:330px)": {
+              width: 63,
+              height: 63,
+            },
+          }}>
             <Image rel="preload" src="/icon_pod.png" alt="Pod icon" width={80} height={80} />
           </Box>
 
           <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" component="h4" sx={{
+            <Typography variant="h5" component="h4" sx={{
               fontFamily: rootStyle.titleFontFamily,
-              fontSize: "24px",
-              fontWeight: 700,
             }}>
               {name}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1}}>
               <LocationOnIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
-              <Typography variant="h6" component="h4" sx={{
+              <Typography variant="body1" component="h4" sx={{
                 fontSize: "16px",
                 fontWeight: 300,
               }}>
@@ -272,7 +281,10 @@ export default function WorkspacePopup({
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {reserved ? (
-                <Typography sx={{ ml: 1, fontSize: "20px", fontWeight: 700 }}>
+                <Typography variant='h6' sx={{
+                  ml: 1,
+                  fontFamily: rootStyle.mainFontFamily,
+                }}>
                   {`${String(Math.floor(countdown / 60)).padStart(2, '0')}:${String(countdown % 60).padStart(2, '0')} time left`}
                 </Typography>
               ) : (
@@ -287,7 +299,7 @@ export default function WorkspacePopup({
                     marginLeft: 5,
                     verticalAlign: 'middle',
                   }} />
-                  <Typography sx={{ fontSize: "20px", fontWeight: 700 }}>
+                    <Typography variant="h6">
                     {getStatusLabel(status || PodStatus.unavailable)}
                   </Typography>
                 </>

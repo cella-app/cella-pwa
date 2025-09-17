@@ -105,7 +105,6 @@ export default function SessionCheckoutPage() {
         <CardContent sx={{ p: 0 }}>
           <Typography variant="h4" fontWeight={700} mb={4} sx={{
             textAlign: 'center',
-            fontSize: "36px",
             fontFamily: rootStyle.titleFontFamily
           }}>
             Checkout
@@ -128,6 +127,9 @@ export default function SessionCheckoutPage() {
                 fontWeight: 700,
                 fontSize: '1.25rem',
                 color: '#222',
+                "@media (max-width:330px)": {
+                  mb: 1.5,
+                },
               }}>
                 <span style={{ fontSize: "24px", marginRight: 12 }}>{item.icon}</span>
                 <Typography

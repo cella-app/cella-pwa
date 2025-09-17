@@ -367,8 +367,14 @@ export default memo(function MapContent() {
             zIndex: 1002,
             display: "flex",
             justifyContent: "center",
-            width: "100%",
             maxWidth: "400px",
+            ...(window.innerWidth <= 330
+              ? {
+                bottom: "10px",        // nâng lên cao hơn chút
+                maxWidth: "calc(100% - 15pt)", // thụt lề 8px mỗi bên
+                padding: "0 15pt",      // thêm padding nhỏ
+              }
+              : {}),
           }}
         >
           <WorkspacePopup
