@@ -313,7 +313,7 @@ export default memo(function MapContent() {
             position: "absolute",
             top: 24,
             right: 24,
-            zIndex: 2000,
+            zIndex: 1001,
             cursor: "pointer",
             background: "white",
             borderRadius: "50%",
@@ -364,7 +364,7 @@ export default memo(function MapContent() {
             bottom: "20px",
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 1000,
+            zIndex: 1002,
             display: "flex",
             justifyContent: "center",
             width: "100%",
@@ -382,13 +382,27 @@ export default memo(function MapContent() {
       )}
       <Dialog
         open={openLocationDialog}
-        maxWidth="sm"
-        fullWidth
         slotProps={{
           paper: {
             sx: {
               borderRadius: 3,
               p: { xs: 1, sm: 2 },
+              "@media (max-width:330px)": {
+                width: "calc(100% - 10pt)",
+                margin: "10pt",
+              },
+              "@media (max-width:300px)": {
+                width: "calc(100% - 5pt)",
+                margin: "5pt",
+              },
+              "@media (max-width:280px)": {
+                width: "100%",
+                margin: "2pt",
+              },
+              "@media (max-height:500px)": {
+                height: "calc(100% + 10 pt)",
+                margin: "-2pt",
+              },
             },
           },
         }}
@@ -408,6 +422,11 @@ export default memo(function MapContent() {
             flexDirection: { xs: "column", sm: "row" },
             alignItems: "center ",
             margin: 0,
+            "@media (max-width:330px)": {
+              "& .MuiButton-root": {
+                padding: "6px 12px", // Smaller padding for buttons
+              },
+            },
           }}
           disableSpacing={true}
         >
@@ -415,7 +434,12 @@ export default memo(function MapContent() {
             onClick={handleAllowLocation}
             variant="contained"
             color="primary"
-            size="medium"
+            size="small"
+            sx={{
+              py: { xs: 1, sm: 0.5 },
+              textTransform: 'none',
+              margin: 0,
+            }}
           >
             Allow
           </Button>
@@ -423,7 +447,10 @@ export default memo(function MapContent() {
             onClick={handleDenyLocation}
             variant="outlined"
             color="inherit"
+            size="small"
             sx={{
+              py: { xs: 1, sm: 0.5 },
+              textTransform: 'none',
               margin: 0,
             }}
           >

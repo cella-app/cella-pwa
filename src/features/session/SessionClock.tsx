@@ -495,6 +495,18 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
               borderRadius: 3,
               p: { xs: 1, sm: 2 },
               background: rootStyle.backgroundColor,
+              "@media (max-width:330px)": {
+                width: "calc(100% - 10pt)",
+                margin: "10pt",
+              },
+              "@media (max-width:300px)": {
+                width: "calc(100% - 5pt)",
+                margin: "5pt",
+              },
+              "@media (max-width:280px)": {
+                width: "100%",
+                margin: "2pt",
+              },
             },
           },
         }}
@@ -525,6 +537,11 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             flexDirection: { xs: "column", sm: "row" },
             alignItems: "center ",
             margin: 0,
+            "@media (max-width:330px)": {
+              "& .MuiButton-root": {
+                padding: "6px 12px", // Smaller padding for buttons
+              },
+            },
           }}
           disableSpacing={true}
         >
@@ -532,7 +549,12 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             onClick={handleCloseMinAmountPopup}
             disabled={isLoading}
             variant="outlined"
-            size="medium"
+            size="small"
+            sx={{
+              py: { xs: 1, sm: 0.5 },
+              textTransform: 'none',
+              margin: 0,
+            }}
           >
             Keep session
           </Button>
@@ -541,7 +563,10 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             color="error"
             disabled={isLoading}
             variant="contained"
+            size="small"
             sx={{
+              py: { xs: 1, sm: 0.5 },
+              textTransform: 'none',
               margin: 0,
             }}
           >
