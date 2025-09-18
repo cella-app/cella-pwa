@@ -45,10 +45,10 @@ export function getBottomOffset(isSafari: boolean, isIOS: boolean, isStandalone:
 		return '0.75rem';
 	}
 
-	// iOS Safari - need extra space for bottom UI
+	// iOS Safari - need extra space for bottom UI (URL bar ở dưới)
 	if (isIOS && isSafari) {
-		console.log("✅ Case: iOS Safari - returning 6rem");
-		return '6rem';
+		console.log("✅ Case: iOS Safari - returning 6rem (URL bar dưới)");
+		return '6rem'; // Dịch lên để tránh URL bar dưới
 	}
 
 	// iOS other browsers (Chrome, etc) - unified value
@@ -92,7 +92,8 @@ export function getInitialPosition(): { x: number; y: number } {
 	}
 
 	const bottomOffsetPixels = getBottomOffsetPixels();
-	const initialY = window.innerHeight - bottomOffsetPixels - BUTTON_SIZES.ADD_TO_HOME;
+	// Đảm bảo Add Home button thẳng hàng với LocateControl bằng cách dùng cùng size reference
+	const initialY = window.innerHeight - bottomOffsetPixels - BUTTON_SIZES.LOCATE_CONTROL;
 
 	return {
 		x: SPACING.EDGE_MARGIN,
@@ -104,7 +105,8 @@ export function getMaxY(): number {
 	if (typeof window === "undefined") return 100;
 
 	const bottomOffsetPixels = getBottomOffsetPixels();
-	return window.innerHeight - bottomOffsetPixels - BUTTON_SIZES.ADD_TO_HOME;
+	// Đảm bảo MaxY cũng dùng cùng reference với LocateControl để thẳng hàng
+	return window.innerHeight - bottomOffsetPixels - BUTTON_SIZES.LOCATE_CONTROL;
 }
 
 export function snapToEdge(mouseX: number): number {
@@ -113,10 +115,12 @@ export function snapToEdge(mouseX: number): number {
 	const centerX = window.innerWidth / 2;
 
 	if (mouseX < centerX) {
-		// Snap to left edge
+		// Snap to left edge - đồng nhất với LocateControl
 		return SPACING.EDGE_MARGIN;
 	} else {
-		// Snap to right edge - aligned with LocateControl spacing
+		// Snap to right edge - cạnh phải AddToHome thẳng hàng với cạnh phải LocateControl
+		// LocateControl có right: EDGE_MARGIN, nghĩa là cạnh phải cách edge EDGE_MARGIN
+		// AddToHome cần left = window.innerWidth - EDGE_MARGIN - ADD_TO_HOME_SIZE
 		return window.innerWidth - SPACING.EDGE_MARGIN - BUTTON_SIZES.ADD_TO_HOME;
 	}
 }
@@ -127,4 +131,17 @@ export function getStackedRightPosition(): number {
 
 	// Position để AddToHome button sát bên trái của LocateControl
 	return window.innerWidth - SPACING.EDGE_MARGIN - BUTTON_SIZES.LOCATE_CONTROL - SPACING.BUTTON_GAP - BUTTON_SIZES.ADD_TO_HOME;
+}
+
+// Kiểm tra xem có phải Safari mobile không PWA không (URL bar dưới)
+export function isSafariMobileNonPWA(): boolean {
+	if (typeof window === "undefined") return false;
+	
+	const env = getEnvironmentInfo();
+	return env.isIOS && env.isSafari && !env.isStandalone;
+}
+
+// Lấy offset đặc biệt cho Safari mobile (rem để responsive hơn)
+export function getSafariMobileOffset(): string {
+	return '6rem'; // Giá trị cố định theo pt để đảm bảo không bị che bởi URL bar
 }
