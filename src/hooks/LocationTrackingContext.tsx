@@ -1,14 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocationTracking } from './useLocationTracking';
 import { useMapStore } from '@/features/map/stores/map.store';
 import { useRadiusStore } from '@/features/map/stores/radius.store';
+import { useLocationPermission } from './useLocationPermission';
 import { PodList } from '@/shared/data/models/Pod';
 import { LocationData } from '@/shared/data/models/Location';
-
-// Use the same key as MapContent to avoid conflicts
-const LOCATION_PERMISSION_KEY = "locationPermissionAsked";
 
 interface LocationTrackingContextType {
   lastSearchCenter: LocationData | null;
@@ -17,7 +15,19 @@ interface LocationTrackingContextType {
   pods: PodList[];
   error: string | null;
   setPods: (pods: PodList[]) => void;
-  setStartTracking: (value: boolean) => void;
+
+  // Permission related
+  hasAskedPermission: boolean;
+  isTrackingAllowed: boolean;
+  needsUserDecision: boolean;
+  permissionState: 'granted' | 'denied' | 'prompt' | 'unknown';
+  isPermissionLoading: boolean;
+
+  // Actions
+  allowLocation: () => void;
+  denyLocation: () => void;
+  toggleTracking: (enabled: boolean) => void;
+  resetPermission: () => void;
 }
 
 const LocationTrackingContext = createContext<LocationTrackingContextType | undefined>(undefined);
@@ -29,75 +39,49 @@ interface LocationTrackingProviderProps {
 export const LocationTrackingProvider = ({ children }: LocationTrackingProviderProps) => {
   const { map } = useMapStore();
   const { radius } = useRadiusStore();
-  const [startTracking, setStartTracking] = useState(false);
 
-  // Fixed: Simplified permission check - don't duplicate MapContent logic
-  useEffect(() => {
-    console.log("🔍 LocationTrackingProvider - Checking initial tracking state");
+  // Use the centralized permission hook
+  const {
+    hasAskedPermission,
+    isTrackingAllowed,
+    needsUserDecision,
+    permissionState,
+    isLoading: isPermissionLoading,
+    allowLocation,
+    denyLocation,
+    toggleTracking,
+    resetPermission
+  } = useLocationPermission();
 
-    if (typeof window === 'undefined') return;
+  // Only start tracking if permission is explicitly allowed
+  const shouldTrack = hasAskedPermission && isTrackingAllowed;
 
-    const alreadyAsked = localStorage.getItem(LOCATION_PERMISSION_KEY);
-    console.log("🔍 LocationTrackingProvider - Already asked:", alreadyAsked);
+  console.log('🔍 LocationTrackingProvider - shouldTrack:', shouldTrack, {
+    hasAskedPermission,
+    isTrackingAllowed,
+    needsUserDecision,
+    permissionState
+  });
 
-    // If permission dialog hasn't been shown yet, don't auto-start tracking
-    if (alreadyAsked !== 'true') {
-      console.log("❌ LocationTrackingProvider - Permission not asked yet, waiting for user dialog");
-      return;
-    }
-
-    // If permission was already handled, check current state
-    if (navigator.permissions) {
-      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-        console.log("🔍 LocationTrackingProvider - Permission state:", result.state);
-
-        if (result.state === 'granted') {
-          console.log("✅ LocationTrackingProvider - Permission granted, starting tracking");
-          setStartTracking(true);
-        } else {
-          console.log("❌ LocationTrackingProvider - Permission denied/prompt, not starting tracking");
-          setStartTracking(false);
-        }
-      }).catch((error) => {
-        console.warn("⚠️ LocationTrackingProvider - Permissions API failed:", error);
-        // Don't auto-start tracking if we can't check permissions
-        setStartTracking(false);
-      });
-    } else {
-      console.warn("⚠️ LocationTrackingProvider - Permissions API not supported");
-      // Fallback: don't auto-start, let user decide via MapContent dialog
-      setStartTracking(false);
-    }
-  }, []);
-
-  // Save tracking preference when it changes
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const trackingValue = startTracking.toString();
-      localStorage.setItem('startTracking', trackingValue);
-      console.log("💾 LocationTrackingProvider - Saved startTracking:", trackingValue);
-    }
-  }, [startTracking]);
-
-  const locationTracking = useLocationTracking(radius, startTracking, map || undefined);
-
-  // Enhanced setStartTracking to handle permission persistence
-  const handleSetStartTracking = (value: boolean) => {
-    console.log("🔄 LocationTrackingProvider - setStartTracking called with:", value);
-    setStartTracking(value);
-
-    // Mark permission as handled when user makes a choice
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(LOCATION_PERMISSION_KEY, "true");
-      console.log("💾 LocationTrackingProvider - Marked permission as asked");
-    }
-  };
+  const locationTracking = useLocationTracking(radius, shouldTrack, map || undefined);
 
   return (
     <LocationTrackingContext.Provider
       value={{
         ...locationTracking,
-        setStartTracking: handleSetStartTracking
+
+        // Permission state
+        hasAskedPermission,
+        isTrackingAllowed,
+        needsUserDecision,
+        permissionState,
+        isPermissionLoading,
+
+        // Permission actions
+        allowLocation,
+        denyLocation,
+        toggleTracking,
+        resetPermission
       }}
     >
       {children}

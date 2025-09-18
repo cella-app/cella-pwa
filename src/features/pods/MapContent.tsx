@@ -1,7 +1,7 @@
-// MapContent.tsx - Fixed version
+// MapContent.tsx - Simplified version
 "use client";
 
-import { useEffect, useState, useRef, memo, useCallback } from "react";
+import { useEffect, useState, useRef, memo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -11,7 +11,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import { MapContainer, useMapEvents } from "react-leaflet";
-import L, { Map as LeafletMapType, LatLng } from "leaflet";
+import L, { Map as LeafletMapType } from "leaflet";
 import { MapLayersAndControls } from "@/features/pods/MapLayersAndControls";
 import WorkspacePopup from "@/features/pods/WorkspacePopup";
 import { PodList } from "@/shared/data/models/Pod";
@@ -33,16 +33,6 @@ import { LocationData } from "@/shared/data/models/Location";
 import { calculateDistanceNew, getAllowedCenterThreshold } from "@/shared/utils/location";
 import { useEventStore } from '@/features/map/stores/event.store';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
-
-const LOCATION_PERMISSION_KEY = "locationPermissionAsked";
-
-// Helper function to get consistent latitude/longitude from different types
-function getCoords(location: { latitude: number; longitude: number } | LatLng) {
-  if ("lat" in location && "lng" in location) {
-    return { latitude: location.lat, longitude: location.lng };
-  }
-  return location;
-}
 
 function MapInitializer({ mapRef }: { mapRef: React.MutableRefObject<LeafletMapType | null> }) {
   const { setMap } = useMapStore();
@@ -77,24 +67,23 @@ function MapEventHandlers({
   const { changeState } = useEventStore()
   const { setLoading } = useLoadingStore()
 
-  const isUserCenterInValidRange = useCallback(
-    (userLocation: LocationData, centerLocation: LocationData, radius: number): boolean => {
-      const threshold = getAllowedCenterThreshold(radius);
-      const distance = calculateDistanceNew(userLocation, centerLocation);
-      return distance <= threshold;
-    },
-    [],
-  );
+  const isUserCenterInValidRange = (
+    userLocation: LocationData,
+    centerLocation: LocationData,
+    radius: number
+  ): boolean => {
+    const threshold = getAllowedCenterThreshold(radius);
+    const distance = calculateDistanceNew(userLocation, centerLocation);
+    return distance <= threshold;
+  };
 
   const map = useMapEvents({
     movestart: () => {
       isMovingRef.current = true;
-      // Do NOT clear pods here; let MapLayersAndControls handle pod transitions
     },
 
     zoomstart: () => {
       isMovingRef.current = true;
-      // Do NOT clear pods here; let MapLayersAndControls handle pod transitions
     },
 
     zoomend: () => {
@@ -103,7 +92,6 @@ function MapEventHandlers({
       const center = map.getCenter();
       const coords = { latitude: center.lat, longitude: center.lng };
 
-      // Update radius theo zoom
       const closestConfig = ZOOM_RADIUS_CONFIG.reduce((prev, curr) =>
         Math.abs(curr.zoom - zoom) < Math.abs(prev.zoom - zoom) ? curr : prev
       );
@@ -116,7 +104,7 @@ function MapEventHandlers({
       }
 
       setCurrentMapCenter(coords);
-      setLoading(false)
+      setLoading(false);
       changeState(true);
     },
 
@@ -125,7 +113,8 @@ function MapEventHandlers({
       const center = map.getCenter();
       const coords = { latitude: center.lat, longitude: center.lng };
       setCurrentMapCenter(coords);
-      setLoading(false)
+      setLoading(false);
+
       if (currentLocation && !isUserCenterInValidRange(currentLocation, coords, radius)) {
         changeState(true);
       } else {
@@ -136,17 +125,6 @@ function MapEventHandlers({
     },
   });
 
-  // Initial fetch when map is ready - only runs once
-  useEffect(() => {
-    console.log("[useEffect] Initial fetch triggered");
-    const zoom = map.getZoom();
-    const locationToUse = currentLocation || map.getCenter();
-    const coords = getCoords(locationToUse);
-
-    console.log("[useEffect] Using location:", coords);
-    console.log("[useEffect] Using zoom:", zoom);
-  }, [currentLocation, map])
-
   return null;
 }
 
@@ -155,78 +133,23 @@ export default memo(function MapContent() {
   const [selectedPod, setSelectedPod] = useState<PodList | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [user, setUser] = useState<any>(null); // Use correct User type if available
+  const [user, setUser] = useState<any>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const { currentLocation, setStartTracking } = useLocationTrackingContext();
   const router = useRouter();
   const isUserTriggeredFlyToRef = useRef(false);
 
-  // Fixed: Initialize as false, only show when needed
-  const [openLocationDialog, setOpenLocationDialog] = useState(false);
-
-  const handleAllowLocation = () => {
-    setStartTracking(true);
-    localStorage.setItem(LOCATION_PERMISSION_KEY, "true");
-    setOpenLocationDialog(false);
-    console.log("✅ Location permission: ALLOWED");
-  };
-
-  const handleDenyLocation = () => {
-    localStorage.setItem(LOCATION_PERMISSION_KEY, "true");
-    setOpenLocationDialog(false);
-    console.log("❌ Location permission: DENIED");
-  };
-
-  // Fixed: Better permission logic
-  useEffect(() => {
-    console.log("🔍 MapContent - Checking location permission...");
-
-    const alreadyAsked = localStorage.getItem(LOCATION_PERMISSION_KEY);
-    console.log("🔍 Already asked:", alreadyAsked);
-
-    if (alreadyAsked === "true") {
-      console.log("✅ Permission already handled, skipping dialog");
-      setOpenLocationDialog(false);
-      return;
-    }
-
-    // Only check permissions API if not already asked
-    if (navigator.permissions) {
-      navigator.permissions.query({ name: "geolocation" }).then((result) => {
-        console.log("🔍 Permission state:", result.state);
-
-        if (result.state === "granted") {
-          console.log("✅ Permission already granted, auto-allowing");
-          setStartTracking(true);
-          localStorage.setItem(LOCATION_PERMISSION_KEY, "true");
-          setOpenLocationDialog(false);
-        } else if (result.state === "denied") {
-          console.log("❌ Permission already denied, skipping dialog");
-          localStorage.setItem(LOCATION_PERMISSION_KEY, "true");
-          setOpenLocationDialog(false);
-        } else if (result.state === "prompt") {
-          console.log("❓ Permission prompt needed, showing dialog");
-          setOpenLocationDialog(true);
-        }
-
-        result.onchange = () => {
-          console.log("🔄 Permission changed to", result.state);
-        };
-      }).catch((error) => {
-        console.warn("⚠️ Permissions API failed:", error);
-        // Fallback: show dialog if permissions API fails
-        setOpenLocationDialog(true);
-      });
-    } else {
-      console.warn("⚠️ Permissions API not supported");
-      // Fallback: show dialog if permissions API not supported
-      setOpenLocationDialog(true);
-    }
-  }, [setStartTracking]);
+  // Use the centralized location permission system
+  const {
+    currentLocation,
+    needsUserDecision,
+    isPermissionLoading,
+    allowLocation,
+    denyLocation
+  } = useLocationTrackingContext();
 
   const { setCurrentMapCenter } = useMapStore();
   const { radius, setRadius } = useRadiusStore();
@@ -252,20 +175,18 @@ export default memo(function MapContent() {
     fetchUser();
   }, []);
 
-  // Map initialization effect
   useEffect(() => {
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: "/point.png",
       iconUrl: "/point.png",
-      shadowUrl:
-        "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
+      shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
       iconSize: [32, 32],
       iconAnchor: [16, 32],
     });
     setMapLoaded(true);
   }, []);
 
-  if (!mapLoaded || loadingUser) {
+  if (!mapLoaded || loadingUser || isPermissionLoading) {
     return (
       <div
         style={{
@@ -282,8 +203,6 @@ export default memo(function MapContent() {
     );
   }
 
-  const center = DEFAULT_CENTER;
-
   const handlePodSelect = (pod: PodList) => {
     if (!selectedPod || selectedPod.id !== pod.id) {
       setSelectedPod(pod);
@@ -293,7 +212,7 @@ export default memo(function MapContent() {
   return (
     <>
       <MapContainer
-        center={center}
+        center={DEFAULT_CENTER}
         zoom={15}
         minZoom={8}
         maxZoom={25}
@@ -303,10 +222,7 @@ export default memo(function MapContent() {
         ref={mapRef}
         attributionControl={false}
         worldCopyJump={false}
-        maxBounds={[
-          [-85, -180],
-          [85, 180],
-        ]}
+        maxBounds={[[-85, -180], [85, 180]]}
         maxBoundsViscosity={1.0}
         zoomAnimation={true}
         fadeAnimation={true}
@@ -359,11 +275,7 @@ export default memo(function MapContent() {
           onClick={() => router.push("/profile")}
         >
           {!imageLoaded && (
-            <Skeleton
-              variant="circular"
-              width={40}
-              height={40}
-            />
+            <Skeleton variant="circular" width={40} height={40} />
           )}
           <Avatar
             alt="User Avatar"
@@ -418,8 +330,9 @@ export default memo(function MapContent() {
         </div>
       )}
 
+      {/* Simplified permission dialog - only shows when actually needed */}
       <Dialog
-        open={openLocationDialog}
+        open={needsUserDecision}
         slotProps={{
           paper: {
             sx: {
@@ -428,18 +341,6 @@ export default memo(function MapContent() {
               "@media (max-width:330px)": {
                 width: "calc(100% - 10pt)",
                 margin: "10pt",
-              },
-              "@media (max-width:300px)": {
-                width: "calc(100% - 5pt)",
-                margin: "5pt",
-              },
-              "@media (max-width:280px)": {
-                width: "100%",
-                margin: "2pt",
-              },
-              "@media (max-height:500px)": {
-                height: "calc(100% + 10 pt)",
-                margin: "-2pt",
               },
             },
           },
@@ -458,39 +359,23 @@ export default memo(function MapContent() {
             gap: 2,
             display: "flex",
             flexDirection: { xs: "column", sm: "row" },
-            alignItems: "center",
-            margin: 0,
-            "@media (max-width:330px)": {
-              "& .MuiButton-root": {
-                padding: "6px 12px",
-              },
-            },
           }}
-          disableSpacing={true}
         >
           <Button
-            onClick={handleAllowLocation}
+            onClick={allowLocation}
             variant="contained"
             color="primary"
             size="small"
-            sx={{
-              py: { xs: 1, sm: 0.5 },
-              textTransform: 'none',
-              margin: 0,
-            }}
+            sx={{ textTransform: 'none' }}
           >
             Allow
           </Button>
           <Button
-            onClick={handleDenyLocation}
+            onClick={denyLocation}
             variant="outlined"
             color="inherit"
             size="small"
-            sx={{
-              py: { xs: 1, sm: 0.5 },
-              textTransform: 'none',
-              margin: 0,
-            }}
+            sx={{ textTransform: 'none' }}
           >
             No
           </Button>
