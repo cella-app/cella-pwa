@@ -28,9 +28,28 @@ export function getEnvironmentInfo() {
 		return { isSafari: false, isIOS: false, isStandalone: false };
 	}
 
-	const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-	const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+	const ua = navigator.userAgent;
+	const isIOS = /iPad|iPhone|iPod/.test(ua);
 	const isStandalone = isInStandaloneMode();
+	
+	// Improved Safari detection for iOS
+	let isSafari = false;
+	if (isIOS) {
+		// Chrome iOS has CriOS, Edge has EdgiOS, Firefox has FxiOS
+		// Safari iOS has Version/ and Safari/ but no other browser identifiers
+		isSafari = /safari/i.test(ua) && !/crios|edgios|fxios/i.test(ua);
+	} else {
+		// Desktop Safari detection
+		isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+	}
+
+	console.log("🔍 getEnvironmentInfo detection:", {
+		userAgent: ua,
+		isIOS,
+		isSafari,
+		isStandalone,
+		detectionMethod: isIOS ? 'iOS-specific' : 'desktop'
+	});
 
 	return { isSafari, isIOS, isStandalone };
 }
@@ -104,13 +123,13 @@ export function getInitialPosition(): { x: number; y: number } {
 	}
 
 	const bottomOffsetPixels = getBottomOffsetPixels();
-	// Đảm bảo Add Home button thẳng hàng với LocateControl bằng cách dùng cùng size reference
-	const initialY = window.innerHeight - bottomOffsetPixels - BUTTON_SIZES.LOCATE_CONTROL;
+	// LocateControl ở bottom: offsetPt, nghĩa là top = window.height - offsetPx
+	// AddToHome cần cùng Y position để align
+	const initialY = window.innerHeight - bottomOffsetPixels;
 
 	console.log("📍 getInitialPosition calculation:", {
 		windowHeight: window.innerHeight,
 		bottomOffsetPixels,
-		buttonSize: BUTTON_SIZES.LOCATE_CONTROL,
 		calculatedY: initialY,
 		finalY: Math.max(SPACING.VERTICAL_MARGIN, initialY)
 	});
@@ -125,8 +144,8 @@ export function getMaxY(): number {
 	if (typeof window === "undefined") return 100;
 
 	const bottomOffsetPixels = getBottomOffsetPixels();
-	// Đảm bảo MaxY cũng dùng cùng reference với LocateControl để thẳng hàng
-	return window.innerHeight - bottomOffsetPixels - BUTTON_SIZES.LOCATE_CONTROL;
+	// MaxY cũng cần align với LocateControl top position
+	return window.innerHeight - bottomOffsetPixels;
 }
 
 export function snapToEdge(mouseX: number): number {

@@ -35,7 +35,7 @@ import { useEventStore } from '@/features/map/stores/event.store';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
 import MobileDebugger from "@/components/LocationDebugger";
 
-function MapInitializer({ mapRef }: { mapRef: React.MutableRefObject<LeafletMapType | null> }) {
+function MapInitializer({ mapRef }: { mapRef: React.RefObject<LeafletMapType | null> }) {
   const { setMap } = useMapStore();
 
   useEffect(() => {
