@@ -2,7 +2,7 @@ import withPWA from "next-pwa";
 
 const nextConfig = {
   compiler: {
-    removeConsole: true,
+    removeConsole: false,
   },
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
   async rewrites() {

@@ -33,6 +33,7 @@ import { LocationData } from "@/shared/data/models/Location";
 import { calculateDistanceNew, getAllowedCenterThreshold } from "@/shared/utils/location";
 import { useEventStore } from '@/features/map/stores/event.store';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
+import MobileDebugger from "@/components/LocationDebugger";
 
 function MapInitializer({ mapRef }: { mapRef: React.MutableRefObject<LeafletMapType | null> }) {
   const { setMap } = useMapStore();
@@ -381,6 +382,9 @@ export default memo(function MapContent() {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* Mobile Debug Overlay - only in development */}
+      {process.env.NODE_ENV === 'development' && <MobileDebugger />}
     </>
   );
 });
