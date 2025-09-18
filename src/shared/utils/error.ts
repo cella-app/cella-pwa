@@ -14,9 +14,9 @@ export function alertError(error: any) {
 			message: error.message
 		});
 	} else {
-		addAlert({
-			severity: SERVERIFY_ALERT.ERROR,
-			message: error instanceof Error ? error.message : 'An unknown error occurred',
-		});
+		// addAlert({
+		// 	severity: SERVERIFY_ALERT.ERROR,
+		// 	message: error instanceof Error ? error.message : 'An unknown error occurred',
+		// });
 	}
 }
