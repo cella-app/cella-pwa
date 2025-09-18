@@ -395,7 +395,7 @@ export default function SessionCompletePage() {
 
         <DialogActions sx={{ background: rootStyle.backgroundColor, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, justifyContent: 'center' }}>
           <Box sx={{ width: '100%' }}>
-            <Button onClick={handleCloseSummary} sx={{ color: rootStyle.elementColor, fontWeight: 700, width: '100%' }}>Close</Button>
+            <Button onClick={handleCloseSummary} sx={{ color: rootStyle.elementColor, fontWeight: 700, width: '100%' }}>Done</Button>
           </Box>
         </DialogActions>
       </Dialog>
