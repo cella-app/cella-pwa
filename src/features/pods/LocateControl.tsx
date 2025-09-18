@@ -4,78 +4,15 @@ import { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
+import {
+	getEnvironmentInfo,
+	getBottomOffset,
+	SPACING,
+	BUTTON_SIZES
+} from '@/shared/utils/positioning';
 
 interface LocateControlProps {
 	onLocate: (latlng: { latitude: number; longitude: number }) => void;
-}
-
-// Helper functions for environment detection
-function isInStandaloneMode(): boolean {
-	if (typeof window === "undefined") return false;
-	const standalone = (
-		window.matchMedia("(display-mode: standalone)").matches ||
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(window.navigator as any).standalone === true
-	);
-	console.log("🔍 LocateControl - isInStandaloneMode:", {
-		standalone,
-		displayMode: window.matchMedia("(display-mode: standalone)").matches,
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		navigatorStandalone: (window.navigator as any).standalone
-	});
-	return standalone;
-}
-
-function getEnvironmentInfo() {
-	if (typeof window === "undefined") {
-		return { isSafari: false, isIOS: false, isStandalone: false };
-	}
-
-	const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-	const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-	const isStandalone = isInStandaloneMode();
-
-	console.log("🔍 LocateControl - Environment:", {
-		isSafari,
-		isIOS,
-		isStandalone,
-		userAgent: navigator.userAgent,
-		windowHeight: window.innerHeight
-	});
-
-	return { isSafari, isIOS, isStandalone };
-}
-
-function getBottomOffset(isSafari: boolean, isIOS: boolean, isStandalone: boolean): string {
-	console.log("🔍 LocateControl - getBottomOffset input:", { isSafari, isIOS, isStandalone });
-
-	// PWA mode - use standard offset
-	if (isStandalone) {
-		console.log("✅ LocateControl Case: PWA/Standalone - returning 0.75rem");
-		return '0.75rem';
-	}
-
-	// iOS Safari - need extra space for bottom UI
-	if (isIOS && isSafari) {
-		console.log("✅ LocateControl Case: iOS Safari - returning 6rem");
-		return '6rem';
-	}
-
-	// iOS other browsers (Chrome, etc) - moderate space
-	if (isIOS) {
-		console.log("✅ LocateControl Case: iOS other browser - returning 4rem");
-		return '4rem';
-	}
-
-	// Desktop Safari - small space
-	if (isSafari) {
-		console.log("✅ LocateControl Case: Desktop Safari - returning 2rem");
-		return '2rem';
-	}
-
-	// Other browsers - standard
-	console.log("✅ LocateControl Case: Other browser - returning 0.75rem");
-	return '0.75rem';
 }
 
 export default function LocateControl({ onLocate }: LocateControlProps) {
@@ -96,8 +33,8 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 				button.innerHTML = innerHTML;
 
 				Object.assign(button.style, {
-					width: '44px',
-					height: '44px',
+					width: `${BUTTON_SIZES.LOCATE_CONTROL}px`,
+					height: `${BUTTON_SIZES.LOCATE_CONTROL}px`,
 					display: 'flex',
 					alignItems: 'center',
 					justifyContent: 'center',
@@ -136,7 +73,7 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 
 		locateControl.addTo(map);
 
-		// Function to update control position
+		// Function to update control position using shared utilities
 		const updateControlPosition = () => {
 			const env = getEnvironmentInfo();
 			const bottomOffset = getBottomOffset(env.isSafari, env.isIOS, env.isStandalone);
@@ -145,11 +82,12 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 			if (controlCorner) {
 				console.log("📍 LocateControl - Updating position:", {
 					previousBottom: controlCorner.style.bottom,
-					newBottom: bottomOffset
+					newBottom: bottomOffset,
+					rightMargin: `${SPACING.EDGE_MARGIN}px`
 				});
 
 				controlCorner.style.bottom = bottomOffset;
-				controlCorner.style.right = '1rem';
+				controlCorner.style.right = `${SPACING.EDGE_MARGIN}px`; // ✅ Consistent với AddToHomeScreen
 				controlCorner.style.transition = 'bottom 0.3s ease'; // Smooth transition
 			}
 		};

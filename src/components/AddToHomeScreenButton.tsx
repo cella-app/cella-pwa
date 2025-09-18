@@ -5,6 +5,14 @@ import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import InstallGuidePopup from "./InstallGuidePopup";
 import { useAddToHomeScreenStore } from "@/features/add-to-home-screen/stores/add-to-home-screen.store";
+import {
+  getInitialPosition,
+  getMaxY,
+  snapToEdge,
+  SPACING,
+  BUTTON_SIZES,
+  isInStandaloneMode
+} from "@/shared/utils/positioning";
 
 const getButtonStyle = (isDragging: boolean, position: { x: number; y: number }): React.CSSProperties => ({
   position: "fixed",
@@ -14,8 +22,8 @@ const getButtonStyle = (isDragging: boolean, position: { x: number; y: number })
   background: "#fff",
   border: "1px solid #ccc",
   borderRadius: "50%",
-  width: 48,
-  height: 48,
+  width: BUTTON_SIZES.ADD_TO_HOME,
+  height: BUTTON_SIZES.ADD_TO_HOME,
   boxShadow: isDragging ? "0 4px 16px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.15)",
   display: "flex",
   alignItems: "center",
@@ -31,20 +39,6 @@ function isIOS() {
   const ios = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
   console.log("🔍 AddToHomeScreen - isIOS:", ios);
   return ios;
-}
-
-function isInStandaloneMode() {
-  if (typeof window === "undefined") return false;
-  const standalone = (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true
-  );
-  console.log("🔍 AddToHomeScreen - isInStandaloneMode:", {
-    standalone,
-    displayMode: window.matchMedia("(display-mode: standalone)").matches,
-    navigatorStandalone: (window.navigator as any).standalone
-  });
-  return standalone;
 }
 
 function getBrowserType(): "safari" | "chrome" | "other" {
@@ -70,86 +64,6 @@ function getBrowserType(): "safari" | "chrome" | "other" {
   return browserType;
 }
 
-// Match LocateControl environment detection
-function getEnvironmentInfo() {
-  if (typeof window === "undefined") {
-    return { isSafari: false, isIOS: false, isStandalone: false };
-  }
-
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isStandalone = isInStandaloneMode();
-
-  console.log("🔍 AddToHomeScreen - Environment:", {
-    isSafari,
-    isIOS,
-    isStandalone,
-    userAgent: navigator.userAgent,
-    windowHeight: window.innerHeight
-  });
-
-  return { isSafari, isIOS, isStandalone };
-}
-
-// Match LocateControl bottom offset logic with iOS Chrome fix
-function getBottomOffset(isSafari: boolean, isIOS: boolean, isStandalone: boolean): string {
-  console.log("🔍 AddToHomeScreen - getBottomOffset input:", { isSafari, isIOS, isStandalone });
-
-  // PWA mode - use standard offset
-  if (isStandalone) {
-    console.log("✅ AddToHomeScreen Case: PWA/Standalone - returning 0.75rem");
-    return '0.75rem';
-  }
-
-  // iOS Safari - need extra space for bottom UI
-  if (isIOS && isSafari) {
-    console.log("✅ AddToHomeScreen Case: iOS Safari - returning 6rem");
-    return '6rem';
-  }
-
-  // iOS other browsers (Chrome, etc) - less space than Safari
-  if (isIOS) {
-    console.log("✅ AddToHomeScreen Case: iOS other browser (Chrome) - returning 1.5rem");
-    return '1.5rem';
-  }
-
-  // Desktop Safari - small space
-  if (isSafari) {
-    console.log("✅ AddToHomeScreen Case: Desktop Safari - returning 2rem");
-    return '2rem';
-  }
-
-  // Other browsers - standard
-  console.log("✅ AddToHomeScreen Case: Other browser - returning 0.75rem");
-  return '0.75rem';
-}
-
-// Convert rem to pixels (assuming 1rem = 16px)
-function remToPixels(remValue: string): number {
-  const numValue = parseFloat(remValue);
-  return numValue * 16;
-}
-
-// Calculate bottom offset in pixels to match LocateControl
-function getBottomOffsetPixels(): number {
-  if (typeof window === "undefined") {
-    console.log("🔍 AddToHomeScreen - getBottomOffsetPixels: window undefined, returning 68");
-    return 68;
-  }
-
-  const env = getEnvironmentInfo();
-  const bottomOffsetRem = getBottomOffset(env.isSafari, env.isIOS, env.isStandalone);
-  const bottomOffsetPixels = remToPixels(bottomOffsetRem);
-
-  console.log("🔍 AddToHomeScreen - getBottomOffsetPixels:", {
-    bottomOffsetRem,
-    bottomOffsetPixels,
-    environment: env
-  });
-
-  return bottomOffsetPixels;
-}
-
 export default function AddToHomeScreenButton() {
   const { showButton, showIOSPopup, setShowButton, setShowIOSPopup } =
     useAddToHomeScreenStore();
@@ -158,24 +72,17 @@ export default function AddToHomeScreenButton() {
   const [browserType, setBrowserType] = useState<"safari" | "chrome" | "other">(
     "other"
   );
-  const [position, setPosition] = useState({ x: 20, y: 0 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Initialize position based on LocateControl logic
+  // Initialize position using shared utility
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      console.log("🚀 AddToHomeScreen - Initializing position...");
-      const bottomOffsetPixels = getBottomOffsetPixels();
-      const initialY = window.innerHeight - bottomOffsetPixels - 48; // 48px for button height
-      console.log("📍 AddToHomeScreen - Initial position calculation:", {
-        windowHeight: window.innerHeight,
-        bottomOffsetPixels,
-        initialY
-      });
-      setPosition({ x: 20, y: initialY });
-    }
+    console.log("🚀 AddToHomeScreen - Initializing position...");
+    const initialPos = getInitialPosition();
+    console.log("📍 AddToHomeScreen - Initial position:", initialPos);
+    setPosition(initialPos);
   }, []);
 
   // Handle viewport changes (for Safari mobile URL bar show/hide)
@@ -184,18 +91,16 @@ export default function AddToHomeScreenButton() {
 
     const handleResize = () => {
       console.log("📏 AddToHomeScreen - handleResize triggered");
-      const bottomOffsetPixels = getBottomOffsetPixels();
-      const newMaxY = window.innerHeight - bottomOffsetPixels - 48;
+      const maxY = getMaxY();
 
       console.log("📏 AddToHomeScreen - Resize calculation:", {
         windowHeight: window.innerHeight,
-        bottomOffsetPixels,
-        newMaxY,
+        maxY,
         currentPosition: position
       });
 
       setPosition(prev => {
-        const newY = Math.min(prev.y, newMaxY);
+        const newY = Math.min(prev.y, maxY);
         console.log("📏 AddToHomeScreen - Position update:", {
           prevY: prev.y,
           newY,
@@ -289,23 +194,13 @@ export default function AddToHomeScreenButton() {
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging) return;
 
-    const mouseX = e.clientX - dragStart.x + 24; // +24 for button center
-    const mouseY = e.clientY - dragStart.y + 24;
+    const mouseX = e.clientX - dragStart.x + (BUTTON_SIZES.ADD_TO_HOME / 2); // Center adjustment
+    const mouseY = e.clientY - dragStart.y + (BUTTON_SIZES.ADD_TO_HOME / 2);
 
-    // Only snap to left or right edge (like iPhone AssistiveTouch)
-    const centerX = window.innerWidth / 2;
-    const bottomOffsetPixels = getBottomOffsetPixels();
-    const maxY = window.innerHeight - bottomOffsetPixels - 48; // Match LocateControl bounds
-    const newY = Math.max(20, Math.min(maxY, mouseY - 24));
-
-    let newX;
-    if (mouseX < centerX) {
-      // Snap to left edge
-      newX = 20;
-    } else {
-      // Snap to right edge - next to LocateControl (same horizontal line)
-      newX = window.innerWidth - 96; // 48px this button + 48px LocateControl = sát nhau
-    }
+    // Use shared utilities for positioning
+    const newX = snapToEdge(mouseX);
+    const maxY = getMaxY();
+    const newY = Math.max(SPACING.VERTICAL_MARGIN, Math.min(maxY, mouseY - (BUTTON_SIZES.ADD_TO_HOME / 2)));
 
     setPosition({ x: newX, y: newY });
   };
@@ -329,23 +224,13 @@ export default function AddToHomeScreenButton() {
     e.preventDefault();
 
     const touch = e.touches[0];
-    const mouseX = touch.clientX - dragStart.x + 24; // +24 for button center
-    const mouseY = touch.clientY - dragStart.y + 24;
+    const mouseX = touch.clientX - dragStart.x + (BUTTON_SIZES.ADD_TO_HOME / 2); // Center adjustment
+    const mouseY = touch.clientY - dragStart.y + (BUTTON_SIZES.ADD_TO_HOME / 2);
 
-    // Only snap to left or right edge (like iPhone AssistiveTouch)
-    const centerX = window.innerWidth / 2;
-    const bottomOffsetPixels = getBottomOffsetPixels();
-    const maxY = window.innerHeight - bottomOffsetPixels - 48; // Match LocateControl bounds
-    const newY = Math.max(20, Math.min(maxY, mouseY - 24));
-
-    let newX;
-    if (mouseX < centerX) {
-      // Snap to left edge
-      newX = 20;
-    } else {
-      // Snap to right edge - next to LocateControl (same horizontal line)
-      newX = window.innerWidth - 96; // 48px this button + 48px LocateControl = sát nhau
-    }
+    // Use shared utilities for positioning
+    const newX = snapToEdge(mouseX);
+    const maxY = getMaxY();
+    const newY = Math.max(SPACING.VERTICAL_MARGIN, Math.min(maxY, mouseY - (BUTTON_SIZES.ADD_TO_HOME / 2)));
 
     setPosition({ x: newX, y: newY });
   };
