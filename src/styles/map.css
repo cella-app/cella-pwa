@@ -9,6 +9,10 @@
   margin-bottom: 0px;
 }
 
+.leaflet-right .leaflet-control {
+  margin-right: 0px;
+}
+
 .user-location-marker {
   position: relative;
   width: 44px;

@@ -341,11 +341,13 @@ export default function AddToHomeScreenButton() {
     let newX;
     if (mouseX < centerX) {
       // Snap to left edge
-      newX = 20;
+      newX = 12;
     } else {
       // Snap to right edge - next to LocateControl (same horizontal line)
-      newX = window.innerWidth - 96; // 48px this button + 48px LocateControl = sát nhau
+      newX = window.innerWidth - 60; // 48px this button + 48px LocateControl = sát nhau
     }
+
+    console.log(newX)
 
     setPosition({ x: newX, y: newY });
   };
