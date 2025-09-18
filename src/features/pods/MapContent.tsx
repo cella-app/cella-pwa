@@ -1,3 +1,4 @@
+// MapContent.tsx - Fixed version
 "use client";
 
 import { useEffect, useState, useRef, memo, useCallback } from "react";
@@ -158,44 +159,74 @@ export default memo(function MapContent() {
   const [loadingUser, setLoadingUser] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
 
-
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
   const { currentLocation, setStartTracking } = useLocationTrackingContext();
   const router = useRouter();
   const isUserTriggeredFlyToRef = useRef(false);
 
-  const [openLocationDialog, setOpenLocationDialog] = useState(true);
+  // Fixed: Initialize as false, only show when needed
+  const [openLocationDialog, setOpenLocationDialog] = useState(false);
 
   const handleAllowLocation = () => {
     setStartTracking(true);
     localStorage.setItem(LOCATION_PERMISSION_KEY, "true");
     setOpenLocationDialog(false);
+    console.log("✅ Location permission: ALLOWED");
   };
+
   const handleDenyLocation = () => {
     localStorage.setItem(LOCATION_PERMISSION_KEY, "true");
     setOpenLocationDialog(false);
+    console.log("❌ Location permission: DENIED");
   };
 
+  // Fixed: Better permission logic
   useEffect(() => {
+    console.log("🔍 MapContent - Checking location permission...");
+
     const alreadyAsked = localStorage.getItem(LOCATION_PERMISSION_KEY);
+    console.log("🔍 Already asked:", alreadyAsked);
 
-    navigator.permissions.query({ name: "geolocation" }).then((result) => {
-      console.log("Permission state:", result.state);
+    if (alreadyAsked === "true") {
+      console.log("✅ Permission already handled, skipping dialog");
+      setOpenLocationDialog(false);
+      return;
+    }
 
-      if (result.state === "granted") {
-        setOpenLocationDialog(false);
-      } else if (result.state === "denied") {
-        setOpenLocationDialog(false);
-      } else if (result.state === "prompt" && !alreadyAsked) {
+    // Only check permissions API if not already asked
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" }).then((result) => {
+        console.log("🔍 Permission state:", result.state);
+
+        if (result.state === "granted") {
+          console.log("✅ Permission already granted, auto-allowing");
+          setStartTracking(true);
+          localStorage.setItem(LOCATION_PERMISSION_KEY, "true");
+          setOpenLocationDialog(false);
+        } else if (result.state === "denied") {
+          console.log("❌ Permission already denied, skipping dialog");
+          localStorage.setItem(LOCATION_PERMISSION_KEY, "true");
+          setOpenLocationDialog(false);
+        } else if (result.state === "prompt") {
+          console.log("❓ Permission prompt needed, showing dialog");
+          setOpenLocationDialog(true);
+        }
+
+        result.onchange = () => {
+          console.log("🔄 Permission changed to", result.state);
+        };
+      }).catch((error) => {
+        console.warn("⚠️ Permissions API failed:", error);
+        // Fallback: show dialog if permissions API fails
         setOpenLocationDialog(true);
-      }
-
-      result.onchange = () => {
-        console.log("Permission changed to", result.state);
-      };
-    });
-  }, []);
+      });
+    } else {
+      console.warn("⚠️ Permissions API not supported");
+      // Fallback: show dialog if permissions API not supported
+      setOpenLocationDialog(true);
+    }
+  }, [setStartTracking]);
 
   const { setCurrentMapCenter } = useMapStore();
   const { radius, setRadius } = useRadiusStore();
@@ -370,9 +401,9 @@ export default memo(function MapContent() {
             maxWidth: "400px",
             ...(window.innerWidth <= 330
               ? {
-                bottom: "10px",        // nâng lên cao hơn chút
-                maxWidth: "calc(100% - 15pt)", // thụt lề 8px mỗi bên
-                padding: "0 15pt",      // thêm padding nhỏ
+                bottom: "10px",
+                maxWidth: "calc(100% - 15pt)",
+                padding: "0 15pt",
               }
               : {}),
           }}
@@ -386,6 +417,7 @@ export default memo(function MapContent() {
           />
         </div>
       )}
+
       <Dialog
         open={openLocationDialog}
         slotProps={{
@@ -426,11 +458,11 @@ export default memo(function MapContent() {
             gap: 2,
             display: "flex",
             flexDirection: { xs: "column", sm: "row" },
-            alignItems: "center ",
+            alignItems: "center",
             margin: 0,
             "@media (max-width:330px)": {
               "& .MuiButton-root": {
-                padding: "6px 12px", // Smaller padding for buttons
+                padding: "6px 12px",
               },
             },
           }}
