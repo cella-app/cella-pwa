@@ -41,48 +41,60 @@ export function getBottomOffset(isSafari: boolean, isIOS: boolean, isStandalone:
 
 	// PWA mode - use standard offset
 	if (isStandalone) {
-		console.log("✅ Case: PWA/Standalone - returning 0.75rem");
-		return '0.75rem';
+		console.log("✅ Case: PWA/Standalone - returning 12pt");
+		return '12pt';
 	}
 
 	// iOS Safari - need extra space for bottom UI (URL bar ở dưới)
 	if (isIOS && isSafari) {
-		console.log("✅ Case: iOS Safari - returning 6rem (URL bar dưới)");
-		return '6rem'; // Dịch lên để tránh URL bar dưới
+		console.log("✅ Case: iOS Safari - returning 96pt (URL bar dưới)");
+		return '96pt'; // Dịch lên để tránh URL bar dưới
 	}
 
-	// iOS other browsers (Chrome, etc) - unified value
+	// iOS other browsers (Chrome, etc) - tăng từ 4rem lên để đủ space
 	if (isIOS) {
-		console.log("✅ Case: iOS other browser - returning 4rem");
-		return '4rem'; // ✅ Consistent với LocateControl
+		console.log("✅ Case: iOS other browser - returning 80pt");
+		return '80pt'; // Tăng từ 64pt (4rem) lên 80pt để đủ space cho AddToHome
 	}
 
 	// Desktop Safari - small space
 	if (isSafari) {
-		console.log("✅ Case: Desktop Safari - returning 2rem");
-		return '2rem';
+		console.log("✅ Case: Desktop Safari - returning 32pt");
+		return '32pt';
 	}
 
 	// Other browsers - standard
-	console.log("✅ Case: Other browser - returning 0.75rem");
-	return '0.75rem';
+	console.log("✅ Case: Other browser - returning 12pt");
+	return '12pt';
 }
 
-// Convert rem to pixels (assuming 1rem = 16px)
-export function remToPixels(remValue: string): number {
-	const numValue = parseFloat(remValue);
-	return numValue * 16;
-}
-
-// Calculate bottom offset in pixels
+// Calculate bottom offset in pixels using native browser calculation
 export function getBottomOffsetPixels(): number {
 	if (typeof window === "undefined") {
-		return remToPixels('0.75rem'); // fallback
+		return 16; // fallback ~12pt
 	}
 
 	const env = getEnvironmentInfo();
-	const bottomOffsetRem = getBottomOffset(env.isSafari, env.isIOS, env.isStandalone);
-	return remToPixels(bottomOffsetRem);
+	const bottomOffsetPt = getBottomOffset(env.isSafari, env.isIOS, env.isStandalone);
+	
+	// Use native browser calculation for accurate pt->px conversion
+	const testDiv = document.createElement('div');
+	testDiv.style.position = 'absolute';
+	testDiv.style.visibility = 'hidden';
+	testDiv.style.height = bottomOffsetPt;
+	testDiv.style.bottom = '0';
+	document.body.appendChild(testDiv);
+	
+	const pixelValue = testDiv.offsetHeight;
+	document.body.removeChild(testDiv);
+	
+	console.log("🔢 getBottomOffsetPixels:", {
+		ptValue: bottomOffsetPt,
+		pixelValue,
+		ratio: pixelValue / parseFloat(bottomOffsetPt)
+	});
+	
+	return pixelValue;
 }
 
 // Positioning helpers for AddToHomeScreen
@@ -94,6 +106,14 @@ export function getInitialPosition(): { x: number; y: number } {
 	const bottomOffsetPixels = getBottomOffsetPixels();
 	// Đảm bảo Add Home button thẳng hàng với LocateControl bằng cách dùng cùng size reference
 	const initialY = window.innerHeight - bottomOffsetPixels - BUTTON_SIZES.LOCATE_CONTROL;
+
+	console.log("📍 getInitialPosition calculation:", {
+		windowHeight: window.innerHeight,
+		bottomOffsetPixels,
+		buttonSize: BUTTON_SIZES.LOCATE_CONTROL,
+		calculatedY: initialY,
+		finalY: Math.max(SPACING.VERTICAL_MARGIN, initialY)
+	});
 
 	return {
 		x: SPACING.EDGE_MARGIN,
@@ -141,7 +161,7 @@ export function isSafariMobileNonPWA(): boolean {
 	return env.isIOS && env.isSafari && !env.isStandalone;
 }
 
-// Lấy offset đặc biệt cho Safari mobile (rem để responsive hơn)
+// Lấy offset đặc biệt cho Safari mobile (pt để consistent hơn)
 export function getSafariMobileOffset(): string {
-	return '6rem'; // Giá trị cố định theo pt để đảm bảo không bị che bởi URL bar
+	return '96pt'; // Giá trị cố định theo pt để đảm bảo không bị che bởi URL bar
 }
