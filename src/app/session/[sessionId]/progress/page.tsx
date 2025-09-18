@@ -23,8 +23,9 @@ export default function SessionProgressPage() {
         const session = await sessionApi.getSessionById(sessionId);
         if (!session) {
           router.replace('/not-found');
-        } else if (session.status == SessionStatusEnum.ENDED) {
-          router.replace(`/session/${session.id}/checkout`);
+        } else if (session.status === SessionStatusEnum.ENDED) {
+          // If already ended, go to complete page
+          router.replace(`/session/${session.id}/complete`);
         } else {
           setSession(session);
         }
@@ -36,6 +37,9 @@ export default function SessionProgressPage() {
     }
     if (sessionId) fetchSession();
   }, [sessionId, router]);
+
+  // Note: SessionClock component needs to be updated to handle navigation to checkout
+  // instead of calling API directly when end session is clicked
 
   if (loading) return (
     <Box sx={{
@@ -67,7 +71,9 @@ export default function SessionProgressPage() {
       py: 4,
       border: "none",
     }}>
-      <SessionClock session={session} />
+      <SessionClock
+        session={session}
+      />
     </Box>
   );
 }

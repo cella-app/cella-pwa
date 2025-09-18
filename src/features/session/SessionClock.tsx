@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import {
-	Box,
-	Card,
-	Typography,
-	Button,
-	SvgIcon,
+  Box,
+  Card,
+  Typography,
+  Button,
+  SvgIcon,
 } from "@mui/material";
 import { Pause, Play, Lock, LockOpen } from "lucide-react";
 import { rootStyle } from "@/theme";
 import { Session, SessionStatusEnum } from "@/shared/data/models/Session";
 // import { tracking, pause, resume, end, getAmount } from '@/features/session/session.action';
-import { pause, resume, end, getAmount } from '@/features/session/session.action';
+import { pause, resume, getAmount } from '@/features/session/session.action';
 import { useSessionStore } from '@/features/session/stores/session.store';
 import { useRouter } from 'next/navigation';
 import { MIN_AMOUNT } from '@/shared/config/payment';
@@ -24,174 +24,163 @@ import DialogTitle from '@mui/material/DialogTitle';
 import { LOCAL_CURRENCY_CONFIG } from "@/shared/constants/constants";
 
 interface SessionClockProps {
-	session: Session;
+  session: Session;
 }
 
-const TRACKING_TIME = 15 * 1000; 
+const TRACKING_TIME = 15 * 1000;
 
 const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
-	const router = useRouter();
-	const { 
-		currentPause, 
-		pauseLogs, 
-		loadCurrentPause,
-		setCurrentPause,
-		loadPauseLogs
-	} = useSessionStore();
+  const router = useRouter();
+  const {
+    currentPause,
+    pauseLogs,
+    loadCurrentPause,
+    setCurrentPause,
+    loadPauseLogs
+  } = useSessionStore();
 
-	const [focusTime, setFocusTime] = useState(0);
-	const [pauseTime, setPauseTime] = useState(0);
-	const [isPaused, setIsPaused] = useState(false);
-	const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
-	const [isLoading, setIsLoading] = useState(false);
-	const [endSessionButtonText, setEndSessionButtonText] = useState("End Session");
-	const [showMinAmountPopup, setShowMinAmountPopup] = useState(false);
-	const [calculatedAmount, setCalculatedAmount] = useState(0);
+  const [focusTime, setFocusTime] = useState(0);
+  const [pauseTime, setPauseTime] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [hasRenderedOnce, setHasRenderedOnce] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [endSessionButtonText, setEndSessionButtonText] = useState("End Session");
+  const [showMinAmountPopup, setShowMinAmountPopup] = useState(false);
+  const [calculatedAmount, setCalculatedAmount] = useState(0);
 
-	const focusInterval = useRef<NodeJS.Timeout | null>(null);
-	const pauseInterval = useRef<NodeJS.Timeout | null>(null);
+  const focusInterval = useRef<NodeJS.Timeout | null>(null);
+  const pauseInterval = useRef<NodeJS.Timeout | null>(null);
 
-	useEffect(() => {
-		if (session?.start_time) {
-			const start = new Date(session.start_time).getTime();
-			const now = Date.now();
+  useEffect(() => {
+    if (session?.start_time) {
+      const start = new Date(session.start_time).getTime();
+      const now = Date.now();
 
-			// Tổng thời gian đã pause (ms)
-			let totalPauseMs = 0;
-			if (pauseLogs && pauseLogs.length > 0) {
-				for (const log of pauseLogs) {
-					if (log.pause_at && log.resume_at) {
-						const pauseStart = new Date(log.pause_at).getTime();
-						const pauseEnd = new Date(log.resume_at).getTime();
-						totalPauseMs += Math.max(0, pauseEnd - pauseStart);
-					}
-				}
-			}
-			// Nếu đang PAUSING, cộng thêm thời gian pause hiện tại
-			if (isPaused && currentPause?.pause_at) {
-				const pauseStart = new Date(currentPause.pause_at).getTime();
-				totalPauseMs += Math.max(0, now - pauseStart);
-			}
+      // Tổng thời gian đã pause (ms)
+      let totalPauseMs = 0;
+      if (pauseLogs && pauseLogs.length > 0) {
+        for (const log of pauseLogs) {
+          if (log.pause_at && log.resume_at) {
+            const pauseStart = new Date(log.pause_at).getTime();
+            const pauseEnd = new Date(log.resume_at).getTime();
+            totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+          }
+        }
+      }
+      // Nếu đang PAUSING, cộng thêm thời gian pause hiện tại
+      if (isPaused && currentPause?.pause_at) {
+        const pauseStart = new Date(currentPause.pause_at).getTime();
+        totalPauseMs += Math.max(0, now - pauseStart);
+      }
 
-			const focusSeconds = Math.floor((now - start - totalPauseMs) / 1000);
-			setFocusTime(focusSeconds > 0 ? focusSeconds : 0);
+      const focusSeconds = Math.floor((now - start - totalPauseMs) / 1000);
+      setFocusTime(focusSeconds > 0 ? focusSeconds : 0);
 
-			// Only set pauseTime if we're not currently paused (to avoid overriding the real-time increment)
-			if (!isPaused) {
-				const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
-				setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
-			}
-		}
-	}, [session?.start_time, pauseLogs, isPaused, currentPause]);
+      // Only set pauseTime if we're not currently paused (to avoid overriding the real-time increment)
+      if (!isPaused) {
+        const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
+        setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
+      }
+    }
+  }, [session?.start_time, pauseLogs, isPaused, currentPause]);
 
-	useEffect(() => {
-		const timeout = setTimeout(() => {
-			setHasRenderedOnce(true);
-		}, 100); // Tăng từ 50ms lên 100ms để đảm bảo render xong
-		return () => {
-			clearTimeout(timeout);
-			if (focusInterval.current) {
-				clearInterval(focusInterval.current);
-			}
-			if (pauseInterval.current) {
-				clearInterval(pauseInterval.current);
-			}
-		};
-	}, []);
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setHasRenderedOnce(true);
+    }, 100); // Tăng từ 50ms lên 100ms để đảm bảo render xong
+    return () => {
+      clearTimeout(timeout);
+      if (focusInterval.current) {
+        clearInterval(focusInterval.current);
+      }
+      if (pauseInterval.current) {
+        clearInterval(pauseInterval.current);
+      }
+    };
+  }, []);
 
-	useEffect(() => {
-		if (!session?.id || isPaused) return;
+  useEffect(() => {
+    if (!session?.id || isPaused) return;
 
-		const interval = setInterval(() => {
-			// tracking(session.id).catch(console.error);
-		}, TRACKING_TIME);
+    const interval = setInterval(() => {
+      // tracking(session.id).catch(console.error);
+    }, TRACKING_TIME);
 
-		return () => clearInterval(interval);
-	}, [session?.id, isPaused]);
+    return () => clearInterval(interval);
+  }, [session?.id, isPaused]);
 
-	useEffect(() => {
-		if (!isPaused) {
-			focusInterval.current = setInterval(() => {
-				setFocusTime((prev) => prev + 1);
-			}, 1000);
-		} else {
-			clearInterval(focusInterval.current!);
-		}
-		return () => clearInterval(focusInterval.current!);
-	}, [isPaused]);
+  useEffect(() => {
+    if (!isPaused) {
+      focusInterval.current = setInterval(() => {
+        setFocusTime((prev) => prev + 1);
+      }, 1000);
+    } else {
+      clearInterval(focusInterval.current!);
+    }
+    return () => clearInterval(focusInterval.current!);
+  }, [isPaused]);
 
-	// Keep pause interval for real-time updates, but only increment when paused
-	useEffect(() => {
-		if (isPaused) {
-			pauseInterval.current = setInterval(() => {
-				setPauseTime((prev) => prev + 1);
-			}, 1000);
-		} else {
-			if (pauseInterval.current) {
-				clearInterval(pauseInterval.current);
-			}
-		}
-		return () => {
-			if (pauseInterval.current) {
-				clearInterval(pauseInterval.current);
-			}
-		};
-	}, [isPaused]);
+  // Keep pause interval for real-time updates, but only increment when paused
+  useEffect(() => {
+    if (isPaused) {
+      pauseInterval.current = setInterval(() => {
+        setPauseTime((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (pauseInterval.current) {
+        clearInterval(pauseInterval.current);
+      }
+    }
+    return () => {
+      if (pauseInterval.current) {
+        clearInterval(pauseInterval.current);
+      }
+    };
+  }, [isPaused]);
 
-	useEffect(() => {
-		if (session?.status === SessionStatusEnum.PAUSING) {
-			setIsPaused(true);
-			if (session.id) {
-				loadCurrentPause(session.id);
-			}
-			// Initialize pauseTime when entering pause state
-			if (session?.start_time) {
-				let totalPauseMs = 0;
-				if (pauseLogs && pauseLogs.length > 0) {
-					for (const log of pauseLogs) {
-						if (log.pause_at && log.resume_at) {
-							const pauseStart = new Date(log.pause_at).getTime();
-							const pauseEnd = new Date(log.resume_at).getTime();
-							totalPauseMs += Math.max(0, pauseEnd - pauseStart);
-						}
-					}
-				}
-				const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
-				setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
-			}
-		} else {
-			setIsPaused(false);
-			setCurrentPause(null);
-		}
-	}, [session?.status, session?.id, session?.start_time, pauseLogs, loadCurrentPause, setCurrentPause]);
+  useEffect(() => {
+    if (session?.status === SessionStatusEnum.PAUSING) {
+      setIsPaused(true);
+      if (session.id) {
+        loadCurrentPause(session.id);
+      }
+      // Initialize pauseTime when entering pause state
+      if (session?.start_time) {
+        let totalPauseMs = 0;
+        if (pauseLogs && pauseLogs.length > 0) {
+          for (const log of pauseLogs) {
+            if (log.pause_at && log.resume_at) {
+              const pauseStart = new Date(log.pause_at).getTime();
+              const pauseEnd = new Date(log.resume_at).getTime();
+              totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+            }
+          }
+        }
+        const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
+        setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
+      }
+    } else {
+      setIsPaused(false);
+      setCurrentPause(null);
+    }
+  }, [session?.status, session?.id, session?.start_time, pauseLogs, loadCurrentPause, setCurrentPause]);
 
-	useEffect(() => {
-		if (session?.id) {
-			loadPauseLogs(session.id);
-		}
-	}, [session?.id, loadPauseLogs]);
+  useEffect(() => {
+    if (session?.id) {
+      loadPauseLogs(session.id);
+    }
+  }, [session?.id, loadPauseLogs]);
 
-	// useEffect(() => {
-	// 	if (isPaused && currentPause?.pause_at) {
-	// 		const pauseStart = new Date(currentPause.pause_at).getTime();
-	// 		const now = Date.now();
-	// 		const pauseSeconds = Math.floor((now - pauseStart) / 1000);
-	// 		setPauseTime(pauseSeconds);
-	// 	} else {
-	// 		// setPauseTime(0); // Commented out to keep clock continuous when switching between pause/resume
-	// 	}
-	// }, [isPaused, currentPause?.pause_at]);
-
-	const formatTime = (seconds: number) => {
-		const hrs = Math.floor(seconds / 3600);
-		const mins = Math.floor((seconds % 3600) / 60);
-		const secs = seconds % 60;
-		if (hrs > 0) {
-			return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-		}
-		return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  const formatTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
-  
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -223,92 +212,87 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
   }, [session?.id, loadPauseLogs, loadCurrentPause]);
 
 
-	const handleToggle = async () => {
-		if (!session?.id || isLoading) return;
+  const handleToggle = async () => {
+    if (!session?.id || isLoading) return;
 
-		setIsLoading(true);
-		console.log("handleToggle: Setting isLoading to true");
-		try {
-			if (isPaused) {
-				await resume(session.id);
-				setIsPaused(false);
-				await loadPauseLogs(session.id);
-			} else {
-				// Pause session
-				await pause(session.id);
-				setIsPaused(true);
-				await loadCurrentPause(session.id);
-			}
-		} catch (error) {
-			console.error("Error toggling session:", error);
-		} finally {
-			setIsLoading(false);
-			console.log("handleToggle: Setting isLoading to false");
-		}
-	};
+    setIsLoading(true);
+    console.log("handleToggle: Setting isLoading to true");
+    try {
+      if (isPaused) {
+        await resume(session.id);
+        setIsPaused(false);
+        await loadPauseLogs(session.id);
+      } else {
+        // Pause session
+        await pause(session.id);
+        setIsPaused(true);
+        await loadCurrentPause(session.id);
+      }
+    } catch (error) {
+      console.error("Error toggling session:", error);
+    } finally {
+      setIsLoading(false);
+      console.log("handleToggle: Setting isLoading to false");
+    }
+  };
 
-	const handleEndSession = async () => {
-		if (!session?.id || isLoading) return;
+  // Updated: Navigate to checkout instead of ending session
+  const handleEndSession = async () => {
+    if (!session?.id || isLoading) return;
 
-		setIsLoading(true);
-		setEndSessionButtonText("Calculating amount...");
-		console.log("handleEndSession: Setting isLoading to true");
-		try {
-			const amountResponse = await getAmount(session.id);
-			const amount = amountResponse.amount;
-			setCalculatedAmount(amount);
+    setIsLoading(true);
+    setEndSessionButtonText("Calculating amount...");
+    console.log("handleEndSession: Setting isLoading to true");
+    try {
+      const amountResponse = await getAmount(session.id);
+      const amount = amountResponse.amount;
+      setCalculatedAmount(amount);
 
-			if (amount < MIN_AMOUNT) {
+      if (amount < MIN_AMOUNT) {
         setShowMinAmountPopup(true);
         setIsLoading(false);
-			} else {
-				setEndSessionButtonText("Ending...");
-				await end(session.id);
-				router.push(`/session/${session.id}/checkout`);
-			}
-		} catch (error) {
-			console.error("Error ending session:", error);
+        setEndSessionButtonText("End Session");
+      } else {
+        // Navigate to checkout instead of calling end API
+        router.push(`/session/${session.id}/checkout`);
+      }
+    } catch (error) {
+      console.error("Error getting session amount:", error);
       setEndSessionButtonText("End Session"); // Reset button text on error
       setIsLoading(false);
-		}
-	};
+    }
+  };
 
-	const handleConfirmEndSession = async () => {
-		setShowMinAmountPopup(false);
-		if (!session?.id) return;
+  // Updated: Navigate to checkout after user confirms
+  const handleConfirmEndSession = async () => {
+    setShowMinAmountPopup(false);
+    if (!session?.id) return;
 
-		setIsLoading(true);
-		setEndSessionButtonText("Ending...");
-		try {
-			await end(session.id);
-			router.push(`/session/${session.id}/checkout`);
-		} catch (error) {
-			console.error("Error ending session after confirmation:", error);
-      setEndSessionButtonText("End Session"); // Reset button text on error
-      setIsLoading(false);
-		}
-	};
+    // Navigate to checkout instead of calling end API
+    router.push(`/session/${session.id}/checkout`);
+  };
 
-	const handleCloseMinAmountPopup = () => {
-		setShowMinAmountPopup(false);
-		setEndSessionButtonText("End Session"); // Reset button text if user cancels
-	};
+  const handleCloseMinAmountPopup = () => {
+    setShowMinAmountPopup(false);
+    setEndSessionButtonText("End Session"); // Reset button text if user cancels
+    setIsLoading(false);
+  };
 
-	const strokeWidth = 12;
-	const radius = 130 - strokeWidth / 2;
-	const circumference = 2 * Math.PI * radius;
+  const strokeWidth = 12;
+  const radius = 130 - strokeWidth / 2;
+  const circumference = 2 * Math.PI * radius;
 
-	const arcLength = circumference * 0.15;
-	const dashArray = `${arcLength} ${circumference}`;
+  const arcLength = circumference * 0.15;
+  const dashArray = `${arcLength} ${circumference}`;
 
-	const fakeMaxTime = 60;
+  const fakeMaxTime = 60;
 
-	// Use current time based on pause state for smooth animation
-	const currentTime = isPaused ? pauseTime : focusTime;
-	const progress = (currentTime % fakeMaxTime) / fakeMaxTime;
-	const rotation = progress * 360;
+  // Use current time based on pause state for smooth animation
+  const currentTime = isPaused ? pauseTime : focusTime;
+  const progress = (currentTime % fakeMaxTime) / fakeMaxTime;
+  const rotation = progress * 360;
 
-	return (
+  return (
     <Card
       sx={{
         height: "100vh",
@@ -615,19 +599,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/*Note: Hidden by requirement update */}
-      {/* {pauseLogs.filter(log => log.resume_at).map((pauseLog, idx) => {
-				const pauseStart = new Date(pauseLog.pause_at);
-				const pauseEnd = pauseLog.resume_at ? new Date(pauseLog.resume_at) : null;
-				const duration = pauseEnd ? Math.floor((pauseEnd.getTime() - pauseStart.getTime()) / 1000) : 0;
-				const key = pauseLog.id ? `${pauseLog.id}-${idx}` : `pause-${idx}`;
-				return (
-					<Typography variant="body2" color="text.secondary" key={key}>
-						{`#${idx + 1} — Paused ${formatTime(duration)}`}
-					</Typography>
-				);
-			})} */}
     </Card>
   );
 };
