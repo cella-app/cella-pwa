@@ -123,389 +123,436 @@ export default function ProfilePage() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        py: 4,
         position: 'relative',
+        paddingTop: 0
       }}
     >
-      {/* Nút Back trên góc trái, không background */}
-      <IconButton
-        onClick={() => router.push('/workspace/discovery')}
-        sx={{
-          position: 'absolute',
-          top: 24,
-          left: 24,
-          background: 'none',
-          boxShadow: 'none',
-          p: 1.5,
-          minWidth: 44,
-          minHeight: 44
-        }}
-        aria-label="Back to map"
-      >
-        <ArrowBackIcon />
-      </IconButton>
-      {/* Nút Logout trên góc phải */}
-      <IconButton
-        onClick={handleLogOut}
-        sx={{
-          position: 'absolute',
-          top: 24,
-          right: 24,
-          background: 'none',
-          boxShadow: 'none',
-          p: 1.5,
-          minWidth: 44,
-          minHeight: 44
-        }}
-        aria-label="Logout"
-      >
-        <LogoutIcon />
-      </IconButton>
-    {loading ? <ProfilePageSkeleton/> : 
-    <>
       <Box
         sx={{
-          maxWidth: 500,
-          borderRadius: 3,
-          p: 4,
-          textAlign: "center",
-          position: 'relative',
+          top: 0,
+          mb: 2,
+          width: '100%',
+          display: "flex",
+          flexDirection: "row",
+          position: 'absolute',
+          justifyContent: 'space-between',
         }}
-      >
-        <Typography variant="h4" fontWeight={700} mb={2} sx={{
-          fontSize: "36px",
-          fontFamily: rootStyle.titleFontFamily
-        }}>
-          Your Profile
-        </Typography>
-        <Box sx={{ position: "relative", display: "inline-block", mb: 1 }}>
-          <Avatar
-            alt="User Avatar"
-            src={user?.avatar_url}
-            sx={{ width: 72, height: 72, mx: "auto", fontSize: 36, bgcolor: "#E0E0E0", opacity: avatarLoading ? 0.5 : 1 }}
-            onClick={handleAvatarClick}
+      >    {/* Nút Back trên góc trái, không background */}
+        <IconButton
+          onClick={() => router.push('/workspace/discovery')}
+          sx={{
+            background: 'none',
+            boxShadow: 'none',
+            p: 1.5,
+            minWidth: '45pt',
+            minHeight: '45pt',
+          }}
+          aria-label="Back to map"
+        >
+          <ArrowBackIcon sx={{
+            fontSize: '22pt'
+          }} />
+        </IconButton>
+        {/* Nút Logout trên góc phải */}
+        <IconButton
+          onClick={handleLogOut}
+          sx={{
+            background: 'none',
+            boxShadow: 'none',
+            p: 1.5,
+            minWidth: '45pt',
+            minHeight: '45pt',
+            fontSize: '10pt'
+
+          }}
+          aria-label="Logout"
+        >
+          <LogoutIcon sx={{
+            fontSize: '22pt'
+          }} />
+        </IconButton>
+      </Box>
+      {loading ? <ProfilePageSkeleton /> :
+        <>
+          <Box
+            sx={{
+              maxWidth: 500,
+              borderRadius: 3,
+              py: 4,
+              textAlign: "center",
+              position: 'relative',
+            }}
           >
-            {user?.avatar
-              ? ""
-              : user?.first_name
-              ? user.first_name[0].toUpperCase()
-              : user?.email[0].toUpperCase() }
-            {avatarLoading && <span style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#888', background: 'rgba(255,255,255,0.5)' }}>Uploading...</span>}
-          </Avatar>
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            onChange={handleAvatarChange}
-          />
-          <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-            Tap to change photo
-          </Typography>
-        </Box>
-        {/* Tên user: click để edit bằng Dialog */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            flexDirection: "row",
-            borderRadius: 2,
-            px: 2,
-            py: 1,
-            transition: 'background 0.2s',
-          }}
-          onClick={() => setEditNameDialogOpen(true)}
-        >
-          <Typography variant="h6" fontWeight={600} sx={{
-            fontFamily: rootStyle.titleFontFamily,
-            fontSize: "24px"
-          }}>
-            {user?.first_name || user?.last_name ? user?.first_name + " " + user?.last_name : "Unknown"}
-          </Typography>
-          <EditIcon fontSize="small" sx={{ ml: 1, color: '#888' }} />
-        </Box>
-        <Typography variant="body2" color="text.secondary" mb={2} fontWeight={600} fontSize="20px">
-          {user?.email}
-        </Typography>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 1,
-            mb: 2,
-          }}
-        >
-          <CreditCardIcon fontSize="small" />
-          {paymentMethods.length > 0 ? paymentMethods.map(pm => (
-            <Typography key={pm.pm_id} variant="body2">
-              {pm.type} •••• {pm.last4} (exp: {pm.exp_month}/{pm.exp_year})
+            <Typography variant="h4" fontWeight={700} mb={2} sx={{
+              fontFamily: rootStyle.titleFontFamily
+            }}>
+              Your Profile
             </Typography>
-          )) : (
-            <Typography variant="body2" color="text.secondary">
-              No card added yet.
-            </Typography>
-          )}
-          <IconButton onClick={handleEdit} sx={{ p: 1.5, minWidth: 44, minHeight: 44 }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Box>
-        <Card
-          sx={{
-            border:  `1px solid ${rootStyle.borderColorMain}`,
-            boxShadow: "none",
-            mb: 2,
-            background: "transparent",
-          }}
-        >
-          <CardContent>
-            <Typography fontWeight={600} mb={1}>
-              Delete My Account
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={2}>
-              This will permanently delete your account and all session data. {"You'll"} be logged out immediately.
-            </Typography>
-            <Button
-              variant="contained"
-              color="error"
-              fullWidth
-              onClick={handleDeleteAccount}
+            <Box sx={{ position: "relative", display: "inline-block", mb: 1 }}>
+              <Avatar
+                alt="User Avatar"
+                src={user?.avatar_url}
+                sx={{ width: 72, height: 72, mx: "auto", fontSize: 36, bgcolor: "#E0E0E0", opacity: avatarLoading ? 0.5 : 1 }}
+                onClick={handleAvatarClick}
+              >
+                {user?.avatar
+                  ? ""
+                  : user?.first_name
+                    ? user.first_name[0].toUpperCase()
+                    : user?.email[0].toUpperCase()}
+                {avatarLoading && <span style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#888', background: 'rgba(255,255,255,0.5)' }}>Uploading...</span>}
+              </Avatar>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={handleAvatarChange}
+              />
+              <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                Tap to change photo
+              </Typography>
+            </Box>
+            {/* Tên user: click để edit bằng Dialog */}
+            <Box
               sx={{
-                maxWidth: "247px !important"
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexDirection: "row",
+                borderRadius: 2,
+                px: 2,
+                py: 1,
+                transition: 'background 0.2s',
+              }}
+              onClick={() => setEditNameDialogOpen(true)}
+            >
+              <Typography variant="h6" fontWeight={600} sx={{
+                fontFamily: rootStyle.titleFontFamily,
+                fontSize: "24px"
+              }}>
+                {user?.first_name || user?.last_name ? user?.first_name + " " + user?.last_name : "Unknown"}
+              </Typography>
+              <EditIcon fontSize="small" sx={{ ml: 1, color: '#888' }} />
+            </Box>
+            <Typography variant="body2" color="text.secondary" mb={2} fontWeight={600} fontSize="20px">
+              {user?.email}
+            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 1,
+                mb: 2,
               }}
             >
-              Delete Account
-            </Button>
-          </CardContent>
-        </Card>
-      </Box>
-      <Dialog open={deleteDialogOpen} onClose={handleCancelDelete} fullWidth maxWidth="xs" slotProps={{paper:{sx: { borderRadius: 3, p: { xs: 1, sm: 2 }, background: rootStyle.backgroundColor }}}}>
-        <DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>Are you sure?</DialogTitle>
-        <DialogContent sx={{ pb: 0, textAlign: 'center' }}>
-          <Typography sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}>This action is permanent.</Typography>
-        </DialogContent>
-        <DialogActions
-          sx={{
-            justifyContent: 'center',
-            gap: 2,
-            pb: { xs: 1.5, sm: 2 },
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-        >
-          <Button
-            onClick={handleCancelDelete}
-            disabled={deleting}
-            variant="outlined"
-            fullWidth
-            sx={{
-              borderRadius: 3,
-              fontWeight: 700,
-              color: rootStyle.elementColor,
-              borderColor: rootStyle.elementColor,
-              px: 2,
-              background: 'transparent',
-              maxWidth: 180,
-              minWidth: 125
-            }}
-          >
-            Keep session
-          </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            color="error"
-            disabled={deleting}
-            variant="contained"
-            fullWidth
-            sx={{
-              borderRadius: 3,
-              fontWeight: 700,
-              px: 2,
-              background: '#C2412B',
-              maxWidth: 180,
-              minWidth: 125
-            }}
-          >
-            {deleting ? 'Deleting...' : 'Yes, Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog open={editNameDialogOpen} onClose={() => setEditNameDialogOpen(false)} maxWidth="xs" fullWidth slotProps={{paper: {sx: { borderRadius: 3, p: { xs: 0, sm: 2 }, background: rootStyle.backgroundColor }}}}>
-        <DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>Update Name</DialogTitle>
-        <DialogContent sx={{ paddingTop: "2rem !important", paddingX:{xs:2} }}>
-          <Stack spacing={2} direction="column" alignItems="center" width="100%">
-            <TextField
-              size="medium"
-              variant="outlined"
-              label="First Name"
-              value={firstName}
-              onChange={e => setFirstName(e.target.value)}
-              fullWidth
-              slotProps={{
-                input: {
-                  style: { fontSize: 18 }
-                }
+              <CreditCardIcon fontSize="small" />
+              {paymentMethods.length > 0 ? paymentMethods.map(pm => (
+                <Typography key={pm.pm_id} variant="body2">
+                  {pm.type} •••• {pm.last4} (exp: {pm.exp_month}/{pm.exp_year})
+                </Typography>
+              )) : (
+                <Typography variant="body2" color="text.secondary">
+                  No card added yet.
+                </Typography>
+              )}
+              <IconButton onClick={handleEdit} sx={{ p: 1.5, minWidth: 44, minHeight: 44 }}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Box>
+            <Card
+              sx={{
+                border: `1px solid ${rootStyle.borderColorMain}`,
+                boxShadow: "none",
+                background: "transparent",
+                maxWidth: 450,
+                "@media (max-width:330px)": {
+                  width: 300,
+                },
+                "@media (max-width:300px)": {
+                  width: 280,
+                },
+                "@media (max-width:280px)": {
+                  width: 250,
+                },
               }}
-              autoFocus
-              sx={{minWidth:{xs:"100%", lg:125},}}
-            />
-            <TextField
-              size="medium"
-              variant="outlined"
-              label="Last Name"
-              value={lastName}
-              onChange={e => setLastName(e.target.value)}
-              fullWidth
-              slotProps={{
-                input: {
-                  style: { fontSize: 18 }
+            >
+              <CardContent>
+                <Typography fontWeight={600} mb={1}>
+                  Delete My Account
+                </Typography>
+                <Typography variant="body2" color="text.secondary" mb={2}>
+                  This will permanently delete your account and all session data. {"You'll"} be logged out immediately.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="error"
+                  fullWidth
+                  onClick={handleDeleteAccount}
+                  sx={{
+                    maxWidth: "300px !important",
+                    "@media (max-width:330px)": {
+                      width: "180pt !important",
+                    },
+                    "@media (max-width:300px)": {
+                      width: "160pt !important",
+                    },
+                    "@media (max-width:280px)": {
+                      width: "140pt !important",
+                    },
+                  }}
+                >
+                  Delete Account
+                </Button>
+              </CardContent>
+            </Card>
+          </Box>
+          <Dialog open={deleteDialogOpen} onClose={handleCancelDelete} fullWidth maxWidth="sm"
+            slotProps={{
+              paper:
+              {
+                sx: {
+                  borderRadius: 3,
+                  p: { xs: 1, sm: 2 },
+                  background: rootStyle.backgroundColor,
                 }
-              }}
-              sx={{minWidth:{xs:"100%", lg:125},}}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{
-            justifyContent: "center",
-            gap: 2,
-            display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            alignItems: "center",
-            // overflow: "hidden",
-          }}
-          disableSpacing={true}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={async () => {
-              if (!user) return;
-              setSavingName(true);
-              try {
-                const updated = await updateInfo(user, firstName, lastName);
-                setUser(updated);
-                setEditNameDialogOpen(false);
-              } catch {
-                // alert handled by alertStore
-              } finally {
-                setSavingName(false);
               }
-            }}
-            disabled={savingName}
-            sx={{ flex: 1,
+            }}>
+            <DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>Are you sure?</DialogTitle>
+            <DialogContent sx={{ pb: 0, textAlign: 'center' }}>
+              <Typography sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}>This action is permanent.</Typography>
+            </DialogContent>
+            <DialogActions
+              sx={{
+                justifyContent: 'center',
+                gap: 2,
+                pb: { xs: 1.5, sm: 2 },
+                flexDirection: { xs: "column", sm: "row" },
+                alignItems: 'center',
+                "@media (max-width:330px)": {
+                  "& .MuiButton-root": {
+                    padding: "6px 12px", // Smaller padding for buttons
+                  },
+                },
+              }}
+            >
+              <Button
+                onClick={handleCancelDelete}
+                disabled={deleting}
+                variant="outlined"
+                fullWidth
+                sx={{
+                  borderRadius: 3,
+                  fontWeight: 700,
+                  color: rootStyle.elementColor,
+                  borderColor: rootStyle.elementColor,
+                  px: 2,
+                  background: 'transparent',
                   maxWidth: 180,
-                  minWidth: {xs:"100%", md:125},
-                  fontWeight: 700 }}
-          >
-            Save
-          </Button>
-          <Button
-            variant="outlined"
-            color="inherit"
-            onClick={() => {
-              setEditNameDialogOpen(false);
-              setFirstName(user?.first_name || '');
-              setLastName(user?.last_name || '');
-            }}
-            sx={{ flex: 1,
+                  minWidth: 125
+                }}
+              >
+                Keep session
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                color="error"
+                disabled={deleting}
+                variant="contained"
+                fullWidth
+                sx={{
+                  borderRadius: 3,
+                  fontWeight: 700,
+                  px: 2,
+                  background: '#C2412B',
                   maxWidth: 180,
-                  minWidth: {xs:"100%", md:125},
-                  fontWeight: 700 }}
-          >
-            Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>}
+                  minWidth: 125
+                }}
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </Button>
+            </DialogActions>
+          </Dialog>
+          <Dialog open={editNameDialogOpen} onClose={() => setEditNameDialogOpen(false)} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 3, p: { xs: 0, sm: 2 }, background: rootStyle.backgroundColor } } }}>
+            <DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>Update Name</DialogTitle>
+            <DialogContent sx={{ paddingTop: "2rem !important", paddingX: { xs: 2 } }}>
+              <Stack spacing={2} direction="column" alignItems="center" width="100%">
+                <TextField
+                  size="medium"
+                  variant="outlined"
+                  label="First Name"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  fullWidth
+                  slotProps={{
+                    input: {
+                      style: { fontSize: 18 }
+                    }
+                  }}
+                  autoFocus
+                  sx={{ minWidth: { xs: "100%", lg: 125 }, }}
+                />
+                <TextField
+                  size="medium"
+                  variant="outlined"
+                  label="Last Name"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  fullWidth
+                  slotProps={{
+                    input: {
+                      style: { fontSize: 18 }
+                    }
+                  }}
+                  sx={{ minWidth: { xs: "100%", lg: 125 }, }}
+                />
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{
+              justifyContent: "center",
+              gap: 2,
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              alignItems: "center",
+              // overflow: "hidden",
+            }}
+              disableSpacing={true}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={async () => {
+                  if (!user) return;
+                  setSavingName(true);
+                  try {
+                    const updated = await updateInfo(user, firstName, lastName);
+                    setUser(updated);
+                    setEditNameDialogOpen(false);
+                  } catch {
+                    // alert handled by alertStore
+                  } finally {
+                    setSavingName(false);
+                  }
+                }}
+                disabled={savingName}
+                sx={{
+                  flex: 1,
+                  maxWidth: 180,
+                  minWidth: { xs: "100%", md: 125 },
+                  fontWeight: 700
+                }}
+              >
+                Save
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                onClick={() => {
+                  setEditNameDialogOpen(false);
+                  setFirstName(user?.first_name || '');
+                  setLastName(user?.last_name || '');
+                }}
+                sx={{
+                  flex: 1,
+                  maxWidth: 180,
+                  minWidth: { xs: "100%", md: 125 },
+                  fontWeight: 700
+                }}
+              >
+                Cancel
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </>}
     </Box>
   );
-} 
+}
 
 function ProfilePageSkeleton() {
   return (
+    <Box
+      sx={{
+        maxWidth: 500,
+        borderRadius: 3,
+        p: 4,
+        textAlign: "center",
+        position: 'relative',
+      }}
+    >
+      <Typography variant="h4" fontWeight={700} mb={2} sx={{
+        fontSize: "36px",
+        fontFamily: rootStyle.titleFontFamily
+      }}>
+        <Skeleton variant="text" width={200} sx={{ margin: 'auto' }} />
+      </Typography>
+      <Box sx={{ position: "relative", display: "inline-block", mb: 1 }}>
+        <Skeleton variant="circular" width={72} height={72} sx={{ margin: 'auto' }} />
+        <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+          <Skeleton variant="text" width={120} />
+        </Typography>
+      </Box>
       <Box
         sx={{
-          maxWidth: 500,
-          borderRadius: 3,
-          p: 4,
-          textAlign: "center",
-          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          flexDirection: "row",
+          borderRadius: 2,
+          px: 2,
+          py: 1,
+          transition: 'background 0.2s',
         }}
       >
-        <Typography variant="h4" fontWeight={700} mb={2} sx={{
-          fontSize: "36px",
-          fontFamily: rootStyle.titleFontFamily
+        <Typography variant="h6" fontWeight={600} sx={{
+          fontFamily: rootStyle.titleFontFamily,
+          fontSize: "24px"
         }}>
-          <Skeleton variant="text" width={200} sx={{ margin: 'auto' }} />
+          <Skeleton variant="text" width={150} />
         </Typography>
-        <Box sx={{ position: "relative", display: "inline-block", mb: 1 }}>
-          <Skeleton variant="circular" width={72} height={72} sx={{ margin: 'auto' }} />
-          <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-            <Skeleton variant="text" width={120} />
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            flexDirection: "row",
-            borderRadius: 2,
-            px: 2,
-            py: 1,
-            transition: 'background 0.2s',
-          }}
-        >
-          <Typography variant="h6" fontWeight={600} sx={{
-            fontFamily: rootStyle.titleFontFamily,
-            fontSize: "24px"
-          }}>
-            <Skeleton variant="text" width={150} />
-          </Typography>
-          <EditIcon fontSize="small" sx={{ ml: 1, color: '#888' }} />
-        </Box>
-        <Typography variant="body2" color="text.secondary" mb={2} fontWeight={600} fontSize="20px">
-          <Skeleton variant="text" width={250} sx={{ margin: 'auto' }} />
-        </Typography>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 1,
-            mb: 2,
-          }}
-        >
-          <CreditCardIcon fontSize="small" />
-          <Typography variant="body2">
-            <Skeleton variant="text" width={200} />
-          </Typography>
-          <IconButton sx={{ p: 1.5, minWidth: 44, minHeight: 44 }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Box>
-        <Card
-          sx={{
-            border: `1px solid ${rootStyle.borderColorMain}`,
-            boxShadow: "none",
-            mb: 2,
-            background: "transparent",
-          }}
-        >
-          <CardContent>
-            <Typography fontWeight={600} mb={1}>
-              <Skeleton variant="text" width={180} />
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={2}>
-              <Skeleton variant="text" width={300} />
-              <Skeleton variant="text" width={280} />
-            </Typography>
-            <Skeleton variant="rectangular" width={247} height={36} sx={{ margin: 'auto' }} />
-          </CardContent>
-        </Card>
+        <EditIcon fontSize="small" sx={{ ml: 1, color: '#888' }} />
       </Box>
-   
+      <Typography variant="body2" color="text.secondary" mb={2} fontWeight={600} fontSize="20px">
+        <Skeleton variant="text" width={250} sx={{ margin: 'auto' }} />
+      </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 1,
+          mb: 2,
+        }}
+      >
+        <CreditCardIcon fontSize="small" />
+        <Typography variant="body2">
+          <Skeleton variant="text" width={200} />
+        </Typography>
+        <IconButton sx={{ p: 1.5, minWidth: 44, minHeight: 44 }}>
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </Box>
+      <Card
+        sx={{
+          border: `1px solid ${rootStyle.borderColorMain}`,
+          boxShadow: "none",
+          mb: 2,
+          background: "transparent",
+        }}
+      >
+        <CardContent>
+          <Typography fontWeight={600} mb={1}>
+            <Skeleton variant="text" width={180} />
+          </Typography>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            <Skeleton variant="text" width={300} />
+            <Skeleton variant="text" width={280} />
+          </Typography>
+          <Skeleton variant="rectangular" width={247} height={36} sx={{ margin: 'auto' }} />
+        </CardContent>
+      </Card>
+    </Box>
+
   )
 }

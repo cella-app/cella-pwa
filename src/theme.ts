@@ -100,7 +100,7 @@ export default createTheme({
 				root: {
 					borderRadius: '16px',
 					height: '56px',
-					minWidth: "272px",
+					minWidth: "180px",
 					textTransform: 'none',
 					fontFamily: rootStyle.mainFontFamily,
 					fontSize: '16px',
