@@ -249,7 +249,7 @@ export default function RegisterPage() {
 							}}
 						>
 							<Link
-								href="/privacy-policy"
+								href="/doc/privacy-policy.pdf"
 								sx={{
 									color: rootStyle.elementColor,
 									fontWeight: 600,
@@ -264,7 +264,7 @@ export default function RegisterPage() {
 							</Link>
 							{' '}and{' '}
 							<Link
-								href="/terms"
+								href="/doc/terms-of-use.pdf"
 								sx={{
 									color: rootStyle.elementColor,
 									fontWeight: 600,
