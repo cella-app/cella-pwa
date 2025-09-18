@@ -5,6 +5,10 @@
   z-index: 1000 !important;
 }
 
+.leaflet-bottom .leaflet-control {
+  margin-bottom: 0px;
+}
+
 .user-location-marker {
   position: relative;
   width: 44px;

@@ -28,57 +28,126 @@ const getButtonStyle = (isDragging: boolean, position: { x: number; y: number })
 
 function isIOS() {
   if (typeof window === "undefined") return false;
-  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  const ios = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  console.log("🔍 AddToHomeScreen - isIOS:", ios);
+  return ios;
 }
 
 function isInStandaloneMode() {
   if (typeof window === "undefined") return false;
-  return (
+  const standalone = (
     window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as any).standalone === true
   );
+  console.log("🔍 AddToHomeScreen - isInStandaloneMode:", {
+    standalone,
+    displayMode: window.matchMedia("(display-mode: standalone)").matches,
+    navigatorStandalone: (window.navigator as any).standalone
+  });
+  return standalone;
 }
 
 function getBrowserType(): "safari" | "chrome" | "other" {
   if (typeof window === "undefined") return "other";
   const ua = window.navigator.userAgent.toLowerCase();
 
+  let browserType: "safari" | "chrome" | "other" = "other";
+
   if (/iphone|ipad|ipod/.test(ua)) {
-    if (ua.includes("crios")) return "chrome"; // iOS Chrome
-    if (ua.includes("fxios")) return "chrome"; // treat Firefox iOS also with Chrome guide
-    if (ua.includes("edgios")) return "chrome"; // Edge iOS likewise
-    return "safari"; // Safari
+    if (ua.includes("crios")) browserType = "chrome"; // iOS Chrome
+    else if (ua.includes("fxios")) browserType = "chrome"; // treat Firefox iOS also with Chrome guide
+    else if (ua.includes("edgios")) browserType = "chrome"; // Edge iOS likewise
+    else browserType = "safari"; // Safari
+  } else if (ua.includes("chrome") && !ua.includes("edg")) {
+    browserType = "chrome"; // Android Chrome
   }
 
-  if (ua.includes("chrome") && !ua.includes("edg")) {
-    return "chrome"; // Android Chrome
-  }
+  console.log("🔍 AddToHomeScreen - getBrowserType:", {
+    browserType,
+    userAgent: ua
+  });
 
-  return "other";
+  return browserType;
 }
 
-// Helper function to get safe area height
-function getSafeViewportHeight(): number {
-  if (typeof window === "undefined") return 0;
-
-  // For PWA or standalone mode, use full viewport
-  if (isInStandaloneMode()) {
-    return window.innerHeight;
+// Match LocateControl environment detection
+function getEnvironmentInfo() {
+  if (typeof window === "undefined") {
+    return { isSafari: false, isIOS: false, isStandalone: false };
   }
 
-  // For iOS Safari mobile, account for bottom URL bar
-  if (isIOS() && getBrowserType() === "safari") {
-    // Use visualViewport if available, fallback to innerHeight
-    const visualViewport = (window as any).visualViewport;
-    if (visualViewport) {
-      return visualViewport.height;
-    }
-    // Conservative fallback: subtract estimated Safari UI height
-    return window.innerHeight - 44; // Safari bottom bar height
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isStandalone = isInStandaloneMode();
+
+  console.log("🔍 AddToHomeScreen - Environment:", {
+    isSafari,
+    isIOS,
+    isStandalone,
+    userAgent: navigator.userAgent,
+    windowHeight: window.innerHeight
+  });
+
+  return { isSafari, isIOS, isStandalone };
+}
+
+// Match LocateControl bottom offset logic EXACTLY
+function getBottomOffset(isSafari: boolean, isIOS: boolean, isStandalone: boolean): string {
+  console.log("🔍 AddToHomeScreen - getBottomOffset input:", { isSafari, isIOS, isStandalone });
+
+  // PWA mode - use standard offset
+  if (isStandalone) {
+    console.log("✅ AddToHomeScreen Case: PWA/Standalone - returning 0.75rem");
+    return '0.75rem';
   }
 
-  // For other browsers (Chrome, etc.), use full height
-  return window.innerHeight;
+  // iOS Safari - need extra space for bottom UI
+  if (isIOS && isSafari) {
+    console.log("✅ AddToHomeScreen Case: iOS Safari - returning 6rem");
+    return '6rem';
+  }
+
+  // iOS other browsers (Chrome, etc) - moderate space
+  if (isIOS) {
+    console.log("✅ AddToHomeScreen Case: iOS other browser - returning 4rem");
+    return '4rem';
+  }
+
+  // Desktop Safari - small space
+  if (isSafari) {
+    console.log("✅ AddToHomeScreen Case: Desktop Safari - returning 2rem");
+    return '2rem';
+  }
+
+  // Other browsers - standard
+  console.log("✅ AddToHomeScreen Case: Other browser - returning 0.75rem");
+  return '0.75rem';
+}
+
+// Convert rem to pixels (assuming 1rem = 16px)
+function remToPixels(remValue: string): number {
+  const numValue = parseFloat(remValue);
+  return numValue * 16;
+}
+
+// Calculate bottom offset in pixels to match LocateControl
+function getBottomOffsetPixels(): number {
+  if (typeof window === "undefined") {
+    console.log("🔍 AddToHomeScreen - getBottomOffsetPixels: window undefined, returning 68");
+    return 68;
+  }
+
+  const env = getEnvironmentInfo();
+  const bottomOffsetRem = getBottomOffset(env.isSafari, env.isIOS, env.isStandalone);
+  const bottomOffsetPixels = remToPixels(bottomOffsetRem);
+
+  console.log("🔍 AddToHomeScreen - getBottomOffsetPixels:", {
+    bottomOffsetRem,
+    bottomOffsetPixels,
+    environment: env
+  });
+
+  return bottomOffsetPixels;
 }
 
 export default function AddToHomeScreenButton() {
@@ -94,11 +163,18 @@ export default function AddToHomeScreenButton() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Initialize position based on environment
+  // Initialize position based on LocateControl logic
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const safeHeight = getSafeViewportHeight();
-      setPosition({ x: 20, y: safeHeight - 68 });
+      console.log("🚀 AddToHomeScreen - Initializing position...");
+      const bottomOffsetPixels = getBottomOffsetPixels();
+      const initialY = window.innerHeight - bottomOffsetPixels - 48; // 48px for button height
+      console.log("📍 AddToHomeScreen - Initial position calculation:", {
+        windowHeight: window.innerHeight,
+        bottomOffsetPixels,
+        initialY
+      });
+      setPosition({ x: 20, y: initialY });
     }
   }, []);
 
@@ -107,32 +183,64 @@ export default function AddToHomeScreenButton() {
     if (typeof window === "undefined") return;
 
     const handleResize = () => {
-      const safeHeight = getSafeViewportHeight();
-      setPosition(prev => ({
-        ...prev,
-        y: Math.min(prev.y, safeHeight - 68) // Adjust if current position is too low
-      }));
+      console.log("📏 AddToHomeScreen - handleResize triggered");
+      const bottomOffsetPixels = getBottomOffsetPixels();
+      const newMaxY = window.innerHeight - bottomOffsetPixels - 48;
+
+      console.log("📏 AddToHomeScreen - Resize calculation:", {
+        windowHeight: window.innerHeight,
+        bottomOffsetPixels,
+        newMaxY,
+        currentPosition: position
+      });
+
+      setPosition(prev => {
+        const newY = Math.min(prev.y, newMaxY);
+        console.log("📏 AddToHomeScreen - Position update:", {
+          prevY: prev.y,
+          newY,
+          changed: prev.y !== newY
+        });
+        return {
+          ...prev,
+          y: newY
+        };
+      });
     };
 
     // Listen for visual viewport changes (iOS Safari)
     const visualViewport = (window as any).visualViewport;
     if (visualViewport) {
+      console.log("👁️ AddToHomeScreen - Adding visualViewport listener");
       visualViewport.addEventListener('resize', handleResize);
     }
 
     // Fallback for regular window resize
+    console.log("🖼️ AddToHomeScreen - Adding window resize listener");
     window.addEventListener('resize', handleResize);
 
+    // Also listen for display-mode changes (PWA transitions)
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleDisplayModeChange = (e: MediaQueryListEvent) => {
+      console.log("🔄 AddToHomeScreen - Display mode changed:", e.matches ? 'standalone' : 'browser');
+      setTimeout(handleResize, 100); // Small delay for transition
+    };
+    mediaQuery.addEventListener('change', handleDisplayModeChange);
+
     return () => {
+      console.log("🧹 AddToHomeScreen - Cleaning up event listeners");
       if (visualViewport) {
         visualViewport.removeEventListener('resize', handleResize);
       }
       window.removeEventListener('resize', handleResize);
+      mediaQuery.removeEventListener('change', handleDisplayModeChange);
     };
-  }, []);
+  }, [position]);
 
   useEffect(() => {
+    console.log("🎯 AddToHomeScreen - Main effect - checking display mode and browser");
     if (isInStandaloneMode()) {
+      console.log("🔒 AddToHomeScreen - In standalone mode - hiding button");
       setShowButton(false);
       setShowIOSPopup(false);
       return;
@@ -140,8 +248,10 @@ export default function AddToHomeScreenButton() {
 
     const type = getBrowserType();
     setBrowserType(type);
+    console.log("🌐 AddToHomeScreen - Browser type set:", type);
 
     if (isIOS()) {
+      console.log("📱 AddToHomeScreen - iOS detected - showing button");
       // iOS (Safari & other WebKit browsers): show button to open popup
       setShowButton(true);
       return;
@@ -149,14 +259,21 @@ export default function AddToHomeScreenButton() {
 
     // Android Chrome: listen for PWA prompt
     if (type === "chrome") {
+      console.log("🤖 AddToHomeScreen - Android Chrome detected - listening for install prompt");
       const handler = (e: any) => {
+        console.log("💾 AddToHomeScreen - Install prompt received");
         e.preventDefault();
         setDeferredPrompt(e);
         setShowButton(true);
       };
       window.addEventListener("beforeinstallprompt", handler);
-      return () => window.removeEventListener("beforeinstallprompt", handler);
+      return () => {
+        console.log("🧹 AddToHomeScreen - Removing install prompt listener");
+        window.removeEventListener("beforeinstallprompt", handler);
+      };
     }
+
+    console.log("❓ AddToHomeScreen - Other browser type - no special handling");
   }, [setShowButton, setShowIOSPopup]);
 
   // Drag handlers
@@ -177,16 +294,17 @@ export default function AddToHomeScreenButton() {
 
     // Only snap to left or right edge (like iPhone AssistiveTouch)
     const centerX = window.innerWidth / 2;
-    const safeHeight = getSafeViewportHeight();
-    const newY = Math.max(20, Math.min(safeHeight - 68, mouseY - 24));
+    const bottomOffsetPixels = getBottomOffsetPixels();
+    const maxY = window.innerHeight - bottomOffsetPixels - 48; // Match LocateControl bounds
+    const newY = Math.max(20, Math.min(maxY, mouseY - 24));
 
     let newX;
     if (mouseX < centerX) {
       // Snap to left edge
       newX = 20;
     } else {
-      // Snap to right edge
-      newX = window.innerWidth - 68;
+      // Snap to right edge - next to LocateControl (same horizontal line)
+      newX = window.innerWidth - 96; // 48px this button + 48px LocateControl = sát nhau
     }
 
     setPosition({ x: newX, y: newY });
@@ -216,16 +334,17 @@ export default function AddToHomeScreenButton() {
 
     // Only snap to left or right edge (like iPhone AssistiveTouch)
     const centerX = window.innerWidth / 2;
-    const safeHeight = getSafeViewportHeight();
-    const newY = Math.max(20, Math.min(safeHeight - 68, mouseY - 24));
+    const bottomOffsetPixels = getBottomOffsetPixels();
+    const maxY = window.innerHeight - bottomOffsetPixels - 48; // Match LocateControl bounds
+    const newY = Math.max(20, Math.min(maxY, mouseY - 24));
 
     let newX;
     if (mouseX < centerX) {
       // Snap to left edge
       newX = 20;
     } else {
-      // Snap to right edge
-      newX = window.innerWidth - 68;
+      // Snap to right edge - next to LocateControl (same horizontal line)
+      newX = window.innerWidth - 96; // 48px this button + 48px LocateControl = sát nhau
     }
 
     setPosition({ x: newX, y: newY });
@@ -258,25 +377,31 @@ export default function AddToHomeScreenButton() {
       e.preventDefault();
       return;
     }
+
+    console.log("🔘 AddToHomeScreen - Button clicked");
+
     if (isIOS()) {
       // iOS: luôn mở popup với guideType dựa trên browserType
+      console.log("📱 AddToHomeScreen - iOS: Opening guide popup");
       setShowIOSPopup(true);
     } else {
       // Android
       if (deferredPrompt) {
         // Chrome PWA
+        console.log("🚀 AddToHomeScreen - Android: Showing native install prompt");
         deferredPrompt.prompt();
         deferredPrompt.userChoice.finally((choice: any) => {
           setDeferredPrompt(null);
           setShowButton(false);
           console.log(
             choice?.outcome === "accepted"
-              ? "✅ User accepted prompt"
-              : "❌ User dismissed prompt"
+              ? "✅ AddToHomeScreen - User accepted install prompt"
+              : "❌ AddToHomeScreen - User dismissed install prompt"
           );
         });
       } else {
         // fallback: mở popup Chrome guide nếu browser khác
+        console.log("📖 AddToHomeScreen - Android: Opening fallback guide popup");
         setShowIOSPopup(true);
       }
     }
