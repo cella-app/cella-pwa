@@ -8,7 +8,7 @@ export async function getPodsNearMe(request: PodNearMeRequest = {
 	latitude: 0,
 	radius: 600
 }): Promise<PodNearMeResponse> {
-	const { addAlert } = userAlertStore.getState();
+	// const { addAlert } = userAlertStore.getState();
 
 	try {
 		const data = await podApi.getPodsNearMe(request);
@@ -20,16 +20,16 @@ export async function getPodsNearMe(request: PodNearMeRequest = {
 		return data;
 
 	} catch (err) {
-		addAlert({
-			severity: SERVERIFY_ALERT.ERROR,
-			message: (err instanceof Error ? err.message : 'An unknown error occurred')
-		})
+		// addAlert({
+		// 	severity: SERVERIFY_ALERT.ERROR,
+		// 	message: (err instanceof Error ? err.message : 'An unknown error occurred')
+		// })
 		throw err;
 	}
 }
 
 export async function getPods() {
-	const { addAlert } = userAlertStore.getState();
+	// const { addAlert } = userAlertStore.getState();
 
 	try {
 		const data = await podApi.getPodsNearMe({
@@ -45,10 +45,10 @@ export async function getPods() {
 		return data;
 
 	} catch (err) {
-		addAlert({
-			severity: SERVERIFY_ALERT.ERROR,
-			message: (err instanceof Error ? err.message : 'An unknown error occurred')
-		})
+		// addAlert({
+		// 	severity: SERVERIFY_ALERT.ERROR,
+		// 	message: (err instanceof Error ? err.message : 'An unknown error occurred')
+		// })
 		throw err;
 	}
 }
