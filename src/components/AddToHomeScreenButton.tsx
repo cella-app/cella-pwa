@@ -91,7 +91,7 @@ function getEnvironmentInfo() {
   return { isSafari, isIOS, isStandalone };
 }
 
-// Match LocateControl bottom offset logic EXACTLY
+// Match LocateControl bottom offset logic with iOS Chrome fix
 function getBottomOffset(isSafari: boolean, isIOS: boolean, isStandalone: boolean): string {
   console.log("🔍 AddToHomeScreen - getBottomOffset input:", { isSafari, isIOS, isStandalone });
 
@@ -107,10 +107,10 @@ function getBottomOffset(isSafari: boolean, isIOS: boolean, isStandalone: boolea
     return '6rem';
   }
 
-  // iOS other browsers (Chrome, etc) - moderate space
+  // iOS other browsers (Chrome, etc) - less space than Safari
   if (isIOS) {
-    console.log("✅ AddToHomeScreen Case: iOS other browser - returning 4rem");
-    return '4rem';
+    console.log("✅ AddToHomeScreen Case: iOS other browser (Chrome) - returning 1.5rem");
+    return '1.5rem';
   }
 
   // Desktop Safari - small space
@@ -301,10 +301,10 @@ export default function AddToHomeScreenButton() {
     let newX;
     if (mouseX < centerX) {
       // Snap to left edge
-      newX = 12;
+      newX = 20;
     } else {
       // Snap to right edge - next to LocateControl (same horizontal line)
-      newX = window.innerWidth - 60; // 48px this button + 48px LocateControl = sát nhau
+      newX = window.innerWidth - 96; // 48px this button + 48px LocateControl = sát nhau
     }
 
     setPosition({ x: newX, y: newY });
@@ -341,13 +341,11 @@ export default function AddToHomeScreenButton() {
     let newX;
     if (mouseX < centerX) {
       // Snap to left edge
-      newX = 12;
+      newX = 20;
     } else {
       // Snap to right edge - next to LocateControl (same horizontal line)
-      newX = window.innerWidth - 60; // 48px this button + 48px LocateControl = sát nhau
+      newX = window.innerWidth - 96; // 48px this button + 48px LocateControl = sát nhau
     }
-
-    console.log(newX)
 
     setPosition({ x: newX, y: newY });
   };
