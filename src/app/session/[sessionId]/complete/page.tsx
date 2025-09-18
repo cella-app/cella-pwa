@@ -26,10 +26,8 @@ import EuroIcon from '@mui/icons-material/Euro';
 import StarIcon from '@mui/icons-material/Star';
 import { useSessionStore } from '@/features/session/stores/session.store';
 import { LOCAL_CURRENCY_CONFIG } from '@/shared/constants/constants';
-import { TimeIcon } from '@/components/icons/TimeIcon';
-import { PauseTimeIcon } from '@/components/icons/PauseTimeIcon';
-import { BonusTimeIcon } from '@/components/icons/BonusTimeIcon';
-import { TotalCostIcon } from '@/components/icons/TotalCostIcon';
+import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
+import RedeemIcon from '@mui/icons-material/Redeem';
 
 export default function SessionCompletePage() {
   const params = useParams();
@@ -343,11 +341,10 @@ export default function SessionCompletePage() {
 
               <Divider sx={{ my: 1 }} /> 
 
-              {/* Time */}
                 {/* Time */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <TimeIcon />
+                    <AccessTimeIcon sx={{ size: 24 }} />
                     <Typography fontWeight={500} fontSize={20}>Time:</Typography>
                   </Box>
                   <Typography fontWeight={500} fontSize={20}>
@@ -358,7 +355,7 @@ export default function SessionCompletePage() {
                 {/* Pause */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <PauseTimeIcon />
+                    <PauseCircleOutlineIcon sx={{ size: 24 }} />
                     <Typography fontWeight={500} fontSize={20}>Pause:</Typography>
                   </Box>
                   <Typography fontWeight={500} fontSize={20}>
@@ -369,7 +366,7 @@ export default function SessionCompletePage() {
                 {/* Bonus */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <BonusTimeIcon />
+                    <RedeemIcon sx={{ size: 24 }} />
                     <Typography fontWeight={500} fontSize={20}>Bonus:</Typography>
                   </Box>
                   <Typography fontWeight={500} fontSize={20}>
@@ -380,10 +377,10 @@ export default function SessionCompletePage() {
                 {/* Total Cost */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <TotalCostIcon />
+                    <EuroIcon sx={{ size: 26 }} />
                     <Typography fontWeight={600} fontSize={22}>Total Cost:</Typography>
                   </Box>
-                  <Typography fontWeight={600} fontSize={22} color="#185C3C">
+                  <Typography fontWeight={600} fontSize={22}>
                     {summary.total_fee.toLocaleString("en-US", LOCAL_CURRENCY_CONFIG)}
                   </Typography>
                 </Box>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Box,
   Card,
@@ -48,15 +48,39 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
   const [showMinAmountPopup, setShowMinAmountPopup] = useState(false);
   const [calculatedAmount, setCalculatedAmount] = useState(0);
 
+  // New states for sync logic
+  const [isUserAction, setIsUserAction] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(Date.now());
+
   const focusInterval = useRef<NodeJS.Timeout | null>(null);
   const pauseInterval = useRef<NodeJS.Timeout | null>(null);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced sync function
+  const debouncedSync = useCallback((sessionId: string) => {
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      if (!isUserAction) { // Only sync when no user action
+        try {
+          await loadPauseLogs(sessionId);
+          await loadCurrentPause(sessionId);
+          setLastSyncTime(Date.now());
+        } catch (error) {
+          console.error("Error syncing session data:", error);
+        }
+      }
+    }, 500); // Debounce 500ms
+  }, [loadPauseLogs, loadCurrentPause, isUserAction]);
 
   useEffect(() => {
     if (session?.start_time) {
       const start = new Date(session.start_time).getTime();
       const now = Date.now();
 
-      // Tổng thời gian đã pause (ms)
+      // Total pause time (ms)
       let totalPauseMs = 0;
       if (pauseLogs && pauseLogs.length > 0) {
         for (const log of pauseLogs) {
@@ -67,7 +91,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           }
         }
       }
-      // Nếu đang PAUSING, cộng thêm thời gian pause hiện tại
+      // If currently PAUSING, add current pause time
       if (isPaused && currentPause?.pause_at) {
         const pauseStart = new Date(currentPause.pause_at).getTime();
         totalPauseMs += Math.max(0, now - pauseStart);
@@ -87,7 +111,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
   useEffect(() => {
     const timeout = setTimeout(() => {
       setHasRenderedOnce(true);
-    }, 100); // Tăng từ 50ms lên 100ms để đảm bảo render xong
+    }, 100);
     return () => {
       clearTimeout(timeout);
       if (focusInterval.current) {
@@ -138,32 +162,36 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     };
   }, [isPaused]);
 
+  // Updated useEffect for session status - respect user action
   useEffect(() => {
-    if (session?.status === SessionStatusEnum.PAUSING) {
-      setIsPaused(true);
-      if (session.id) {
-        loadCurrentPause(session.id);
-      }
-      // Initialize pauseTime when entering pause state
-      if (session?.start_time) {
-        let totalPauseMs = 0;
-        if (pauseLogs && pauseLogs.length > 0) {
-          for (const log of pauseLogs) {
-            if (log.pause_at && log.resume_at) {
-              const pauseStart = new Date(log.pause_at).getTime();
-              const pauseEnd = new Date(log.resume_at).getTime();
-              totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+    // Only update state from server if not user action
+    if (!isUserAction) {
+      if (session?.status === SessionStatusEnum.PAUSING) {
+        setIsPaused(true);
+        if (session.id) {
+          loadCurrentPause(session.id);
+        }
+        // Initialize pauseTime when entering pause state
+        if (session?.start_time) {
+          let totalPauseMs = 0;
+          if (pauseLogs && pauseLogs.length > 0) {
+            for (const log of pauseLogs) {
+              if (log.pause_at && log.resume_at) {
+                const pauseStart = new Date(log.pause_at).getTime();
+                const pauseEnd = new Date(log.resume_at).getTime();
+                totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+              }
             }
           }
+          const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
+          setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
         }
-        const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
-        setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
+      } else {
+        setIsPaused(false);
+        setCurrentPause(null);
       }
-    } else {
-      setIsPaused(false);
-      setCurrentPause(null);
     }
-  }, [session?.status, session?.id, session?.start_time, pauseLogs, loadCurrentPause, setCurrentPause]);
+  }, [session?.status, session?.id, session?.start_time, pauseLogs, loadCurrentPause, setCurrentPause, isUserAction]);
 
   useEffect(() => {
     if (session?.id) {
@@ -181,24 +209,25 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Updated visibility change handler
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         console.log("User came back to the tab / screen");
 
-        // 👉 Gọi lại logic bạn muốn, ví dụ:
-        if (session?.id) {
-          loadPauseLogs(session.id);
-          loadCurrentPause(session.id);
+        // Only sync if it's been a while since last sync (> 5 seconds) and no user action
+        const timeSinceLastSync = Date.now() - lastSyncTime;
+        if (session?.id && timeSinceLastSync > 5000 && !isUserAction) {
+          debouncedSync(session.id);
         }
       }
     };
 
     const handleFocus = () => {
       console.log("Window focused again");
-      if (session?.id) {
-        loadPauseLogs(session.id);
-        loadCurrentPause(session.id);
+      const timeSinceLastSync = Date.now() - lastSyncTime;
+      if (session?.id && timeSinceLastSync > 5000 && !isUserAction) {
+        debouncedSync(session.id);
       }
     };
 
@@ -208,31 +237,52 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", handleFocus);
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
     };
-  }, [session?.id, loadPauseLogs, loadCurrentPause]);
+  }, [session?.id, debouncedSync, lastSyncTime, isUserAction]);
 
-
+  // Updated handleToggle
   const handleToggle = async () => {
     if (!session?.id || isLoading) return;
 
     setIsLoading(true);
-    console.log("handleToggle: Setting isLoading to true");
+    setIsUserAction(true); // Mark as user action
+    console.log("handleToggle: Starting user action");
+
     try {
       if (isPaused) {
+        // Resume session
         await resume(session.id);
         setIsPaused(false);
+
+        // Wait a bit for server to update
+        await new Promise(resolve => setTimeout(resolve, 200));
         await loadPauseLogs(session.id);
+
       } else {
         // Pause session
         await pause(session.id);
         setIsPaused(true);
+
+        // Wait a bit for server to update
+        await new Promise(resolve => setTimeout(resolve, 200));
         await loadCurrentPause(session.id);
       }
+
+      setLastSyncTime(Date.now());
+
     } catch (error) {
       console.error("Error toggling session:", error);
     } finally {
       setIsLoading(false);
-      console.log("handleToggle: Setting isLoading to false");
+
+      // Reset user action flag after 2 seconds to avoid blocking sync too long
+      setTimeout(() => {
+        setIsUserAction(false);
+        console.log("handleToggle: User action completed");
+      }, 2000);
     }
   };
 
@@ -277,6 +327,15 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     setEndSessionButtonText("End Session"); // Reset button text if user cancels
     setIsLoading(false);
   };
+
+  // Cleanup when component unmounts
+  useEffect(() => {
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const strokeWidth = 12;
   const radius = 130 - strokeWidth / 2;
@@ -352,7 +411,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         </Box>
       </Box>
 
-      {/* Trạng thái */}
+      {/* Status */}
       <Typography
         variant="h3"
         fontWeight={700}
@@ -361,7 +420,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         {isPaused ? "Session Paused" : "In Session"}
       </Typography>
 
-      {/* Vòng đồng hồ */}
+      {/* Clock Circle */}
       <Box
         sx={{
           position: "relative",
@@ -385,7 +444,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           viewBox="0 0 260 260"
           style={{ transform: "rotate(-90deg)" }}
         >
-          {/* Định nghĩa gradient */}
+          {/* Define gradient */}
           <defs>
             <linearGradient
               id="progressGradient"
@@ -401,7 +460,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             </linearGradient>
           </defs>
 
-          {/* Nền đầy đủ màu 20A48C */}
+          {/* Full background circle color 20A48C */}
           <circle
             cx="130"
             cy="130"
@@ -411,7 +470,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             fill="transparent"
           />
 
-          {/* Đoạn đậm chạy quanh với gradient hòa trộn */}
+          {/* Animated progress arc with gradient */}
           <circle
             cx="130"
             cy="130"
@@ -423,7 +482,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             strokeDashoffset="0"
             strokeLinecap="round"
             style={{
-              // Chỉ áp dụng transition khi đã render lần đầu
+              // Only apply transition when rendered once
               transition: hasRenderedOnce ? "transform 0.5s ease-out" : "none",
               transform: `rotate(${rotation}deg)`,
               transformOrigin: "center",
