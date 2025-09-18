@@ -43,7 +43,7 @@ class MeApi extends BaseApi {
 
 	async delete(): Promise<void> {
 		try {
-			await this.apiInstance.post('/users/archive');
+			await this.apiInstance.post('/extend-users/archive');
 		} catch (error: unknown) {
 			throw this.handleApiError(error, 'Delete account failed', 500);
 		}
