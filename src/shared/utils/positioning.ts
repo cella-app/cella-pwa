@@ -9,7 +9,7 @@ export const BUTTON_SIZES = {
 export const SPACING = {
 	EDGE_MARGIN: 16, // 1rem = 16px (giống LocateControl)
 	VERTICAL_MARGIN: 20,
-	BUTTON_GAP: 8, // Khoảng cách giữa 2 buttons khi cạnh nhau
+	BUTTON_GAP: 0, // Khoảng cách giữa 2 buttons khi cạnh nhau
 } as const;
 
 // Environment detection (shared between components)
