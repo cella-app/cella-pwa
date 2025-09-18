@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Divider
 } from "@mui/material";
 import { rootStyle } from "@/theme";
 import { BillingSession, BillingSummarySession, Session, SessionStatusEnum } from '@/shared/data/models/Session';
@@ -23,11 +24,12 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import EuroIcon from '@mui/icons-material/Euro';
 import StarIcon from '@mui/icons-material/Star';
-import Pause from '@mui/icons-material/Pause';
-import PlayArrow from '@mui/icons-material/PlayArrow';
-import LockOpen from '@mui/icons-material/LockOpen';
 import { useSessionStore } from '@/features/session/stores/session.store';
 import { LOCAL_CURRENCY_CONFIG } from '@/shared/constants/constants';
+import { TimeIcon } from '@/components/icons/TimeIcon';
+import { PauseTimeIcon } from '@/components/icons/PauseTimeIcon';
+import { BonusTimeIcon } from '@/components/icons/BonusTimeIcon';
+import { TotalCostIcon } from '@/components/icons/TotalCostIcon';
 
 export default function SessionCompletePage() {
   const params = useParams();
@@ -113,29 +115,6 @@ export default function SessionCompletePage() {
   };
 
   const handleCloseSummary = () => setSummaryOpen(false);
-
-  // Helper to format ms to 'X hour(s) Y min(s) Z s'
-  function formatMs(ms: number) {
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    let str = '';
-    if (hours > 0) str += `${hours} hour${hours > 1 ? 's' : ''} `;
-    if (minutes > 0 || hours > 0) str += `${minutes} min${minutes > 1 ? 's' : ''} `;
-    str += `${seconds} s`;
-    return str.trim();
-  }
-
-  // Helper for float minutes (extra_paused_minutes)
-  function formatFloatMin(min: number) {
-    const mins = Math.floor(min);
-    const secs = Math.round((min - mins) * 60);
-    let str = '';
-    if (mins > 0) str += `${mins} min${mins > 1 ? 's' : ''} `;
-    str += `${secs} s`;
-    return str.trim();
-  }
 
   if (isLoading) {
     return (
@@ -306,7 +285,19 @@ export default function SessionCompletePage() {
         Skip this time
       </Button>
 
-      <Dialog open={summaryOpen} onClose={handleCloseSummary} maxWidth="xs" fullWidth>
+      <Dialog open={summaryOpen} onClose={handleCloseSummary} maxWidth="xs" fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              background: rootStyle.backgroundColor,
+              "@media (max-width:330px)": {
+                p: 0
+              },
+            
+            },
+          },
+        }}
+      >
         <DialogTitle sx={{
           background: rootStyle.elementColor,
           color: 'white',
@@ -319,57 +310,89 @@ export default function SessionCompletePage() {
           mb: 1,
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
+          width: '100%'
         }}>
           Session Billing Details
         </DialogTitle>
-        <DialogContent dividers sx={{ background: rootStyle.backgroundColor, fontFamily: rootStyle.mainFontFamily }}>
+        <DialogContent
+          dividers
+          sx={{
+            background: rootStyle.backgroundColor,
+            fontFamily: rootStyle.mainFontFamily,
+          }}
+        >
           {summaryLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 120 }}>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 120 }}>
               <CircularProgress size={32} sx={{ color: rootStyle.elementColor }} />
             </Box>
           ) : summary ? (
-            <Box sx={{ fontSize: 16, color: rootStyle.textColor }}>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                <AccessTimeIcon sx={{ color: rootStyle.elementColor, mr: 1 }} />
-                <b>Total time run:</b>
-                <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{formatMs(summary.total_time_run)}</Box>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {/* Start / End */}
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography fontWeight={500} fontSize={24}>Start:</Typography>
+                  <Typography fontWeight={500} fontSize={24}>
+                    {new Date(summary.start_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false})}
+                </Typography>
               </Box>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                <Pause sx={{ color: '#E0A800', mr: 1 }} />
-                <b>Paused time:</b>
-                <Box component="span" sx={{ ml: 1, color: '#E0A800', fontWeight: 700 }}>{formatMs(summary.paused_time)}</Box>
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography fontWeight={500} fontSize={24}>End:</Typography>
+                  <Typography fontWeight={500} fontSize={24}>
+                  {new Date(summary.end_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
+                </Typography>
               </Box>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                <PlayArrow sx={{ color: '#20A48C', mr: 1 }} />
-                <b>Active (focus) time:</b>
-                <Box component="span" sx={{ ml: 1, color: '#20A48C', fontWeight: 700 }}>{formatMs(summary.active_time)}</Box>
-              </Box>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                <LockIcon sx={{ color: rootStyle.elementColor, mr: 1 }} />
-                  <b>Free paused time:</b>
-                <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{summary.pause_allowance} min</Box>
-              </Box>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                <LockOpen sx={{ color: '#BDBDBD', mr: 1 }} />
-                <b>Charged paused time:</b>
-                <Box component="span" sx={{ ml: 1, color: '#BDBDBD', fontWeight: 700 }}>{formatFloatMin(Number(summary.extra_paused_minutes))}</Box>
-              </Box>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                <EuroIcon sx={{ color: rootStyle.elementColor, mr: 1 }} />
-                <b>Price per minute:</b>
-                  <Box component="span" sx={{ ml: 1, color: rootStyle.elementColor, fontWeight: 700 }}>{summary.price_per_minute.toLocaleString('en-US', LOCAL_CURRENCY_CONFIG)}</Box>
+
+              <Divider sx={{ my: 1 }} /> 
+
+              {/* Time */}
+                {/* Time */}
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <TimeIcon />
+                    <Typography fontWeight={500} fontSize={20}>Time:</Typography>
+                  </Box>
+                  <Typography fontWeight={500} fontSize={20}>
+                    +{Math.round(summary.total_time_run / 60000)} min
+                  </Typography>
                 </Box>
-                <hr></hr>
-              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-                  <EuroIcon sx={{ color: '#185C3C', mr: 1, fontSize: 24 }} />
-                  <b style={{ fontSize: 24 }}>Total fee:</b>
-                <Box component="span" sx={{ ml: 1, color: '#185C3C', fontWeight: 900, fontSize: 24 }}>{summary.total_fee.toLocaleString('en-US', LOCAL_CURRENCY_CONFIG)}</Box>
-              </Box>
+
+                {/* Pause */}
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <PauseTimeIcon />
+                    <Typography fontWeight={500} fontSize={20}>Pause:</Typography>
+                  </Box>
+                  <Typography fontWeight={500} fontSize={20}>
+                    +{Math.round(summary.paused_time / 60000)} min
+                  </Typography>
+                </Box>
+
+                {/* Bonus */}
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <BonusTimeIcon />
+                    <Typography fontWeight={500} fontSize={20}>Bonus:</Typography>
+                  </Box>
+                  <Typography fontWeight={500} fontSize={20}>
+                    {summary.pause_allowance ?? 0} min
+                  </Typography>
+                </Box>
+
+                {/* Total Cost */}
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <TotalCostIcon />
+                    <Typography fontWeight={600} fontSize={22}>Total Cost:</Typography>
+                  </Box>
+                  <Typography fontWeight={600} fontSize={22} color="#185C3C">
+                    {summary.total_fee.toLocaleString("en-US", LOCAL_CURRENCY_CONFIG)}
+                  </Typography>
+                </Box>
             </Box>
           ) : (
             <Typography color="error">No summary data found.</Typography>
           )}
         </DialogContent>
+
         <DialogActions sx={{ background: rootStyle.backgroundColor, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, justifyContent: 'center' }}>
           <Box sx={{ width: '100%' }}>
             <Button onClick={handleCloseSummary} sx={{ color: rootStyle.elementColor, fontWeight: 700, width: '100%' }}>Close</Button>

@@ -71,6 +71,8 @@ export interface BillingSession {
 }
 
 export interface BillingSummarySession {
+	start_time: Date;
+	end_time: Date;
 	total_time_run: number;
 	paused_time: number;
 	active_time: number;

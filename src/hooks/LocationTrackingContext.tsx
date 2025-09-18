@@ -7,7 +7,6 @@ import { useRadiusStore } from '@/features/map/stores/radius.store';
 import { PodList } from '@/shared/data/models/Pod';
 import { LocationData } from '@/shared/data/models/Location';
 
-// Define context type
 interface LocationTrackingContextType {
   lastSearchCenter: LocationData | null;
   currentLocation: LocationData | null;
@@ -25,15 +24,14 @@ interface LocationTrackingProviderProps {
 }
 
 export const LocationTrackingProvider = ({ children }: LocationTrackingProviderProps) => {
-  const { map } = useMapStore(); // Get map from store
+  const { map } = useMapStore();
   const { radius } = useRadiusStore();
-  const [startTracking, setStartTracking] = useState(false); // Default to false during SSR
+  const [startTracking, setStartTracking] = useState(false);
 
-  // Initialize startTracking based on localStorage and permission state (client-side only)
   useEffect(() => {
     console.log("useEffect in LocationTrackingProvider called");
 
-    if (typeof window === 'undefined') return; // Skip during SSR
+    if (typeof window === 'undefined') return;
 
     const alreadyAsked = localStorage.getItem('locationPermissionAsked');
     const storedStartTracking = localStorage.getItem('startTracking') === 'true';
@@ -51,21 +49,13 @@ export const LocationTrackingProvider = ({ children }: LocationTrackingProviderP
     }
   }, []);
 
-  // Sync startTracking with localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('startTracking', startTracking.toString());
     }
   }, [startTracking]);
 
-  const locationTracking = useLocationTracking(radius, startTracking, map || undefined); // Pass map to hook, converting null to undefined
-
-  // Log để debug
-  console.log('LocationTrackingProvider render:', {
-    hasCurrentLocation: !!locationTracking.currentLocation,
-    error: locationTracking.error,
-    startTracking,
-  });
+  const locationTracking = useLocationTracking(radius, startTracking, map || undefined);
 
   return (
     <LocationTrackingContext.Provider value={{ ...locationTracking, setStartTracking }}>
