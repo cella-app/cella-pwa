@@ -384,7 +384,7 @@ export default memo(function MapContent() {
       </Dialog>
       
       {/* Mobile Debug Overlay - only in development */}
-      {process.env.NODE_ENV === 'development' && <MobileDebugger />}
+      <MobileDebugger />
     </>
   );
 });
