@@ -179,6 +179,7 @@ function ptToPixels(ptValue: string): number {
 }
 
 // Check if positioning is reasonable
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function validatePositioning(testCase: TestCase, result: any): { isReasonable: boolean; issues: string[] } {
   const issues: string[] = [];
   
@@ -192,7 +193,6 @@ function validatePositioning(testCase: TestCase, result: any): { isReasonable: b
   }
   
   // Check minimum touch target spacing (44px recommended)
-  const minTouchSpacing = 44;
   const addToHomeBottomSpace = testCase.windowHeight - result.addToHomePosition.y - BUTTON_SIZES.ADD_TO_HOME;
   const locateBottomSpace = result.locateButtonBottomPixels;
   

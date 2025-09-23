@@ -124,7 +124,7 @@ export function useLocationTracking(
     }
     try {
       // Check if map is properly initialized
-      if (!map.getContainer() || !map._loaded) {
+      if (!map.getContainer()) {
         console.log('Map not ready yet');
         setIsUserOutOfView(false);
         return;

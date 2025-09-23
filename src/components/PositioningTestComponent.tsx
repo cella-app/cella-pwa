@@ -12,6 +12,7 @@ import {
 const PositioningTestComponent: React.FC = () => {
   const [results, setResults] = useState<TestResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedTest, setSelectedTest] = useState<TestCase | null>(null);
 
   const runTests = async () => {
