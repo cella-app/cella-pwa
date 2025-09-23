@@ -47,7 +47,7 @@ export default createTheme({
 			fontSize: '24px',
 			fontWeight: 700,
 			color: rootStyle.textColor,
-			"@media (max-width:330px)": {
+			"@media (max-width:280px)": {
 				fontSize: "20px",
 			},
 		},
@@ -55,7 +55,7 @@ export default createTheme({
 			fontFamily: rootStyle.titleFontFamily,
 			fontSize: '36px',
 			fontWeight: 700,
-			"@media (max-width:330px)": {
+			"@media (max-width:280px)": {
 				fontSize: "30px",
 			},
 		},
@@ -72,7 +72,7 @@ export default createTheme({
 			fontSize: "20px",
 			fontWeight: 700,
 			color: rootStyle.textColor,
-			"@media (max-width:330px)": {
+			"@media (max-width:280px)": {
 				fontSize: "16px",
 			},
 		},
@@ -81,7 +81,7 @@ export default createTheme({
 			fontSize: '16px',
 			fontWeight: 300,
 			color: rootStyle.textColor,
-			"@media (max-width:330px)": {
+			"@media (max-width:280px)": {
 				fontSize: "14px",
 			},
 		},
@@ -108,11 +108,10 @@ export default createTheme({
 					"&.MuiButton-root": {
 						fontFamily: rootStyle.mainFontFamily,
 					},
-					"@media (max-width:330px)": {
-						height: "44px",
-						// minWidth: "200px",
-						fontSize: "14px",
-						padding: "6px 12px",
+					"@media (max-width:280px)": {
+						height: "48px",
+						fontSize: "15px",
+						padding: "8px 16px",
 					},
 				},
 				contained: {
@@ -167,9 +166,9 @@ export default createTheme({
 						fontFamily: rootStyle.mainFontFamily,
 						fontSize: 'inherit',
 					},
-					"@media (max-width:330px)": {
-						minWidth: "200px",
-						fontSize: "14px",
+					"@media (max-width:280px)": {
+						minWidth: "240px",
+						fontSize: "15px",
 					},
 				},
 			},
@@ -178,8 +177,8 @@ export default createTheme({
 			styleOverrides: {
 				root: {
 					borderRadius: '16px',
-					"@media (max-width:330px)": {
-						padding: "8px",
+					"@media (max-width:280px)": {
+						padding: "12px",
 					},
 				},
 			},
@@ -188,8 +187,8 @@ export default createTheme({
 			styleOverrides: {
 				root: {
 					borderRadius: '16px',
-					"@media (max-width:330px)": {
-						padding: "8px",
+					"@media (max-width:280px)": {
+						padding: "12px",
 					},
 				},
 			},
@@ -202,9 +201,9 @@ export default createTheme({
 					opacity: "0.3",
 					borderRadius: '16px',
 					width: "250px",
-					"@media (max-width:330px)": {
-						width: "200px",
-						fontSize: "14px",
+					"@media (max-width:280px)": {
+						width: "220px",
+						fontSize: "15px",
 					},
 				},
 				filledError: {
@@ -212,9 +211,9 @@ export default createTheme({
 					color: '#fff',
 					borderRadius: '16px',
 					width: "250px",
-					"@media (max-width:330px)": {
-						width: "200px",
-						fontSize: "14px",
+					"@media (max-width:280px)": {
+						width: "220px",
+						fontSize: "15px",
 					},
 				},
 				filledWarning: {
@@ -222,9 +221,9 @@ export default createTheme({
 					color: '#000',
 					borderRadius: '16px',
 					width: '250px',
-					"@media (max-width:330px)": {
-						width: "200px",
-						fontSize: "14px",
+					"@media (max-width:280px)": {
+						width: "220px",
+						fontSize: "15px",
 					},
 				},
 				filledInfo: {
@@ -232,9 +231,9 @@ export default createTheme({
 					color: '#fff',
 					borderRadius: '16px',
 					width: '250px',
-					"@media (max-width:330px)": {
-						width: "200px",
-						fontSize: "14px",
+					"@media (max-width:280px)": {
+						width: "220px",
+						fontSize: "15px",
 					},
 				},
 			},
@@ -244,8 +243,8 @@ export default createTheme({
 				root: {
 					color: rootStyle.elementColor,
 					fontFamily: rootStyle.mainFontFamily,
-					"@media (max-width:330px)": {
-						fontSize: "14px",
+					"@media (max-width:280px)": {
+						fontSize: "15px",
 					},
 				},
 			},

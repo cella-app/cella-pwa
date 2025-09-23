@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: 'Discovery Workspace',
   manifest: '/manifest.json',
   themeColor: '#000000',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes',
   icons: {
     icon: [
       { url: '/pwa/main-logo.png', sizes: '72x72', type: 'image/png' },

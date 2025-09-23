@@ -97,7 +97,12 @@ export default function MapPage() {
   }
 
   return (
-    <Box sx={{ width: '100vw', height: '100vh', position: 'relative' }}>
+    <Box sx={{ 
+      width: '100vw', 
+      height: '100vh', 
+      position: 'relative',
+      overflow: 'hidden' // Prevent scroll bars
+    }}>
       <LocationTrackingProvider>
         <MapContent />
       </LocationTrackingProvider>

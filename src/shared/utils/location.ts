@@ -32,29 +32,29 @@ export const calculateDistanceNew = (point1: LocationData, point2: LocationData)
 
 
 export const getAllowedToGetPodsThreshold = (radius: number): number => {
-	if (radius <= 600) return 50;
-	if (radius <= 1000) return 100;
-	if (radius <= 2500) return 150;
-	if (radius <= 5000) return 300;
-	if (radius <= 20000) return 1000;
+	if (radius <= 1200) return 100;  // Doubled from 600→50 to 1200→100
+	if (radius <= 2000) return 200;  // Doubled from 1000→100 to 2000→200
+	if (radius <= 5000) return 300;  // Doubled from 2500→150 to 5000→300
+	if (radius <= 10000) return 600; // Doubled from 5000→300 to 10000→600
+	if (radius <= 20000) return 1000; // Keep max the same
 	return 1200;
 };
 
 export const getAllowedCenterThreshold = (radius: number): number => {
-	if (radius <= 600) return 100;
-	if (radius <= 1000) return 200;
-	if (radius <= 2500) return 300;
-	if (radius <= 5000) return 400;
-	if (radius <= 20000) return 1000;
+	if (radius <= 1200) return 200;  // Doubled from 600→100 to 1200→200
+	if (radius <= 2000) return 400;  // Doubled from 1000→200 to 2000→400
+	if (radius <= 5000) return 600;  // Doubled from 2500→300 to 5000→600
+	if (radius <= 10000) return 800; // Doubled from 5000→400 to 10000→800
+	if (radius <= 20000) return 1000; // Keep max the same
 	return 1000;
 };
 
 
 export const getNoiseThreshold = (radius: number): number => {
-	if (radius <= 600) return 10;
-	if (radius <= 1000) return 20;
-	if (radius <= 2500) return 30;
-	if (radius <= 5000) return 40;
-	if (radius <= 20000) return 100;
+	if (radius <= 1200) return 20;  // Doubled from 600→10 to 1200→20
+	if (radius <= 2000) return 40;  // Doubled from 1000→20 to 2000→40
+	if (radius <= 5000) return 60;  // Doubled from 2500→30 to 5000→60
+	if (radius <= 10000) return 80; // Doubled from 5000→40 to 10000→80
+	if (radius <= 20000) return 100; // Keep max the same
 	return 100;
 }

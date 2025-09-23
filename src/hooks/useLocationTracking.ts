@@ -13,10 +13,10 @@ import { useMapStore } from '@/features/map/stores/map.store';
 
 const RETRY_DELAY = 500;
 const DEBOUNCE_TIME = 300;
-const FETCH_DEBOUNCE_TIME = 1000;
+const FETCH_DEBOUNCE_TIME = 500; // Reduced from 1000ms to 500ms for faster response
 
 export function useLocationTracking(
-  radius: number = 600,
+  radius: number = 1200, // Doubled from 600 to 1200
   startTracking: boolean = false,
   map?: L.Map,
 ) {
@@ -85,6 +85,15 @@ export function useLocationTracking(
     [setLoading, setError, setPods]
   );
 
+  // Wrapper function that shows loading immediately before debounced fetch
+  const fetchPodsWithImmediateLoading = useCallback(
+    (center: LocationData, rad: number) => {
+      setLoading(true); // Show loading immediately when fetch is scheduled
+      debouncedFetchPodsRef.current(center, rad);
+    },
+    [setLoading]
+  );
+
   const debouncedFetchPodsRef = useRef(debounce(fetchPodsInternal, FETCH_DEBOUNCE_TIME));
 
   useEffect(() => {
@@ -114,6 +123,12 @@ export function useLocationTracking(
       return;
     }
     try {
+      // Check if map is properly initialized
+      if (!map.getContainer() || !map._loaded) {
+        console.log('Map not ready yet');
+        setIsUserOutOfView(false);
+        return;
+      }
       const bounds = map.getBounds();
       const { latitude, longitude } = currentLocation;
       const isOut = !bounds.contains([latitude, longitude]);
@@ -285,10 +300,10 @@ export function useLocationTracking(
       changeState(false);
       if (shouldFetchPods(currentMapCenter)) {
         console.log("Fetching pods - user in range with center:", currentMapCenter);
-        debouncedFetchPodsRef.current(currentMapCenter, radius);
+        fetchPodsWithImmediateLoading(currentMapCenter, radius);
       }
     }
-  }, [currentLocation, radius, shouldFetchPods, isUserCenterInValidRange, currentMapCenter, changeState]);
+  }, [currentLocation, radius, shouldFetchPods, isUserCenterInValidRange, currentMapCenter, changeState, fetchPodsWithImmediateLoading]);
 
   // LOGIC BỔ SUNG: Khi center thay đổi và trong khoảng hợp lệ với user thì fly về user (với GPS noise filter)
   useEffect(() => {
@@ -306,14 +321,14 @@ export function useLocationTracking(
           // Fetch với user location thay vì center
           if (shouldFetchPods(currentLocation)) {
             console.log("Fetching pods at user location:", currentLocation);
-            debouncedFetchPodsRef.current(currentLocation, radius);
+            fetchPodsWithImmediateLoading(currentLocation, radius);
           }
         } catch (err) {
           console.error('Error flying to user location:', err);
         }
       }
     }
-  }, [currentMapCenter, map, currentLocation, isUserCenterInValidRange, shouldCenterMap, shouldFetchPods, radius, changeState]);
+  }, [currentMapCenter, map, currentLocation, isUserCenterInValidRange, shouldCenterMap, shouldFetchPods, radius, changeState, fetchPodsWithImmediateLoading]);
 
   // Cleanup on unmount
   useEffect(() => {

@@ -33,6 +33,7 @@ import { LocationData } from "@/shared/data/models/Location";
 import { calculateDistanceNew, getAllowedCenterThreshold } from "@/shared/utils/location";
 import { useEventStore } from '@/features/map/stores/event.store';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
+import MapLoadingIndicator from '@/components/MapLoadingIndicator';
 // import MobileDebugger from "@/components/LocationDebugger";
 
 function MapInitializer({ mapRef }: { mapRef: React.RefObject<LeafletMapType | null> }) {
@@ -339,7 +340,7 @@ export default memo(function MapContent() {
             sx: {
               borderRadius: 3,
               p: { xs: 1, sm: 2 },
-              "@media (max-width:330px)": {
+              "@media (max-width:280px)": {
                 width: "calc(100% - 10pt)",
                 margin: "10pt",
               },
@@ -382,6 +383,9 @@ export default memo(function MapContent() {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* Loading indicator for pin fetching */}
+      <MapLoadingIndicator />
       
       {/* Mobile Debug Overlay - only in development */}
       {/* <MobileDebugger /> */}

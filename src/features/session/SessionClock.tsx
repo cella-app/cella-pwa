@@ -251,6 +251,8 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     setIsUserAction(true); // Mark as user action
     console.log("handleToggle: Starting user action");
 
+    const originalPauseState = isPaused;
+
     try {
       if (isPaused) {
         // Resume session
@@ -275,14 +277,16 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 
     } catch (error) {
       console.error("Error toggling session:", error);
+      // Revert to original state on error
+      setIsPaused(originalPauseState);
     } finally {
       setIsLoading(false);
 
-      // Reset user action flag after 2 seconds to avoid blocking sync too long
+      // Reset user action flag after 3 seconds to ensure server sync completes
       setTimeout(() => {
         setIsUserAction(false);
         console.log("handleToggle: User action completed");
-      }, 2000);
+      }, 3000);
     }
   };
 

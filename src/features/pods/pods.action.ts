@@ -6,7 +6,7 @@ import { userAlertStore, SERVERIFY_ALERT } from '../alert/stores/alert.store';
 export async function getPodsNearMe(request: PodNearMeRequest = {
 	longitude: 0,
 	latitude: 0,
-	radius: 600
+	radius: 1200  // Doubled from 600 to 1200
 }): Promise<PodNearMeResponse> {
 	// const { addAlert } = userAlertStore.getState();
 
@@ -35,7 +35,7 @@ export async function getPods() {
 		const data = await podApi.getPodsNearMe({
 			longitude: 0,
 			latitude: 0,
-			radius: 2000
+			radius: 4000  // Doubled from 2000 to 4000
 		});
 
 		if (!data) {

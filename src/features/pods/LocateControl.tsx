@@ -6,7 +6,7 @@ import L from 'leaflet';
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 import {
 	getEnvironmentInfo,
-	getBottomOffset,
+	getLocateButtonBottomOffset,
 	SPACING,
 	BUTTON_SIZES
 } from '@/shared/utils/positioning';
@@ -76,7 +76,7 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 		// Function to update control position using shared utilities
 		const updateControlPosition = () => {
 			const env = getEnvironmentInfo();
-			const bottomOffset = getBottomOffset(env.isSafari, env.isIOS, env.isStandalone);
+			const bottomOffset = getLocateButtonBottomOffset(env.isSafari, env.isIOS, env.isStandalone);
 
 			const controlCorner = document.querySelector('.leaflet-bottom.leaflet-right') as HTMLElement;
 			if (controlCorner) {
@@ -87,7 +87,7 @@ export default function LocateControl({ onLocate }: LocateControlProps) {
 				});
 
 				controlCorner.style.bottom = bottomOffset;
-				controlCorner.style.right = `${SPACING.EDGE_MARGIN}px`; // ✅ Consistent với AddToHomeScreen
+				controlCorner.style.right = `${SPACING.EDGE_MARGIN}px`; // Proper edge spacing
 				controlCorner.style.transition = 'bottom 0.3s ease'; // Smooth transition
 			}
 		};

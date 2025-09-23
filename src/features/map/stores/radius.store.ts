@@ -9,7 +9,7 @@ interface RadiusStore {
 export const useRadiusStore = create<RadiusStore>()(
 	devtools(
 		(set) => ({
-			radius: 600,
+			radius: 1200, // Doubled from 600 to 1200
 			setRadius: (radius) => set({ radius }),
 		}),
 		{

@@ -256,9 +256,9 @@ export default function WorkspacePopup({
             width: 80,
             height: 80,
             mr: 2,
-            "@media (max-width:330px)": {
-              width: 63,
-              height: 63,
+            "@media (max-width:280px)": {
+              width: 70,
+              height: 70,
             },
           }}>
             <Image rel="preload" src="/icon_pod.png" alt="Pod icon" width={80} height={80} />

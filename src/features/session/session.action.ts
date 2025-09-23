@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { sessionApi } from '../../shared/api/session.api';
@@ -30,6 +29,7 @@ export async function pause(sessionId: string) {
     setSession(pausedSession)
 
   } catch (err) {
+    console.error('Session pause failed:', err);
     alertError(err)
     throw err;
   }
@@ -43,6 +43,7 @@ export async function resume(sessionId: string) {
     setSession(resumedSession)
 
   } catch (err) {
+    console.error('Session resume failed:', err);
     alertError(err)
     throw err;
   }

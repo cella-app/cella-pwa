@@ -70,6 +70,26 @@
   justify-content: center;
 }
 
+/* Fix body and html for full screen map */
+html, body {
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#__next {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 @keyframes pulse {
   0% {
     transform: scale(1);
