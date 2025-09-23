@@ -3,6 +3,7 @@ import EmotionRegistry from '@/components/EmotionRegistry';
 import { Metadata } from 'next';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import AddToHomeScreenButton from '@/components/AddToHomeScreenButton';
+import { WorkspacePopupProvider } from '@/hooks/WorkspacePopupContext';
 
 export const metadata: Metadata = {
   title: process.env.NODE_ENV === 'development' ? 'Cella Dev' : 'Cella',
@@ -34,10 +35,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body suppressHydrationWarning>
               <EmotionRegistry>
                 <ThemeProviderWrapper>
-                  {children}
+                  <WorkspacePopupProvider>
+                    {children}
+                    <AddToHomeScreenButton />
+                  </WorkspacePopupProvider>
                 </ThemeProviderWrapper>
               </EmotionRegistry>
-              <AddToHomeScreenButton />
       </body>
     </html>
   );

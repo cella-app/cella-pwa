@@ -13,13 +13,20 @@ const MapLoadingIndicator = () => {
 	// Also show loading briefly when pods array is empty (transitioning to new area)
 	const showLoading = loading;
 	const showNoPods = !loading && pods.length === 0;
+	
+	// Enhanced loading message based on pod count
+	const getLoadingMessage = () => {
+		if (pods.length === 0) return 'Finding pods...';
+		if (pods.length < 5) return 'Loading more pods...';
+		return `Loading ${pods.length} pods...`;
+	};
 
 	if (showLoading) {
 		return (
 			<div className="absolute top-4 right-4 z-[1000] bg-white/80 backdrop-blur-sm rounded-full shadow-md px-3 py-2 flex items-center gap-2">
 				<Loader2 className="w-4 h-4 animate-spin text-green-600" />
 				<span className="text-sm font-medium text-gray-600">
-					Finding pods...
+					{getLoadingMessage()}
 				</span>
 			</div>
 		);

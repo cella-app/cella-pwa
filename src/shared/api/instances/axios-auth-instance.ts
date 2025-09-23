@@ -38,11 +38,15 @@ const processQueue = (error: any, token: string | null = null) => {
 
 const axiosInstance: AxiosInstance = axios.create({
 	baseURL: ENV.API_URL,
-	timeout: 10000,
+	timeout: 15000, // Increased timeout for larger radius requests
 	headers: {
 		'Content-Type': 'application/json',
+		'Accept-Encoding': 'gzip, deflate, br', // Enable compression
 	},
-	withCredentials: true
+	withCredentials: true,
+	// Enable HTTP/2 connection reuse for better performance
+	maxRedirects: 3,
+	maxContentLength: 50 * 1024 * 1024, // 50MB limit for large pod datasets
 });
 
 axiosInstance.interceptors.request.use(

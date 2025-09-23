@@ -1,18 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import InstallGuidePopup from "./InstallGuidePopup";
 import { useAddToHomeScreenStore } from "@/features/add-to-home-screen/stores/add-to-home-screen.store";
 import {
-  getInitialPosition,
+  getAddToHomeEqualMarginPosition,
   getMaxY,
   snapToEdge,
   SPACING,
   BUTTON_SIZES,
-  isInStandaloneMode
+  isInStandaloneMode,
 } from "@/shared/utils/positioning";
+import { useWorkspacePopup } from "@/hooks/WorkspacePopupContext";
 
 const getButtonStyle = (isDragging: boolean, position: { x: number; y: number }): React.CSSProperties => ({
   position: "fixed",
@@ -67,23 +68,45 @@ function getBrowserType(): "safari" | "chrome" | "other" {
 export default function AddToHomeScreenButton() {
   const { showButton, showIOSPopup, setShowButton, setShowIOSPopup } =
     useAddToHomeScreenStore();
+  const { isPopupOpen } = useWorkspacePopup();
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [browserType, setBrowserType] = useState<"safari" | "chrome" | "other">(
     "other"
   );
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState<{ x: number; y: number }>({
+    x: typeof window !== "undefined" ? window.innerWidth - BUTTON_SIZES.ADD_TO_HOME - SPACING.EDGE_MARGIN : SPACING.EDGE_MARGIN,
+    y: SPACING.EDGE_MARGIN
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Initialize position using shared utility
+  // Initial positioning on mount
   useEffect(() => {
-    console.log("🚀 AddToHomeScreen - Initializing position...");
-    const initialPos = getInitialPosition();
-    console.log("📍 AddToHomeScreen - Initial position:", initialPos);
-    setPosition(initialPos);
+    if (typeof window !== "undefined") {
+      const initialPosition = getAddToHomeEqualMarginPosition();
+      console.log("🎯 AddToHomeScreen - Initial position:", initialPosition);
+      setPosition(initialPosition);
+    }
   }, []);
+
+  // Dynamic positioning based on popup state
+  useEffect(() => {
+    console.log("🚀 AddToHomeScreen - Updating position...", { isPopupOpen });
+    
+    // Add small delay to ensure viewport measurements are ready
+    const updatePosition = () => {
+      // DISABLED: Don't auto-reposition when popup opens/closes
+      // User can drag button manually if it gets covered
+      console.log("📍 AddToHomeScreen - Auto-repositioning disabled, popup state:", { isPopupOpen });
+      return;
+    };
+
+    // Delay positioning to ensure viewport is ready
+    const timeoutId = setTimeout(updatePosition, 100);
+    return () => clearTimeout(timeoutId);
+  }, [isPopupOpen]); // Removed position.y dependency as it's not needed for this effect
 
   // Handle viewport changes (for Safari mobile URL bar show/hide)
   useEffect(() => {
@@ -140,7 +163,7 @@ export default function AddToHomeScreenButton() {
       window.removeEventListener('resize', handleResize);
       mediaQuery.removeEventListener('change', handleDisplayModeChange);
     };
-  }, [position]);
+  }, [position.y]); // Added position.y dependency to ensure handleResize has the latest position.y
 
   useEffect(() => {
     console.log("🎯 AddToHomeScreen - Main effect - checking display mode and browser");
@@ -191,7 +214,7 @@ export default function AddToHomeScreenButton() {
     });
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
 
     const mouseX = e.clientX - dragStart.x + (BUTTON_SIZES.ADD_TO_HOME / 2); // Center adjustment
@@ -203,11 +226,11 @@ export default function AddToHomeScreenButton() {
     const newY = Math.max(SPACING.VERTICAL_MARGIN, Math.min(maxY, mouseY - (BUTTON_SIZES.ADD_TO_HOME / 2)));
 
     setPosition({ x: newX, y: newY });
-  };
+  }, [isDragging, dragStart, setPosition, position.x, position.y]); // Added position.x and position.y to dependencies
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
   // Touch handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -219,7 +242,7 @@ export default function AddToHomeScreenButton() {
     });
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
+  const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!isDragging) return;
     e.preventDefault();
 
@@ -233,7 +256,7 @@ export default function AddToHomeScreenButton() {
     const newY = Math.max(SPACING.VERTICAL_MARGIN, Math.min(maxY, mouseY - (BUTTON_SIZES.ADD_TO_HOME / 2)));
 
     setPosition({ x: newX, y: newY });
-  };
+  }, [isDragging, dragStart, setPosition, position.x, position.y]); // Added position.x and position.y to dependencies
 
   const handleTouchEnd = () => {
     setIsDragging(false);
@@ -254,7 +277,7 @@ export default function AddToHomeScreenButton() {
         document.removeEventListener('touchend', handleTouchEnd);
       };
     }
-  }, [isDragging, dragStart]);
+  }, [isDragging, dragStart, handleMouseMove, handleTouchMove]);
 
   const handleClick = (e: React.MouseEvent) => {
     // Only handle click if not dragging

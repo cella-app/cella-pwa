@@ -34,6 +34,7 @@ import { calculateDistanceNew, getAllowedCenterThreshold } from "@/shared/utils/
 import { useEventStore } from '@/features/map/stores/event.store';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
 import MapLoadingIndicator from '@/components/MapLoadingIndicator';
+import { useWorkspacePopup } from '@/hooks/WorkspacePopupContext';
 // import MobileDebugger from "@/components/LocationDebugger";
 
 function MapInitializer({ mapRef }: { mapRef: React.RefObject<LeafletMapType | null> }) {
@@ -136,6 +137,7 @@ export default memo(function MapContent() {
   const [mapLoaded, setMapLoaded] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
+  const { setPopupOpen } = useWorkspacePopup();
   const [loadingUser, setLoadingUser] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -161,6 +163,11 @@ export default memo(function MapContent() {
       setSelectedPod(null);
     }
   });
+
+  // Track popup state for AddToHome button positioning
+  useEffect(() => {
+    setPopupOpen(!!selectedPod);
+  }, [selectedPod, setPopupOpen]);
 
   useEffect(() => {
     async function fetchUser() {

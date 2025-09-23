@@ -129,8 +129,32 @@ export const MapLayersAndControls = ({
       .filter((pod) => !newPodIds.has(pod.id) && !pod.isFading)
       .map((pod) => ({ ...pod, isFading: true }));
 
-    // Update state with new pods and fading pods
-    setDisplayedPods([...podsToKeep, ...podsToAdd, ...podsToRemove]);
+    // Progressive loading: Add new pods in batches for better UX
+    if (podsToAdd.length > 10) {
+      // For large datasets, add pods progressively
+      const batchSize = 5;
+      let batchIndex = 0;
+      
+      // Start with first batch
+      setDisplayedPods([...podsToKeep, ...podsToAdd.slice(0, batchSize), ...podsToRemove]);
+      
+      // Add remaining pods in batches with small delays
+      const addNextBatch = () => {
+        batchIndex += batchSize;
+        if (batchIndex < podsToAdd.length) {
+          setDisplayedPods(prev => [
+            ...prev.filter(p => !p.isFading), 
+            ...podsToAdd.slice(0, batchIndex + batchSize)
+          ]);
+          setTimeout(addNextBatch, 50); // 50ms delay between batches
+        }
+      };
+      
+      setTimeout(addNextBatch, 100); // Start after 100ms
+    } else {
+      // For small datasets, add all at once
+      setDisplayedPods([...podsToKeep, ...podsToAdd, ...podsToRemove]);
+    }
 
     // Set timeout to remove fading pods after 1 second
     const fadingPods = podsToRemove.map((pod) => pod.id);

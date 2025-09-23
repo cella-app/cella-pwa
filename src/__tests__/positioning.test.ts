@@ -9,7 +9,8 @@ import {
   getMaxY,
   snapToEdge,
   getStackedRightPosition,
-  getRealSafeAreaInsets,
+  getSafeViewportHeight,
+  isLargeDisplayMode,
   getLocateButtonPosition,
   getAddToHomeEqualMarginPosition,
   SPACING,
@@ -27,6 +28,15 @@ const mockWindow = (width: number, height: number) => {
     writable: true,
     configurable: true,
     value: height,
+  });
+};
+
+// Mock iOS environment
+const mockiOSEnvironment = () => {
+  Object.defineProperty(window.navigator, 'userAgent', {
+    writable: true,
+    configurable: true,
+    value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1',
   });
 };
 
@@ -487,50 +497,115 @@ describe('Positioning Utils', () => {
   });
 
   // NEW POSITIONING SYSTEM TESTS
-  describe('New Safe Area Based Positioning', () => {
+  describe('Simplified Safe Positioning', () => {
     beforeEach(() => {
       mockWindow(393, 852); // iPhone 15 Pro default
     });
 
-    describe('getRealSafeAreaInsets', () => {
-      it('should return valid safe area insets', () => {
-        const safeArea = getRealSafeAreaInsets();
+    describe('isLargeDisplayMode', () => {
+      it('should detect Large Display Mode correctly', () => {
+        // Mock iOS environment first
+        mockiOSEnvironment();
         
-        expect(safeArea).toHaveProperty('top');
-        expect(safeArea).toHaveProperty('right');
-        expect(safeArea).toHaveProperty('bottom');
-        expect(safeArea).toHaveProperty('left');
+        // Mock Large Display Mode: 320px width + device pixel ratio
+        mockWindow(320, 568);
+        Object.defineProperty(window, 'devicePixelRatio', {
+          writable: true,
+          configurable: true,
+          value: 2,
+        });
         
-        // All values should be non-negative
-        expect(safeArea.top).toBeGreaterThanOrEqual(0);
-        expect(safeArea.right).toBeGreaterThanOrEqual(0);
-        expect(safeArea.bottom).toBeGreaterThanOrEqual(0);
-        expect(safeArea.left).toBeGreaterThanOrEqual(0);
+        const isLargeDisplay = isLargeDisplayMode();
+        expect(isLargeDisplay).toBe(true);
       });
 
-      it('should provide fallback values when safe area detection fails', () => {
-        // Test that function returns valid safe area values even in constrained environments
-        const safeArea = getRealSafeAreaInsets();
+      it('should not detect Large Display Mode on normal screens', () => {
+        mockWindow(393, 852); // Normal iPhone 15 Pro
+        Object.defineProperty(window, 'devicePixelRatio', {
+          writable: true,
+          configurable: true,
+          value: 3,
+        });
         
-        // Should always return valid insets (even if estimated)
-        expect(typeof safeArea.top).toBe('number');
-        expect(typeof safeArea.right).toBe('number');
-        expect(typeof safeArea.bottom).toBe('number');
-        expect(typeof safeArea.left).toBe('number');
+        const isLargeDisplay = isLargeDisplayMode();
+        expect(isLargeDisplay).toBe(false);
+      });
+
+      it('should work across different iOS devices in Large Display Mode', () => {
+        // Mock iOS environment first
+        mockiOSEnvironment();
         
-        // All values should be non-negative
-        expect(safeArea.top).toBeGreaterThanOrEqual(0);
-        expect(safeArea.right).toBeGreaterThanOrEqual(0);
-        expect(safeArea.bottom).toBeGreaterThanOrEqual(0);
-        expect(safeArea.left).toBeGreaterThanOrEqual(0);
+        const largeDisplaySizes = [
+          { width: 320, height: 568, device: 'iPhone SE' },
+          { width: 320, height: 693, device: 'iPhone 13 Pro' },
+          { width: 320, height: 736, device: 'iPhone 13 Pro Max' },
+        ];
+
+        largeDisplaySizes.forEach(size => {
+          mockWindow(size.width, size.height);
+          Object.defineProperty(window, 'devicePixelRatio', {
+            writable: true,
+            configurable: true,
+            value: 2,
+          });
+          
+          const isLargeDisplay = isLargeDisplayMode();
+          expect(isLargeDisplay).toBe(true);
+        });
+      });
+    });
+
+    describe('getSafeViewportHeight', () => {
+      it('should return conservative height for iOS Safari', () => {
+        const height = getSafeViewportHeight();
+        
+        expect(height).toBeGreaterThan(0);
+        expect(height).toBeLessThanOrEqual(window.innerHeight);
+        
+        // Should be conservative (less than full height)
+        expect(height).toBeLessThan(window.innerHeight);
+      });
+
+      it('should be extra conservative for Large Display Mode', () => {
+        // Mock iOS environment first
+        mockiOSEnvironment();
+        
+        // Mock Large Display Mode
+        mockWindow(320, 568);
+        Object.defineProperty(window, 'devicePixelRatio', {
+          writable: true,
+          configurable: true,
+          value: 2,
+        });
+        
+        const height = getSafeViewportHeight();
+        
+        // Should be very conservative (75% of height)
+        expect(height).toBeLessThan(window.innerHeight * 0.8);
+        expect(height).toBeGreaterThan(window.innerHeight * 0.7);
+      });
+
+      it('should handle different screen sizes', () => {
+        const testSizes = [
+          { width: 320, height: 568 }, // iPhone SE + Large Display
+          { width: 393, height: 852 }, // iPhone 15 Pro
+          { width: 1920, height: 1080 }, // Desktop
+        ];
+
+        testSizes.forEach(size => {
+          mockWindow(size.width, size.height);
+          const height = getSafeViewportHeight();
+          
+          expect(height).toBeGreaterThan(0);
+          expect(height).toBeLessThanOrEqual(size.height);
+        });
       });
     });
 
     describe('getLocateButtonPosition', () => {
-      it('should position Locate button 2x button height from safe area bottom', () => {
+      it('should position Locate button 2x button height from bottom', () => {
         const position = getLocateButtonPosition();
-        const safeArea = getRealSafeAreaInsets();
-        const expectedBottom = safeArea.bottom + (2 * BUTTON_SIZES.LOCATE_CONTROL);
+        const expectedBottom = 2 * BUTTON_SIZES.LOCATE_CONTROL;
         
         expect(position.bottom).toBe(expectedBottom);
         expect(position.bottom).toBeGreaterThan(0);
@@ -557,32 +632,31 @@ describe('Positioning Utils', () => {
     describe('getAddToHomeEqualMarginPosition', () => {
       it('should center AddToHome button with equal margins', () => {
         const position = getAddToHomeEqualMarginPosition();
-        const safeArea = getRealSafeAreaInsets();
         
-        const availableWidth = window.innerWidth - safeArea.left - safeArea.right - BUTTON_SIZES.ADD_TO_HOME;
-        const availableHeight = window.innerHeight - safeArea.top - safeArea.bottom - BUTTON_SIZES.ADD_TO_HOME;
+        // Should be roughly centered
+        const centerX = window.innerWidth / 2;
+        const centerY = getSafeViewportHeight() / 2;
+        const buttonCenterX = position.x + (BUTTON_SIZES.ADD_TO_HOME / 2);
+        const buttonCenterY = position.y + (BUTTON_SIZES.ADD_TO_HOME / 2);
         
-        const expectedX = safeArea.left + (availableWidth / 2);
-        const expectedY = safeArea.top + (availableHeight / 2);
-        
-        expect(position.x).toBeCloseTo(expectedX, 1);
-        expect(position.y).toBeCloseTo(expectedY, 1);
+        expect(Math.abs(buttonCenterX - centerX)).toBeLessThan(50); // Within 50px of center
+        expect(Math.abs(buttonCenterY - centerY)).toBeLessThan(50);
       });
 
       it('should maintain equal distances to all edges', () => {
         const position = getAddToHomeEqualMarginPosition();
-        const safeArea = getRealSafeAreaInsets();
         const buttonSize = BUTTON_SIZES.ADD_TO_HOME;
+        const safeHeight = getSafeViewportHeight();
         
         // Distance to each edge
-        const leftDistance = position.x - safeArea.left;
-        const rightDistance = (window.innerWidth - safeArea.right) - (position.x + buttonSize);
-        const topDistance = position.y - safeArea.top;
-        const bottomDistance = (window.innerHeight - safeArea.bottom) - (position.y + buttonSize);
+        const leftDistance = position.x;
+        const rightDistance = window.innerWidth - (position.x + buttonSize);
+        const topDistance = position.y;
+        const bottomDistance = safeHeight - (position.y + buttonSize);
         
         // All distances should be approximately equal
-        expect(leftDistance).toBeCloseTo(rightDistance, 1);
-        expect(topDistance).toBeCloseTo(bottomDistance, 1);
+        expect(Math.abs(leftDistance - rightDistance)).toBeLessThan(5);
+        expect(Math.abs(topDistance - bottomDistance)).toBeLessThan(5);
       });
 
       it('should work across different screen sizes and orientations', () => {

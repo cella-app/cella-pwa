@@ -15,6 +15,7 @@ import {
   DialogActions,
   Divider
 } from "@mui/material";
+import { getSafeViewportHeight } from '@/shared/utils/positioning';
 import { rootStyle } from "@/theme";
 import { BillingSession, BillingSummarySession, Session, SessionStatusEnum } from '@/shared/data/models/Session';
 import { sessionApi } from '@/shared/api/session.api';
@@ -45,6 +46,20 @@ export default function SessionCompletePage() {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summary, setSummary] = useState<BillingSummarySession | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  
+  // Use safe viewport height to prevent scroll issues
+  const [safeHeight, setSafeHeight] = useState<number>(600);
+  
+  useEffect(() => {
+    const updateHeight = () => {
+      const height = getSafeViewportHeight();
+      setSafeHeight(height);
+    };
+    
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
 
   useEffect(() => {
     async function fetchSessionAndBilling() {
@@ -117,7 +132,7 @@ export default function SessionCompletePage() {
   if (isLoading) {
     return (
       <Box sx={{
-        height: '100vh',
+        height: `${safeHeight}px`, // Use safe height instead of 100vh
         backgroundColor: rootStyle.backgroundColor,
         display: 'flex',
         justifyContent: 'center',
@@ -131,7 +146,7 @@ export default function SessionCompletePage() {
   if (!sessionDetails || !billing) {
     return (
       <Box sx={{
-        height: '100vh',
+        height: `${safeHeight}px`, // Use safe height instead of 100vh
         backgroundColor: rootStyle.backgroundColor,
         display: 'flex',
         justifyContent: 'center',
@@ -156,7 +171,7 @@ export default function SessionCompletePage() {
 
   return (
     <Box sx={{
-      minHeight: '100vh',
+      minHeight: '100vh', // Allow normal scrolling on complete page
       backgroundColor: '#FCFCF6',
       display: 'flex',
       flexDirection: 'column',

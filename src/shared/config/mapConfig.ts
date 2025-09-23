@@ -6,4 +6,6 @@ export const ZOOM_RADIUS_CONFIG = [
   { zoom: 15, radius: 1200 },   // 1.2km (doubled from 600m)
 ];
 
-export const DEBOUNCE_TIME = 100; // milliseconds
+export const DEBOUNCE_TIME = 150; // Increased slightly to reduce API calls with caching
+export const CACHE_INVALIDATION_DISTANCE = 100; // meters - invalidate cache if user moves this far
+export const PREFETCH_RADIUS_MULTIPLIER = 1.5; // Prefetch 1.5x radius for smooth panning

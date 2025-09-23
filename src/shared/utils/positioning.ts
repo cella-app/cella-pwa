@@ -47,113 +47,99 @@ export function getEnvironmentInfo() {
 	return { isSafari, isIOS, isStandalone };
 }
 
-// Real safe area detection using modern APIs
-export function getRealSafeAreaInsets() {
+// Detect if device is in Large Display Mode (zoomed interface)
+export function isLargeDisplayMode(): boolean {
 	if (typeof window === "undefined" || !window) {
-		return { top: 0, right: 0, bottom: 0, left: 0 };
+		return false;
 	}
 
-
-	// Try CSS environment variables first (most accurate for modern devices)
-	// Check if CSS.supports is available (not available in Jest environment)
-	const supportsEnv = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('padding', 'env(safe-area-inset-top)');
-	if (supportsEnv) {
-		const testElement = document.createElement('div');
-		testElement.style.position = 'fixed';
-		testElement.style.visibility = 'hidden';
-		testElement.style.top = '0';
-		testElement.style.left = '0';
-		testElement.style.paddingTop = 'env(safe-area-inset-top)';
-		testElement.style.paddingRight = 'env(safe-area-inset-right)';
-		testElement.style.paddingBottom = 'env(safe-area-inset-bottom)';
-		testElement.style.paddingLeft = 'env(safe-area-inset-left)';
-		
-		document.body.appendChild(testElement);
-		const computedStyle = window.getComputedStyle(testElement);
-		const safeAreaInsets = {
-			top: parseFloat(computedStyle.paddingTop) || 0,
-			right: parseFloat(computedStyle.paddingRight) || 0,
-			bottom: parseFloat(computedStyle.paddingBottom) || 0,
-			left: parseFloat(computedStyle.paddingLeft) || 0
-		};
-		document.body.removeChild(testElement);
-		
-		if (safeAreaInsets.top > 0 || safeAreaInsets.bottom > 0) {
-			return safeAreaInsets;
-		}
-	}
-
-	// Fallback: Use Visual Viewport API if available
-	if ('visualViewport' in window && window.visualViewport) {
-		const vv = window.visualViewport;
-		return {
-			top: vv.offsetTop || 0,
-			right: Math.max(0, window.innerWidth - (vv.offsetLeft + vv.width)),
-			bottom: Math.max(0, window.innerHeight - (vv.offsetTop + vv.height)),
-			left: vv.offsetLeft || 0
-		};
-	}
-
-	// Final fallback: Device-specific estimates based on user agent
-	// But only if we have proper window/screen access
-	if (!window.screen || !window.navigator) {
-		return { top: 0, right: 0, bottom: 0, left: 0 };
-	}
-	
 	const env = getEnvironmentInfo();
-	if (env.isIOS) {
-		const isNewIPhone = window.screen.height >= 812; // iPhone X and newer
-		const hasHomeIndicator = isNewIPhone || window.screen.height === 896; // iPhone XR/11
-		
-		return {
-			top: isNewIPhone && !env.isStandalone ? 44 : 20, // Status bar + notch
-			right: 0,
-			bottom: hasHomeIndicator ? 34 : 0, // Home indicator
-			left: 0
-		};
+	if (!env.isIOS) {
+		return false;
 	}
 
-	// Android and other devices
-	return { top: 24, right: 0, bottom: 0, left: 0 }; // Estimate status bar
+	// Large Display Mode indicators:
+	// 1. Width is 320px (common across all iOS devices in zoomed mode)
+	// 2. Device pixel ratio might be different
+	// 3. Screen height is reduced from native resolution
+	
+	const isZoomedWidth = window.innerWidth === 320;
+	const hasZoomedRatio = window.devicePixelRatio && window.devicePixelRatio >= 2;
+	
+	return isZoomedWidth && !!hasZoomedRatio;
+}
+
+// Get safe viewport height accounting for iOS Safari issues
+export function getSafeViewportHeight(): number {
+	if (typeof window === "undefined" || !window) {
+		return 600; // Fallback
+	}
+
+	// Modern approach: Visual Viewport API (most accurate)
+	if ('visualViewport' in window && window.visualViewport) {
+		return window.visualViewport.height;
+	}
+
+	const env = getEnvironmentInfo();
+	const isLargeDisplay = isLargeDisplayMode();
+
+	// Adjusted for Large Display Mode - less conservative
+	if (isLargeDisplay && env.isSafari) {
+		return window.innerHeight * 0.88; // Less conservative for better positioning
+	}
+
+	// Conservative fallback for iOS Safari
+	if (env.isIOS && env.isSafari) {
+		// More conservative for iOS Safari due to bottom URL bar
+		return window.innerHeight * 0.92; // Slightly increased
+	}
+
+	// Standard fallback
+	return window.innerHeight * 0.9;
 }
 
 // NEW POSITIONING SYSTEM - based on real safe areas
 
-// Get Locate button position: fixed distance from safe area bottom
+// Get Locate button position: fixed distance from viewport bottom
 export function getLocateButtonPosition(): { bottom: number } {
-	const safeArea = getRealSafeAreaInsets();
 	const locateButtonHeight = BUTTON_SIZES.LOCATE_CONTROL;
 	
-	// Distance from safe area bottom = 2 * button height
-	const distanceFromSafeBottom = 2 * locateButtonHeight;
+	// Simple: 2x button height from actual viewport bottom
+	const distanceFromBottom = 2 * locateButtonHeight;
 	
 	return {
-		bottom: safeArea.bottom + distanceFromSafeBottom
+		bottom: distanceFromBottom
 	};
 }
 
-// Get AddToHome equal-margin positioning
+// Get AddToHome default positioning - MIDDLE LEFT (center vertically, left edge)
 export function getAddToHomeEqualMarginPosition(): { x: number; y: number } {
 	if (typeof window === "undefined" || !window) {
-		return { x: SPACING.EDGE_MARGIN, y: 100 };
+		return { x: 300, y: 100 }; // Fallback positioning
 	}
 	
-	const safeArea = getRealSafeAreaInsets();
 	const buttonSize = BUTTON_SIZES.ADD_TO_HOME;
+	const safeHeight = getSafeViewportHeight();
+	const isLargeDisplay = isLargeDisplayMode();
 	
-	// Available space in each dimension
-	const availableWidth = window.innerWidth - safeArea.left - safeArea.right - buttonSize;
-	const availableHeight = window.innerHeight - safeArea.top - safeArea.bottom - buttonSize;
+	// Use consistent margins for equal spacing from all edges
+	let margin: number = SPACING.EDGE_MARGIN; // Base 24px
+	if (isLargeDisplay) {
+		margin = Math.max(margin, window.innerWidth * 0.06); // 6% for Large Display Mode
+	}
 	
-	// Equal margins from all edges
-	const horizontalMargin = availableWidth / 2;
-	const verticalMargin = availableHeight / 2;
+	// MIDDLE-LEFT positioning - center vertically, left edge with margin
+	const x = margin;
+	const y = (safeHeight - buttonSize) / 2; // Center vertically
 	
-	// Position from top-left corner
-	const x = safeArea.left + horizontalMargin;
-	const y = safeArea.top + verticalMargin;
+	// Ensure button doesn't go off screen
+	const maxX = window.innerWidth - buttonSize - margin;
+	const maxY = safeHeight - buttonSize - margin;
 	
-	return { x, y };
+	return { 
+		x: Math.min(x, maxX), 
+		y: Math.min(y, maxY) 
+	};
 }
 
 // Unified bottom offset logic
@@ -237,9 +223,9 @@ export function getInitialPosition(): { x: number; y: number } {
 export function getMaxY(): number {
 	if (typeof window === "undefined" || !window || !window.innerHeight) return 100;
 
-	const bottomOffsetPixels = getBottomOffsetPixels();
-	// MaxY cũng cần align với LocateControl top position
-	return window.innerHeight - bottomOffsetPixels - BUTTON_SIZES.ADD_TO_HOME;
+	// Use safe viewport height instead of window.innerHeight to match initial positioning
+	const safeHeight = getSafeViewportHeight();
+	return safeHeight - SPACING.EDGE_MARGIN - BUTTON_SIZES.ADD_TO_HOME;
 }
 
 export function snapToEdge(mouseX: number): number {

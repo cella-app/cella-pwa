@@ -9,21 +9,29 @@ import { useReservationStore } from '@/features/reservation/stores/reservation.s
 import { useSessionStore } from '@/features/session/stores/session.store';
 import { User } from '@/shared/data/models/User';
 import { useRouter } from 'next/navigation';
+import { getSafeViewportHeight } from '@/shared/utils/positioning';
 
 const MapContent = dynamic(() => import('@/features/pods/MapContent'), {
   ssr: false,
-  loading: () => <Box><div
-    style={{
-      height: '100vh',
-      width: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#f5f5f5',
-    }}
-  >
-    <div>Loading...</div>
-  </div></Box>,
+  loading: () => {
+    const loadingHeight = typeof window !== 'undefined' ? getSafeViewportHeight() : 600;
+    return (
+      <Box>
+        <div
+          style={{
+            height: `${loadingHeight}px`, // Use safe height
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f5f5f5',
+          }}
+        >
+          <div>Loading...</div>
+        </div>
+      </Box>
+    );
+  },
 });
 
 const useInitializeUser = () => {
@@ -80,10 +88,35 @@ const useInitializeReservation = () => {
   }, [checkReservation]);
 };
 
+const useSafeViewportHeight = () => {
+  const [height, setHeight] = useState<number>(600); // Fallback
+
+  useEffect(() => {
+    const updateHeight = () => {
+      const safeHeight = getSafeViewportHeight();
+      setHeight(safeHeight);
+    };
+
+    updateHeight();
+    
+    // Update on window resize and orientation change
+    window.addEventListener('resize', updateHeight);
+    window.addEventListener('orientationchange', updateHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateHeight);
+      window.removeEventListener('orientationchange', updateHeight);
+    };
+  }, []);
+
+  return height;
+};
+
 export default function MapPage() {
   useInitializeUser();
   const { currentSession, router } = useInitializeSession();
   useInitializeReservation();
+  const safeHeight = useSafeViewportHeight();
 
   console.log("Current Session", currentSession)
   useEffect(() => {
@@ -99,7 +132,7 @@ export default function MapPage() {
   return (
     <Box sx={{ 
       width: '100vw', 
-      height: '100vh', 
+      height: `${safeHeight}px`, // Use safe height instead of 100vh
       position: 'relative',
       overflow: 'hidden' // Prevent scroll bars
     }}>
