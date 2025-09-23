@@ -47,6 +47,115 @@ export function getEnvironmentInfo() {
 	return { isSafari, isIOS, isStandalone };
 }
 
+// Real safe area detection using modern APIs
+export function getRealSafeAreaInsets() {
+	if (typeof window === "undefined" || !window) {
+		return { top: 0, right: 0, bottom: 0, left: 0 };
+	}
+
+
+	// Try CSS environment variables first (most accurate for modern devices)
+	// Check if CSS.supports is available (not available in Jest environment)
+	const supportsEnv = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('padding', 'env(safe-area-inset-top)');
+	if (supportsEnv) {
+		const testElement = document.createElement('div');
+		testElement.style.position = 'fixed';
+		testElement.style.visibility = 'hidden';
+		testElement.style.top = '0';
+		testElement.style.left = '0';
+		testElement.style.paddingTop = 'env(safe-area-inset-top)';
+		testElement.style.paddingRight = 'env(safe-area-inset-right)';
+		testElement.style.paddingBottom = 'env(safe-area-inset-bottom)';
+		testElement.style.paddingLeft = 'env(safe-area-inset-left)';
+		
+		document.body.appendChild(testElement);
+		const computedStyle = window.getComputedStyle(testElement);
+		const safeAreaInsets = {
+			top: parseFloat(computedStyle.paddingTop) || 0,
+			right: parseFloat(computedStyle.paddingRight) || 0,
+			bottom: parseFloat(computedStyle.paddingBottom) || 0,
+			left: parseFloat(computedStyle.paddingLeft) || 0
+		};
+		document.body.removeChild(testElement);
+		
+		if (safeAreaInsets.top > 0 || safeAreaInsets.bottom > 0) {
+			return safeAreaInsets;
+		}
+	}
+
+	// Fallback: Use Visual Viewport API if available
+	if ('visualViewport' in window && window.visualViewport) {
+		const vv = window.visualViewport;
+		return {
+			top: vv.offsetTop || 0,
+			right: Math.max(0, window.innerWidth - (vv.offsetLeft + vv.width)),
+			bottom: Math.max(0, window.innerHeight - (vv.offsetTop + vv.height)),
+			left: vv.offsetLeft || 0
+		};
+	}
+
+	// Final fallback: Device-specific estimates based on user agent
+	// But only if we have proper window/screen access
+	if (!window.screen || !window.navigator) {
+		return { top: 0, right: 0, bottom: 0, left: 0 };
+	}
+	
+	const env = getEnvironmentInfo();
+	if (env.isIOS) {
+		const isNewIPhone = window.screen.height >= 812; // iPhone X and newer
+		const hasHomeIndicator = isNewIPhone || window.screen.height === 896; // iPhone XR/11
+		
+		return {
+			top: isNewIPhone && !env.isStandalone ? 44 : 20, // Status bar + notch
+			right: 0,
+			bottom: hasHomeIndicator ? 34 : 0, // Home indicator
+			left: 0
+		};
+	}
+
+	// Android and other devices
+	return { top: 24, right: 0, bottom: 0, left: 0 }; // Estimate status bar
+}
+
+// NEW POSITIONING SYSTEM - based on real safe areas
+
+// Get Locate button position: fixed distance from safe area bottom
+export function getLocateButtonPosition(): { bottom: number } {
+	const safeArea = getRealSafeAreaInsets();
+	const locateButtonHeight = BUTTON_SIZES.LOCATE_CONTROL;
+	
+	// Distance from safe area bottom = 2 * button height
+	const distanceFromSafeBottom = 2 * locateButtonHeight;
+	
+	return {
+		bottom: safeArea.bottom + distanceFromSafeBottom
+	};
+}
+
+// Get AddToHome equal-margin positioning
+export function getAddToHomeEqualMarginPosition(): { x: number; y: number } {
+	if (typeof window === "undefined" || !window) {
+		return { x: SPACING.EDGE_MARGIN, y: 100 };
+	}
+	
+	const safeArea = getRealSafeAreaInsets();
+	const buttonSize = BUTTON_SIZES.ADD_TO_HOME;
+	
+	// Available space in each dimension
+	const availableWidth = window.innerWidth - safeArea.left - safeArea.right - buttonSize;
+	const availableHeight = window.innerHeight - safeArea.top - safeArea.bottom - buttonSize;
+	
+	// Equal margins from all edges
+	const horizontalMargin = availableWidth / 2;
+	const verticalMargin = availableHeight / 2;
+	
+	// Position from top-left corner
+	const x = safeArea.left + horizontalMargin;
+	const y = safeArea.top + verticalMargin;
+	
+	return { x, y };
+}
+
 // Unified bottom offset logic
 export function getBottomOffset(isSafari: boolean, isIOS: boolean, isStandalone: boolean): string {
 	// PWA mode - minimal spacing
