@@ -70,16 +70,10 @@
   justify-content: center;
 }
 
-/* Fix body and html for full screen map */
-html, body {
-  overflow: hidden !important;
+/* Fix only map container for full screen */
+.map-page-container {
   margin: 0 !important;
   padding: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-#__next {
   width: 100% !important;
   height: 100% !important;
   overflow: hidden !important;
