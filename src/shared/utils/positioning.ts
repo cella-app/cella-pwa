@@ -103,9 +103,19 @@ export function getSafeViewportHeight(): number {
 // Get Locate button position: fixed distance from viewport bottom
 export function getLocateButtonPosition(): { bottom: number } {
 	const locateButtonHeight = BUTTON_SIZES.LOCATE_CONTROL;
+	const env = getEnvironmentInfo();
 	
-	// Simple: 2x button height from actual viewport bottom
-	const distanceFromBottom = 2 * locateButtonHeight;
+	// For Android and PWA: 1x button height from bottom
+	// For iOS Safari: 2x button height for better touch access
+	let distanceFromBottom: number;
+	
+	if (env.isStandalone || (!env.isIOS && !env.isSafari)) {
+		// PWA mode or Android: button height spacing
+		distanceFromBottom = locateButtonHeight;
+	} else {
+		// iOS Safari: 2x button height for URL bar handling
+		distanceFromBottom = 2 * locateButtonHeight;
+	}
 	
 	return {
 		bottom: distanceFromBottom
@@ -254,28 +264,28 @@ export function getStackedRightPosition(): number {
 
 // Separate bottom offset for Locate button (easier touch access)
 export function getLocateButtonBottomOffset(isSafari: boolean, isIOS: boolean, isStandalone: boolean): string {
-	// PWA mode - comfortable touch spacing
+	// PWA mode - button height spacing (44px ≈ 33pt)
 	if (isStandalone) {
-		return '16pt';
+		return '33pt';
 	}
 
-	// iOS Safari - account for URL bar but keep accessible
+	// iOS Safari - 2x button height for URL bar handling (88px ≈ 66pt)
 	if (isIOS && isSafari) {
-		return '50pt'; // Lower but still above URL bar
+		return '66pt';
 	}
 
-	// iOS other browsers - moderate spacing for easy access
+	// iOS other browsers - 2x button height for better touch access
 	if (isIOS) {
-		return '30pt';
+		return '66pt';
 	}
 
-	// Desktop Safari - comfortable spacing
+	// Desktop Safari - 2x button height
 	if (isSafari) {
-		return '20pt';
+		return '66pt';
 	}
 
-	// Other browsers - comfortable touch spacing
-	return '16pt';
+	// Android and other browsers - button height spacing (44px ≈ 33pt)
+	return '33pt';
 }
 
 // Kiểm tra xem có phải Safari mobile không PWA không (URL bar dưới)
