@@ -36,6 +36,7 @@ import { useEventStore } from '@/features/map/stores/event.store';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
 import MapLoadingIndicator from '@/components/MapLoadingIndicator';
 import { useWorkspacePopup } from '@/hooks/WorkspacePopupContext';
+import { getEnvironmentInfo, getLocateButtonBottomOffset } from '@/shared/utils/positioning';
 // import MobileDebugger from "@/components/LocationDebugger";
 
 function MapInitializer({ mapRef }: { mapRef: React.RefObject<LeafletMapType | null> }) {
@@ -141,6 +142,7 @@ export default memo(function MapContent() {
   const { setPopupOpen } = useWorkspacePopup();
   const [loadingUser, setLoadingUser] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [popupBottomOffset, setPopupBottomOffset] = useState("20px");
 
   const mapRef = useRef<LeafletMapType | null>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -183,6 +185,41 @@ export default memo(function MapContent() {
       }
     }
     fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const updatePopupPosition = () => {
+      const env = getEnvironmentInfo();
+      const bottomOffset = getLocateButtonBottomOffset(env.isSafari, env.isIOS, env.isStandalone);
+      setPopupBottomOffset(bottomOffset);
+    };
+
+    updatePopupPosition();
+
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleDisplayModeChange = () => {
+      setTimeout(updatePopupPosition, 100);
+    };
+    mediaQuery.addEventListener('change', handleDisplayModeChange);
+
+    const handleResize = () => {
+      setTimeout(updatePopupPosition, 100);
+    };
+    window.addEventListener('resize', handleResize);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const visualViewport = (window as any).visualViewport;
+    if (visualViewport) {
+      visualViewport.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleDisplayModeChange);
+      window.removeEventListener('resize', handleResize);
+      if (visualViewport) {
+        visualViewport.removeEventListener('resize', handleResize);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -315,7 +352,7 @@ export default memo(function MapContent() {
           ref={popupRef}
           style={{
             position: "absolute",
-            bottom: "20px",
+            bottom: popupBottomOffset,
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 1002,
@@ -324,7 +361,7 @@ export default memo(function MapContent() {
             maxWidth: "400px",
             ...(window.innerWidth <= 330
               ? {
-                bottom: "10px",
+                bottom: popupBottomOffset,
                 maxWidth: "calc(100% - 15pt)",
                 padding: "0 15pt",
               }

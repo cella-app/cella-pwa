@@ -79,11 +79,19 @@
 }
 
 /* Fix only map container for full screen with safe area support */
+.layout-map-page-container {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  height: 100%;
+}
+
 .map-page-container {
   margin: 0 !important;
   padding: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
   overflow: hidden !important;
   position: relative !important;
   
