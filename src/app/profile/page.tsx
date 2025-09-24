@@ -28,6 +28,7 @@ import DialogActions from '@mui/material/DialogActions';
 import { updateAvatarWithDelete, getMe, updateInfo } from '@/features/me/me.action';
 import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
+import { userAlertStore, SERVERIFY_ALERT } from '@/features/alert/stores/alert.store';
 import { Skeleton } from '@mui/material';
 
 type UserWithAvatarUrl = User & { avatar_url?: string };
@@ -43,6 +44,7 @@ export default function ProfilePage() {
   const [editNameDialogOpen, setEditNameDialogOpen] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const { addAlert } = userAlertStore();
   const [savingName, setSavingName] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -78,11 +80,18 @@ export default function ProfilePage() {
     setDeleting(true);
     try {
       await meApi.delete();
+      addAlert({
+        severity: SERVERIFY_ALERT.SUCCESS,
+        message: 'Account has been successfully deleted'
+      });
       await logOutAction(router);
     } catch (err) {
       console.error(err)
       setDeleting(false);
-      alert('Failed to delete account. Please try again.');
+      addAlert({
+        severity: SERVERIFY_ALERT.ERROR,
+        message: 'Failed to delete account. Please try again.'
+      });
     }
   };
 

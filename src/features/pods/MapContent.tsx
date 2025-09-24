@@ -28,6 +28,7 @@ import { ZOOM_RADIUS_CONFIG } from "@/shared/config/mapConfig";
 import { Avatar } from "@mui/material";
 import { DEFAULT_CENTER } from "@/shared/config/env";
 import CenterMapControl from "@/components/CenterMapControl";
+import MapLoader from "@/components/MapLoader";
 import { useRadiusStore } from "../map/stores/radius.store";
 import { LocationData } from "@/shared/data/models/Location";
 import { calculateDistanceNew, getAllowedCenterThreshold } from "@/shared/utils/location";
@@ -242,6 +243,7 @@ export default memo(function MapContent() {
       >
         <MapInitializer mapRef={mapRef} />
         <CenterMapControl />
+        <MapLoader />
         <MapEventHandlers
           currentLocation={currentLocation}
           setRadius={setRadius}
