@@ -349,7 +349,7 @@ export default memo(function MapContent() {
             sx: {
               borderRadius: 3,
               p: { xs: 1, sm: 2 },
-              "@media (max-width:280px)": {
+              "@media (max-width:330px)": {
                 width: "calc(100% - 10pt)",
                 margin: "10pt",
               },

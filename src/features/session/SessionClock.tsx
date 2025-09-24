@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -52,6 +53,12 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
   const [isUserAction, setIsUserAction] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(Date.now());
   const [localState, setLocalState] = useState<'focus' | 'pause' | null>(null);
+  
+  // Anti-spam protection
+  const [lastActionTime, setLastActionTime] = useState(0);
+  const [clickCount, setClickCount] = useState(0);
+  const [isThrottled, setIsThrottled] = useState(false);
+  const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const focusInterval = useRef<NodeJS.Timeout | null>(null);
   const pauseInterval = useRef<NodeJS.Timeout | null>(null);
@@ -310,13 +317,145 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     };
   }, [session?.id, debouncedSync, lastSyncTime, isUserAction, localState]);
 
-  // Updated handleToggle with safer state management
+  // Anti-spam protection function
+  const isActionAllowed = useCallback(() => {
+    const now = Date.now();
+    const timeSinceLastAction = now - lastActionTime;
+    
+    // Minimum 2 seconds between actions
+    if (timeSinceLastAction < 2000) {
+      console.log("🚫 Action blocked: Too fast! Wait 2 seconds between actions");
+      
+      // Show throttle state
+      setIsThrottled(true);
+      if (throttleTimeoutRef.current) clearTimeout(throttleTimeoutRef.current);
+      throttleTimeoutRef.current = setTimeout(() => {
+        setIsThrottled(false);
+      }, 2000 - timeSinceLastAction);
+      
+      return false;
+    }
+    
+    // Track click count for spam detection
+    if (timeSinceLastAction < 10000) { // Within 10 seconds
+      setClickCount(prev => prev + 1);
+      
+      // More than 5 clicks in 10 seconds = spam
+      if (clickCount >= 5) {
+        console.log("🚫 Action blocked: Spam detected! Please wait...");
+        
+        // Show throttle state for longer
+        setIsThrottled(true);
+        if (throttleTimeoutRef.current) clearTimeout(throttleTimeoutRef.current);
+        throttleTimeoutRef.current = setTimeout(() => {
+          setIsThrottled(false);
+          setClickCount(0);
+          console.log("🔄 Anti-spam reset: Actions allowed again");
+        }, 30000);
+        
+        return false;
+      }
+    } else {
+      // Reset click count if more than 10 seconds passed
+      setClickCount(0);
+    }
+    
+    setLastActionTime(now);
+    return true;
+  }, [lastActionTime, clickCount]);
+
+  // Updated handleToggle with anti-spam protection
   const handleToggle = async () => {
     if (!session?.id || isLoading) return;
+
+    // Anti-spam check
+    if (!isActionAllowed()) {
+      return;
+    }
 
     setIsLoading(true);
     setIsUserAction(true); // Mark as user action
     console.log("🎮 handleToggle: Starting user action");
+
+    // Double-check current server state before action
+    const currentServerStatus = session?.status;
+    const serverIsPaused = currentServerStatus === SessionStatusEnum.PAUSING;
+    const clientIsPaused = isPaused;
+    
+    // Also check if there's an active pause record
+    const hasActivePause = currentPause && currentPause.pause_at && !currentPause.resume_at;
+
+    console.log(`🔍 State check: server=${currentServerStatus}, client=${clientIsPaused ? 'PAUSED' : 'RUNNING'}, activePause=${!!hasActivePause}`);
+
+    // If there's a mismatch, sync first then prevent action
+    if (serverIsPaused !== clientIsPaused) {
+      console.log("⚠️ State mismatch detected! Syncing with server...");
+      setIsPaused(serverIsPaused);
+      setLocalState(serverIsPaused ? 'pause' : 'focus');
+      setIsLoading(false);
+      setIsUserAction(false);
+      
+      // Clear local state after sync
+      setTimeout(() => {
+        setLocalState(null);
+        console.log("🔄 State synced, local override cleared");
+      }, 2000);
+      
+      return; // Prevent action when states don't match
+    }
+
+    // Additional validation: check for double pause attempt
+    if (!isPaused && (serverIsPaused || hasActivePause)) {
+      console.log("⚠️ Cannot pause: Session is already paused on server");
+      console.log("📋 Server details:", { 
+        status: currentServerStatus, 
+        hasActivePause, 
+        currentPause: currentPause ? {
+          id: currentPause.id,
+          pause_at: currentPause.pause_at,
+          resume_at: currentPause.resume_at
+        } : null
+      });
+      
+      // Force sync to paused state
+      setIsPaused(true);
+      setLocalState('pause');
+      setIsLoading(false);
+      setIsUserAction(false);
+      
+      setTimeout(() => {
+        setLocalState(null);
+        console.log("🔄 Forced sync to paused state");
+      }, 2000);
+      
+      return;
+    }
+
+    // Additional validation: check for double resume attempt  
+    if (isPaused && (!serverIsPaused && !hasActivePause)) {
+      console.log("⚠️ Cannot resume: Session is not paused on server");
+      console.log("📋 Server details:", { 
+        status: currentServerStatus, 
+        hasActivePause, 
+        currentPause: currentPause ? {
+          id: currentPause.id,
+          resume_at: currentPause.resume_at
+        } : null
+      });
+      
+      // Force sync to running state
+      setIsPaused(false);
+      setLocalState('focus');
+      setIsLoading(false);
+      setIsUserAction(false);
+      
+      setTimeout(() => {
+        setLocalState(null);
+        console.log("🔄 Forced sync to running state");
+      }, 2000);
+      
+      return;
+    }
 
     const originalPauseState = isPaused;
     const newState = isPaused ? 'focus' : 'pause';
@@ -327,21 +466,27 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 
     try {
       if (isPaused) {
-        // Resume session
+        // Resume session - validate it's actually paused first
+        if (currentServerStatus !== SessionStatusEnum.PAUSING) {
+          throw new Error(`Cannot resume: session is not paused (status: ${currentServerStatus})`);
+        }
         console.log("▶️ Resuming session");
         await resume(session.id);
         
         // Wait longer for server to update
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 800));
         await loadPauseLogs(session.id);
 
       } else {
-        // Pause session
+        // Pause session - validate it's actually running first  
+        if (currentServerStatus === SessionStatusEnum.PAUSING) {
+          throw new Error(`Cannot pause: session is already paused (status: ${currentServerStatus})`);
+        }
         console.log("⏸️ Pausing session");
         await pause(session.id);
         
         // Wait longer for server to update  
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 800));
         await loadCurrentPause(session.id);
       }
 
@@ -350,9 +495,27 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
 
     } catch (error) {
       console.error("❌ Error toggling session:", error);
-      // Revert to original state on error
-      setIsPaused(originalPauseState);
-      setLocalState(originalPauseState ? 'pause' : 'focus');
+      
+      // Check if it's a state mismatch error
+      const errorMessage = (error as any)?.message || String(error) || '';
+      if (errorMessage.includes('already paused') || errorMessage.includes('pause invalid') || 
+          errorMessage.includes('Cannot pause') || errorMessage.includes('Cannot resume')) {
+        console.log("🔄 State mismatch error - forcing sync with server");
+        
+        // Force reload current session data to get accurate state
+        if (session?.id) {
+          await loadCurrentPause(session.id);
+          await loadPauseLogs(session.id);
+        }
+        
+        // Sync UI with actual server state  
+        setIsPaused(serverIsPaused);
+        setLocalState(serverIsPaused ? 'pause' : 'focus');
+      } else {
+        // Revert to original state for other errors
+        setIsPaused(originalPauseState);
+        setLocalState(originalPauseState ? 'pause' : 'focus');
+      }
     } finally {
       setIsLoading(false);
 
@@ -360,13 +523,13 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
       setTimeout(() => {
         setIsUserAction(false);
         console.log("🏁 handleToggle: User action flag cleared");
-      }, 5000); // Extended to 5 seconds
+      }, 7000); // Extended to 7 seconds
       
       // Clear local state after longer delay
       setTimeout(() => {
         setLocalState(null);
         console.log("🧹 handleToggle: Local state cleared");
-      }, 10000); // 10 seconds delay
+      }, 12000); // 12 seconds delay
     }
   };
 
@@ -417,6 +580,9 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     return () => {
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
+      }
+      if (throttleTimeoutRef.current) {
+        clearTimeout(throttleTimeoutRef.current);
       }
     };
   }, []);
@@ -635,11 +801,20 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         variant="contained"
         fullWidth
         onClick={handleToggle}
-        sx={{ mb: 4, fontWeight: 600, fontSize: 16 }}
+        sx={{ 
+          mb: 4, 
+          fontWeight: 600, 
+          fontSize: 16,
+          opacity: isThrottled ? 0.6 : 1,
+          cursor: isThrottled ? 'not-allowed' : 'pointer'
+        }}
         startIcon={!isPaused ? <Pause /> : <Play />}
-        disabled={isLoading}
+        disabled={isLoading || isThrottled}
       >
-        {!isPaused ? "Pause Session" : "Resume Session"}
+        {isThrottled 
+          ? "Please wait..." 
+          : (!isPaused ? "Pause Session" : "Resume Session")
+        }
       </Button>
 
       <Button

@@ -47,7 +47,7 @@ export default createTheme({
 			fontSize: '24px',
 			fontWeight: 700,
 			color: rootStyle.textColor,
-			"@media (max-width:280px)": {
+			"@media (max-width:330px)": {
 				fontSize: "20px",
 			},
 		},
@@ -55,7 +55,7 @@ export default createTheme({
 			fontFamily: rootStyle.titleFontFamily,
 			fontSize: '36px',
 			fontWeight: 700,
-			"@media (max-width:280px)": {
+			"@media (max-width:330px)": {
 				fontSize: "30px",
 			},
 		},
@@ -72,7 +72,7 @@ export default createTheme({
 			fontSize: "20px",
 			fontWeight: 700,
 			color: rootStyle.textColor,
-			"@media (max-width:280px)": {
+			"@media (max-width:330px)": {
 				fontSize: "16px",
 			},
 		},
@@ -81,7 +81,7 @@ export default createTheme({
 			fontSize: '16px',
 			fontWeight: 300,
 			color: rootStyle.textColor,
-			"@media (max-width:280px)": {
+			"@media (max-width:330px)": {
 				fontSize: "14px",
 			},
 		},
