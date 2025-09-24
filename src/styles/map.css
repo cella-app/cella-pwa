@@ -70,13 +70,31 @@
   justify-content: center;
 }
 
-/* Fix only map container for full screen */
+/* iOS Safe Area CSS Variables */
+:root {
+  --sat: env(safe-area-inset-top);
+  --sar: env(safe-area-inset-right);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+}
+
+/* Fix only map container for full screen with safe area support */
 .map-page-container {
   margin: 0 !important;
   padding: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+  width: 100vw !important;
+  height: 100vh !important;
   overflow: hidden !important;
+  position: relative !important;
+  
+  /* iOS safe area support - only apply when safe areas exist */
+  padding-top: var(--sat, 0px) !important;
+  padding-left: var(--sal, 0px) !important; 
+  padding-right: var(--sar, 0px) !important;
+  padding-bottom: var(--sab, 0px) !important;
+  
+  /* Adjust height for safe areas */
+  height: calc(100vh - var(--sat, 0px) - var(--sab, 0px)) !important;
 }
 
 .leaflet-container {
