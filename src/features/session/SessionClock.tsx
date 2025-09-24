@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -12,7 +11,6 @@ import {
 import { Pause, Play, Lock, LockOpen } from "lucide-react";
 import { rootStyle } from "@/theme";
 import { Session, SessionStatusEnum } from "@/shared/data/models/Session";
-// import { tracking, pause, resume, end, getAmount } from '@/features/session/session.action';
 import { pause, resume, getAmount } from '@/features/session/session.action';
 import { useSessionStore } from '@/features/session/stores/session.store';
 import { useRouter } from 'next/navigation';
@@ -36,7 +34,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     currentPause,
     pauseLogs,
     loadCurrentPause,
-    setCurrentPause,
     loadPauseLogs
   } = useSessionStore();
 
@@ -49,51 +46,24 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
   const [showMinAmountPopup, setShowMinAmountPopup] = useState(false);
   const [calculatedAmount, setCalculatedAmount] = useState(0);
 
-  // New states for sync logic
-  const [isUserAction, setIsUserAction] = useState(false);
+  // Simplified state management
+  const [isUserActionActive, setIsUserActionActive] = useState(false);
+  const [lastUserActionTime, setLastUserActionTime] = useState(0);
   const [lastSyncTime, setLastSyncTime] = useState(Date.now());
-  const [localState, setLocalState] = useState<'focus' | 'pause' | null>(null);
-  
-  // Anti-spam protection
-  const [lastActionTime, setLastActionTime] = useState(0);
-  const [clickCount, setClickCount] = useState(0);
-  const [isThrottled, setIsThrottled] = useState(false);
-  const throttleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isNavigationReturn, setIsNavigationReturn] = useState(false);
 
   const focusInterval = useRef<NodeJS.Timeout | null>(null);
   const pauseInterval = useRef<NodeJS.Timeout | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const userActionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debounced sync function - safer approach
-  const debouncedSync = useCallback((sessionId: string) => {
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
-
-    syncTimeoutRef.current = setTimeout(async () => {
-      // Only sync if no recent user action (extended to 5 seconds)
-      const timeSinceLastAction = Date.now() - lastSyncTime;
-      if (!isUserAction && timeSinceLastAction > 5000) {
-        console.log("🔄 Safe sync: Updating from server");
-        try {
-          await loadPauseLogs(sessionId);
-          await loadCurrentPause(sessionId);
-          setLastSyncTime(Date.now());
-        } catch (error) {
-          console.error("Error syncing session data:", error);
-        }
-      } else {
-        console.log("🚫 Sync blocked: Recent user action or user action in progress");
-      }
-    }, 1000); // Increased debounce to 1 second
-  }, [loadPauseLogs, loadCurrentPause, isUserAction, lastSyncTime]);
-
+  // Calculate time based on session data
   useEffect(() => {
     if (session?.start_time) {
       const start = new Date(session.start_time).getTime();
       const now = Date.now();
 
-      // Total pause time (ms)
       let totalPauseMs = 0;
       if (pauseLogs && pauseLogs.length > 0) {
         for (const log of pauseLogs) {
@@ -104,7 +74,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           }
         }
       }
-      // If currently PAUSING, add current pause time
+
       if (isPaused && currentPause?.pause_at) {
         const pauseStart = new Date(currentPause.pause_at).getTime();
         totalPauseMs += Math.max(0, now - pauseStart);
@@ -113,7 +83,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
       const focusSeconds = Math.floor((now - start - totalPauseMs) / 1000);
       setFocusTime(focusSeconds > 0 ? focusSeconds : 0);
 
-      // Only set pauseTime if we're not currently paused (to avoid overriding the real-time increment)
       if (!isPaused) {
         const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
         setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
@@ -121,37 +90,26 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     }
   }, [session?.start_time, pauseLogs, isPaused, currentPause]);
 
+  // Component initialization
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setHasRenderedOnce(true);
-    }, 100);
-    
-    // Clear any stale local state when component mounts
-    console.log("🔄 Component mounted - clearing stale local state");
-    setLocalState(null);
-    setIsUserAction(false);
-    
+    const timeout = setTimeout(() => setHasRenderedOnce(true), 100);
     return () => {
       clearTimeout(timeout);
-      if (focusInterval.current) {
-        clearInterval(focusInterval.current);
-      }
-      if (pauseInterval.current) {
-        clearInterval(pauseInterval.current);
-      }
+      if (focusInterval.current) clearInterval(focusInterval.current);
+      if (pauseInterval.current) clearInterval(pauseInterval.current);
     };
   }, []);
 
+  // Tracking interval
   useEffect(() => {
     if (!session?.id || isPaused) return;
-
     const interval = setInterval(() => {
       // tracking(session.id).catch(console.error);
     }, TRACKING_TIME);
-
     return () => clearInterval(interval);
   }, [session?.id, isPaused]);
 
+  // Focus time counter
   useEffect(() => {
     if (!isPaused) {
       focusInterval.current = setInterval(() => {
@@ -163,105 +121,141 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     return () => clearInterval(focusInterval.current!);
   }, [isPaused]);
 
-  // Keep pause interval for real-time updates, but only increment when paused
+  // Pause time counter
   useEffect(() => {
     if (isPaused) {
       pauseInterval.current = setInterval(() => {
         setPauseTime((prev) => prev + 1);
       }, 1000);
     } else {
-      if (pauseInterval.current) {
-        clearInterval(pauseInterval.current);
-      }
+      if (pauseInterval.current) clearInterval(pauseInterval.current);
     }
     return () => {
-      if (pauseInterval.current) {
-        clearInterval(pauseInterval.current);
-      }
+      if (pauseInterval.current) clearInterval(pauseInterval.current);
     };
   }, [isPaused]);
 
-  // Updated useEffect for session status - safer conflict resolution
-  useEffect(() => {
-    // Priority system: localState > isUserAction > server state
-    if (localState !== null) {
-      // Use local state when available (user just acted)
-      const shouldPause = localState === 'pause';
-      if (isPaused !== shouldPause) {
-        console.log(`🎯 Using local state: ${localState}`);
-        setIsPaused(shouldPause);
-      }
-    } else if (!isUserAction) {
-      // Only update from server if no local state and no user action
-      const timeSinceLastAction = Date.now() - lastSyncTime;
-      if (timeSinceLastAction > 5000) {
-        console.log("🔄 Updating from server state");
-        if (session?.status === SessionStatusEnum.PAUSING) {
-          setIsPaused(true);
-          if (session.id) {
-            loadCurrentPause(session.id);
-          }
-          // Initialize pauseTime when entering pause state
-          if (session?.start_time) {
-            let totalPauseMs = 0;
-            if (pauseLogs && pauseLogs.length > 0) {
-              for (const log of pauseLogs) {
-                if (log.pause_at && log.resume_at) {
-                  const pauseStart = new Date(log.pause_at).getTime();
-                  const pauseEnd = new Date(log.resume_at).getTime();
-                  totalPauseMs += Math.max(0, pauseEnd - pauseStart);
-                }
-              }
-            }
-            const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
-            setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
-          }
-        } else {
-          setIsPaused(false);
-          setCurrentPause(null);
-        }
-      } else {
-        console.log("🚫 Server update blocked: Recent user action");
-      }
-    }
-  }, [session?.status, session?.id, session?.start_time, pauseLogs, loadCurrentPause, setCurrentPause, isUserAction, localState, lastSyncTime, isPaused]);
-
+  // Load initial data and set initial pause state
   useEffect(() => {
     if (session?.id) {
-      console.log("🔄 Session ID changed - loading fresh data");
+      console.log(`Loading initial data for session ${session.id}, status: ${session.status}`);
       loadPauseLogs(session.id);
+      loadCurrentPause(session.id);
       
-      // Force sync with server state when session changes
-      setTimeout(() => {
-        console.log("🎯 Syncing with server state after session change");
-        setLocalState(null); // Clear any local override
-        setIsUserAction(false); // Allow server state to take precedence
-        setLastSyncTime(Date.now());
-      }, 500);
+      // Set initial pause state based on server status only on first load and not navigation return
+      if (!hasRenderedOnce && !isNavigationReturn) {
+        const serverIsPaused = session.status === SessionStatusEnum.PAUSING;
+        console.log(`Setting initial UI state: ${serverIsPaused ? 'PAUSED' : 'RUNNING'} based on server status: ${session.status}`);
+        setIsPaused(serverIsPaused);
+      } else if (hasRenderedOnce) {
+        console.log(`Skipping initial state set - component already rendered, current UI state: ${isPaused ? 'PAUSED' : 'RUNNING'}`);
+      } else if (isNavigationReturn) {
+        console.log(`Skipping initial state set - navigation return protection active, current UI state: ${isPaused ? 'PAUSED' : 'RUNNING'}`);
+      }
     }
-  }, [session?.id, loadPauseLogs]);
+  }, [session?.id, session?.status, loadPauseLogs, loadCurrentPause, hasRenderedOnce, isNavigationReturn, isPaused]);
 
-  // Force sync with actual server state when session data changes
+  // Server state sync (only when no user action and not navigation return)
   useEffect(() => {
-    if (session?.id && session?.status !== undefined) {
-      // Clear local state override when we get fresh session data
-      const shouldPause = session.status === SessionStatusEnum.PAUSING;
-      
-      console.log(`🎯 Fresh session data: status=${session.status}, shouldPause=${shouldPause}, currentIsPaused=${isPaused}`);
-      
-      // If there's a mismatch and no recent user action, sync with server
-      if (isPaused !== shouldPause && localState === null && !isUserAction) {
-        console.log(`🔄 Syncing UI with server state: ${shouldPause ? 'PAUSE' : 'RESUME'}`);
-        setIsPaused(shouldPause);
-        
-        if (shouldPause && session.id) {
-          loadCurrentPause(session.id);
-        } else {
-          setCurrentPause(null);
+    if (!isUserActionActive && !isNavigationReturn && session?.status !== undefined) {
+      const timeSinceUserAction = Date.now() - lastUserActionTime;
+
+      if (timeSinceUserAction > 8000) { // 8 seconds protection
+        const serverIsPaused = session.status === SessionStatusEnum.PAUSING;
+        const hasActivePause = currentPause !== null && currentPause.pause_at !== null && currentPause.resume_at === null;
+        // If server status is PAUSING, consider it paused even if currentPause is null (API error)
+        const shouldBePaused = serverIsPaused || hasActivePause;
+
+        if (isPaused !== shouldBePaused) {
+          console.log(`Server sync: ${shouldBePaused ? 'PAUSED' : 'RUNNING'} (server status: ${session.status}, hasActivePause: ${hasActivePause})`);
+          setIsPaused(shouldBePaused);
         }
       }
     }
-  }, [session?.status, session?.id, isPaused, localState, isUserAction, loadCurrentPause, setCurrentPause]);
+  }, [session?.status, currentPause, isPaused, isUserActionActive, lastUserActionTime, isNavigationReturn]);
+
+  // Data-only background sync
+  const syncDataOnly = useCallback(async (sessionId: string) => {
+    const timeSinceUserAction = Date.now() - lastUserActionTime;
+    const timeSinceLastSync = Date.now() - lastSyncTime;
+
+    if (isUserActionActive || isNavigationReturn || timeSinceUserAction < 8000 || timeSinceLastSync < 10000) {
+      console.log("Skipping data sync - protection active");
+      return;
+    }
+
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        console.log("Background data sync");
+        await Promise.all([
+          loadCurrentPause(sessionId),
+          loadPauseLogs(sessionId)
+        ]);
+        setLastSyncTime(Date.now());
+      } catch (error) {
+        console.error("Background sync failed:", error);
+      }
+    }, 2000);
+  }, [loadCurrentPause, loadPauseLogs, isUserActionActive, lastUserActionTime, lastSyncTime, isNavigationReturn]);
+
+  // Focus/visibility handlers
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && session?.id) {
+        console.log("Tab became visible - navigation return detected");
+        
+        // Restore UI state from localStorage if available
+        const savedState = localStorage.getItem(`session_ui_state_${session.id}`);
+        if (savedState) {
+          const parsed = JSON.parse(savedState);
+          console.log(`Restoring UI state from localStorage: ${parsed.isPaused ? 'PAUSED' : 'RUNNING'}`);
+          setIsPaused(parsed.isPaused);
+          // Clear the saved state after restoring
+          localStorage.removeItem(`session_ui_state_${session.id}`);
+        }
+        
+        // Set navigation return flag to prevent incorrect state sync
+        setIsNavigationReturn(true);
+        
+        // Clear navigation protection after 5 seconds
+        if (navigationTimeoutRef.current) {
+          clearTimeout(navigationTimeoutRef.current);
+        }
+        
+        navigationTimeoutRef.current = setTimeout(() => {
+          setIsNavigationReturn(false);
+          console.log("Navigation return protection cleared");
+          
+          // Now allow data sync after protection period
+          if (session?.id) {
+            console.log("Safe data sync after navigation return");
+            syncDataOnly(session.id);
+          }
+        }, 5000);
+      }
+    };
+
+    const handleFocus = () => {
+      if (session?.id && !isNavigationReturn) {
+        console.log("Window focused - scheduling data sync");
+        syncDataOnly(session.id);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      if (navigationTimeoutRef.current) clearTimeout(navigationTimeoutRef.current);
+    };
+  }, [session?.id, syncDataOnly, isNavigationReturn]);
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -273,273 +267,154 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Updated visibility change handler - more conservative
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        console.log("👁️ User came back to the tab / screen");
-
-        // Clear local state after user returns (allow server sync later)
-        setTimeout(() => {
-          if (!isUserAction) {
-            console.log("🧹 Clearing local state after tab return");
-            setLocalState(null);
-          }
-        }, 2000);
-
-        // Only sync if it's been a while and no recent user action
-        const timeSinceLastSync = Date.now() - lastSyncTime;
-        if (session?.id && timeSinceLastSync > 10000 && !isUserAction && localState === null) {
-          console.log("🔄 Syncing after tab return");
-          debouncedSync(session.id);
-        }
-      }
-    };
-
-    const handleFocus = () => {
-      console.log("🎯 Window focused again");
-      const timeSinceLastSync = Date.now() - lastSyncTime;
-      if (session?.id && timeSinceLastSync > 10000 && !isUserAction && localState === null) {
-        console.log("🔄 Syncing after window focus");
-        debouncedSync(session.id);
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleFocus);
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current);
-      }
-    };
-  }, [session?.id, debouncedSync, lastSyncTime, isUserAction, localState]);
-
-  // Anti-spam protection function
-  const isActionAllowed = useCallback(() => {
-    const now = Date.now();
-    const timeSinceLastAction = now - lastActionTime;
-    
-    // Minimum 2 seconds between actions
-    if (timeSinceLastAction < 2000) {
-      console.log("🚫 Action blocked: Too fast! Wait 2 seconds between actions");
-      
-      // Show throttle state
-      setIsThrottled(true);
-      if (throttleTimeoutRef.current) clearTimeout(throttleTimeoutRef.current);
-      throttleTimeoutRef.current = setTimeout(() => {
-        setIsThrottled(false);
-      }, 2000 - timeSinceLastAction);
-      
-      return false;
-    }
-    
-    // Track click count for spam detection
-    if (timeSinceLastAction < 10000) { // Within 10 seconds
-      setClickCount(prev => prev + 1);
-      
-      // More than 5 clicks in 10 seconds = spam
-      if (clickCount >= 5) {
-        console.log("🚫 Action blocked: Spam detected! Please wait...");
-        
-        // Show throttle state for longer
-        setIsThrottled(true);
-        if (throttleTimeoutRef.current) clearTimeout(throttleTimeoutRef.current);
-        throttleTimeoutRef.current = setTimeout(() => {
-          setIsThrottled(false);
-          setClickCount(0);
-          console.log("🔄 Anti-spam reset: Actions allowed again");
-        }, 30000);
-        
-        return false;
-      }
-    } else {
-      // Reset click count if more than 10 seconds passed
-      setClickCount(0);
-    }
-    
-    setLastActionTime(now);
-    return true;
-  }, [lastActionTime, clickCount]);
-
-  // Updated handleToggle with anti-spam protection
+  // Main toggle handler - simplified with proper backend validation
   const handleToggle = async () => {
     if (!session?.id || isLoading) return;
 
-    // Anti-spam check
-    if (!isActionAllowed()) {
-      return;
-    }
+    console.log("User toggle action started");
 
     setIsLoading(true);
-    setIsUserAction(true); // Mark as user action
-    console.log("🎮 handleToggle: Starting user action");
+    setIsUserActionActive(true);
+    setLastUserActionTime(Date.now());
 
-    // Double-check current server state before action
-    const currentServerStatus = session?.status;
-    const serverIsPaused = currentServerStatus === SessionStatusEnum.PAUSING;
-    const clientIsPaused = isPaused;
-    
-    // Also check if there's an active pause record
-    const hasActivePause = currentPause && currentPause.pause_at && !currentPause.resume_at;
-
-    console.log(`🔍 State check: server=${currentServerStatus}, client=${clientIsPaused ? 'PAUSED' : 'RUNNING'}, activePause=${!!hasActivePause}`);
-
-    // If there's a mismatch, sync first then prevent action
-    if (serverIsPaused !== clientIsPaused) {
-      console.log("⚠️ State mismatch detected! Syncing with server...");
-      setIsPaused(serverIsPaused);
-      setLocalState(serverIsPaused ? 'pause' : 'focus');
-      setIsLoading(false);
-      setIsUserAction(false);
-      
-      // Clear local state after sync
-      setTimeout(() => {
-        setLocalState(null);
-        console.log("🔄 State synced, local override cleared");
-      }, 2000);
-      
-      return; // Prevent action when states don't match
+    // Clear any pending syncs
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
     }
-
-    // Additional validation: check for double pause attempt
-    if (!isPaused && (serverIsPaused || hasActivePause)) {
-      console.log("⚠️ Cannot pause: Session is already paused on server");
-      console.log("📋 Server details:", { 
-        status: currentServerStatus, 
-        hasActivePause, 
-        currentPause: currentPause ? {
-          id: currentPause.id,
-          pause_at: currentPause.pause_at,
-          resume_at: currentPause.resume_at
-        } : null
-      });
-      
-      // Force sync to paused state
-      setIsPaused(true);
-      setLocalState('pause');
-      setIsLoading(false);
-      setIsUserAction(false);
-      
-      setTimeout(() => {
-        setLocalState(null);
-        console.log("🔄 Forced sync to paused state");
-      }, 2000);
-      
-      return;
-    }
-
-    // Additional validation: check for double resume attempt  
-    if (isPaused && (!serverIsPaused && !hasActivePause)) {
-      console.log("⚠️ Cannot resume: Session is not paused on server");
-      console.log("📋 Server details:", { 
-        status: currentServerStatus, 
-        hasActivePause, 
-        currentPause: currentPause ? {
-          id: currentPause.id,
-          resume_at: currentPause.resume_at
-        } : null
-      });
-      
-      // Force sync to running state
-      setIsPaused(false);
-      setLocalState('focus');
-      setIsLoading(false);
-      setIsUserAction(false);
-      
-      setTimeout(() => {
-        setLocalState(null);
-        console.log("🔄 Forced sync to running state");
-      }, 2000);
-      
-      return;
-    }
-
-    const originalPauseState = isPaused;
-    const newState = isPaused ? 'focus' : 'pause';
-
-    // Set local state immediately for responsive UI
-    setLocalState(newState);
-    setIsPaused(!isPaused);
 
     try {
-      if (isPaused) {
-        // Resume session - validate it's actually paused first
-        if (currentServerStatus !== SessionStatusEnum.PAUSING) {
-          throw new Error(`Cannot resume: session is not paused (status: ${currentServerStatus})`);
-        }
-        console.log("▶️ Resuming session");
-        await resume(session.id);
-        
-        // Wait longer for server to update
-        await new Promise(resolve => setTimeout(resolve, 800));
-        await loadPauseLogs(session.id);
+      // Get fresh server state before validation
+      console.log("Loading fresh server state...");
+      await Promise.all([
+        loadCurrentPause(session.id),
+        loadPauseLogs(session.id)
+      ]);
 
-      } else {
-        // Pause session - validate it's actually running first  
-        if (currentServerStatus === SessionStatusEnum.PAUSING) {
-          throw new Error(`Cannot pause: session is already paused (status: ${currentServerStatus})`);
-        }
-        console.log("⏸️ Pausing session");
-        await pause(session.id);
+      // Wait for state to propagate
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      const currentServerStatus = session?.status;
+      const hasActivePause = !!(currentPause && currentPause.pause_at && !currentPause.resume_at);
+      const serverIsPaused = currentServerStatus === SessionStatusEnum.PAUSING || hasActivePause;
+
+      const intendedAction = isPaused ? 'resume' : 'pause';
+
+      console.log("Validation state:", {
+        intendedAction,
+        currentServerStatus,
+        hasActivePause,
+        serverIsPaused,
+        uiIsPaused: isPaused,
+        currentPauseExists: !!currentPause
+      });
+
+      // CRITICAL: Match backend validation logic exactly
+      if (intendedAction === 'pause') {
+        // Backend isValidToPause() requires status === RUNNING
+        // Be more lenient: allow pause if status is RUNNING OR if UI shows running (not paused)
+        const canPause = currentServerStatus === SessionStatusEnum.RUNNING || !isPaused;
         
-        // Wait longer for server to update  
-        await new Promise(resolve => setTimeout(resolve, 800));
+        console.log(`Pause validation - server status: ${currentServerStatus}, UI paused: ${isPaused}, can pause: ${canPause}`);
+        
+        if (!canPause) {
+          console.log(`Cannot pause: status is ${currentServerStatus} and UI is already paused`);
+          setIsPaused(serverIsPaused);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (intendedAction === 'resume') {
+        // For resume, allow if:
+        // 1. UI thinks it's paused, OR
+        // 2. Server status is PAUSING (even if currentPause is null due to API error)
+        const canResume = isPaused || currentServerStatus === SessionStatusEnum.PAUSING;
+        
+        console.log(`Resume validation - UI paused: ${isPaused}, server status: ${currentServerStatus}, can resume: ${canResume}`);
+        
+        if (!canResume) {
+          console.log("Cannot resume: neither UI nor server indicates paused state");
+          setIsPaused(false);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Optimistic UI update
+      const newUIState = !isPaused;
+      setIsPaused(newUIState);
+
+      // Execute API call
+      if (intendedAction === 'resume') {
+        console.log("Executing resume...");
+        await resume(session.id);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await loadPauseLogs(session.id);
+      } else {
+        console.log("Executing pause...");
+        await pause(session.id);
+        await new Promise(resolve => setTimeout(resolve, 1000));
         await loadCurrentPause(session.id);
       }
 
-      setLastSyncTime(Date.now());
-      console.log(`✅ handleToggle: Success - ${newState}`);
+      console.log("Toggle action completed successfully");
 
     } catch (error) {
-      console.error("❌ Error toggling session:", error);
-      
-      // Check if it's a state mismatch error
-      const errorMessage = (error as any)?.message || String(error) || '';
-      if (errorMessage.includes('already paused') || errorMessage.includes('pause invalid') || 
-          errorMessage.includes('Cannot pause') || errorMessage.includes('Cannot resume')) {
-        console.log("🔄 State mismatch error - forcing sync with server");
-        
-        // Force reload current session data to get accurate state
-        if (session?.id) {
-          await loadCurrentPause(session.id);
-          await loadPauseLogs(session.id);
+      console.error("Toggle action failed:", error);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorMessage = (error as any)?.message || String(error);
+
+      if (errorMessage.includes('pause invalid') ||
+        errorMessage.includes('already paused') ||
+        errorMessage.includes('Cannot pause') ||
+        errorMessage.includes('Cannot resume')) {
+
+        console.log("State conflict - syncing with server...");
+
+        try {
+          // Reload fresh state
+          await Promise.all([
+            loadCurrentPause(session.id),
+            loadPauseLogs(session.id)
+          ]);
+
+          await new Promise(resolve => setTimeout(resolve, 200));
+
+          // Sync UI with actual server state
+          const freshServerStatus = session?.status;
+          const freshHasActivePause = currentPause !== null && currentPause.pause_at !== null && currentPause.resume_at === null;
+          const freshServerState = freshServerStatus === SessionStatusEnum.PAUSING || freshHasActivePause;
+
+          setIsPaused(freshServerState);
+          console.log(`UI synced to server: ${freshServerState ? 'PAUSED' : 'RUNNING'}`);
+
+        } catch (syncError) {
+          console.error("Failed to sync after error:", syncError);
         }
-        
-        // Sync UI with actual server state  
-        setIsPaused(serverIsPaused);
-        setLocalState(serverIsPaused ? 'pause' : 'focus');
-      } else {
-        // Revert to original state for other errors
-        setIsPaused(originalPauseState);
-        setLocalState(originalPauseState ? 'pause' : 'focus');
       }
+
     } finally {
       setIsLoading(false);
 
-      // Keep user action flag longer and clear local state more conservatively
-      setTimeout(() => {
-        setIsUserAction(false);
-        console.log("🏁 handleToggle: User action flag cleared");
-      }, 7000); // Extended to 7 seconds
-      
-      // Clear local state after longer delay
-      setTimeout(() => {
-        setLocalState(null);
-        console.log("🧹 handleToggle: Local state cleared");
-      }, 12000); // 12 seconds delay
+      // Extended user action protection
+      if (userActionTimeoutRef.current) {
+        clearTimeout(userActionTimeoutRef.current);
+      }
+
+      userActionTimeoutRef.current = setTimeout(() => {
+        setIsUserActionActive(false);
+        console.log("User action protection cleared");
+      }, 10000); // 10 second protection
     }
   };
 
-  // Updated: Navigate to checkout instead of ending session
   const handleEndSession = async () => {
     if (!session?.id || isLoading) return;
 
     setIsLoading(true);
     setEndSessionButtonText("Calculating amount...");
-    console.log("handleEndSession: Setting isLoading to true");
+
     try {
       const amountResponse = await getAmount(session.id);
       const amount = amountResponse.amount;
@@ -550,53 +425,55 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         setIsLoading(false);
         setEndSessionButtonText("End Session");
       } else {
-        // Navigate to checkout instead of calling end API
+        // Save UI state before navigation
+        localStorage.setItem(`session_ui_state_${session.id}`, JSON.stringify({
+          isPaused,
+          timestamp: Date.now()
+        }));
+        console.log(`Saved UI state before navigation: ${isPaused ? 'PAUSED' : 'RUNNING'}`);
         router.push(`/session/${session.id}/checkout`);
       }
     } catch (error) {
       console.error("Error getting session amount:", error);
-      setEndSessionButtonText("End Session"); // Reset button text on error
+      setEndSessionButtonText("End Session");
       setIsLoading(false);
     }
   };
 
-  // Updated: Navigate to checkout after user confirms
   const handleConfirmEndSession = async () => {
     setShowMinAmountPopup(false);
     if (!session?.id) return;
-
-    // Navigate to checkout instead of calling end API
+    
+    // Save UI state before navigation
+    localStorage.setItem(`session_ui_state_${session.id}`, JSON.stringify({
+      isPaused,
+      timestamp: Date.now()
+    }));
+    console.log(`Saved UI state before navigation (min amount): ${isPaused ? 'PAUSED' : 'RUNNING'}`);
     router.push(`/session/${session.id}/checkout`);
   };
 
   const handleCloseMinAmountPopup = () => {
     setShowMinAmountPopup(false);
-    setEndSessionButtonText("End Session"); // Reset button text if user cancels
+    setEndSessionButtonText("End Session");
     setIsLoading(false);
   };
 
-  // Cleanup when component unmounts
+  // Cleanup
   useEffect(() => {
     return () => {
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current);
-      }
-      if (throttleTimeoutRef.current) {
-        clearTimeout(throttleTimeoutRef.current);
-      }
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      if (userActionTimeoutRef.current) clearTimeout(userActionTimeoutRef.current);
+      if (navigationTimeoutRef.current) clearTimeout(navigationTimeoutRef.current);
     };
   }, []);
 
   const strokeWidth = 12;
   const radius = 130 - strokeWidth / 2;
   const circumference = 2 * Math.PI * radius;
-
   const arcLength = circumference * 0.15;
   const dashArray = `${arcLength} ${circumference}`;
-
   const fakeMaxTime = 60;
-
-  // Use current time based on pause state for smooth animation
   const currentTime = isPaused ? pauseTime : focusTime;
   const progress = (currentTime % fakeMaxTime) / fakeMaxTime;
   const rotation = progress * 360;
@@ -628,13 +505,12 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           borderRadius: 12,
           backgroundColor: !isPaused ? rootStyle.elementColor : "#e0e0e0",
           position: "relative",
-          cursor: isLoading ? "not-allowed" : "pointer", // Disable cursor when loading
-          opacity: isLoading ? 0.7 : 1, // Reduce opacity when loading
+          cursor: isLoading ? "not-allowed" : "pointer",
+          opacity: isLoading ? 0.7 : 1,
           alignSelf: "flex-end",
           mb: 2,
         }}
       >
-        {/* Inner Box for the toggle switch */}
         <Box
           sx={{
             position: "absolute",
@@ -652,21 +528,13 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           }}
         >
           <SvgIcon fontSize="inherit">
-            {!isPaused ? (
-              <LockOpen fontSize="small" />
-            ) : (
-              <Lock fontSize="small" />
-            )}
+            {!isPaused ? <LockOpen fontSize="small" /> : <Lock fontSize="small" />}
           </SvgIcon>
         </Box>
       </Box>
 
       {/* Status */}
-      <Typography
-        variant="h3"
-        fontWeight={700}
-        mb={2}
-      >
+      <Typography variant="h3" fontWeight={700} mb={2}>
         {isPaused ? "Session Paused" : "In Session"}
       </Typography>
 
@@ -678,49 +546,19 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           height: 260,
           mx: "auto",
           mb: 3,
-          "@media (max-width:330px)": {
-            width: 200,
-            height: 200,
-          },
-          "@media (max-width:280px)": {
-            width: 160,
-            height: 160,
-          },
+          "@media (max-width:330px)": { width: 200, height: 200 },
+          "@media (max-width:280px)": { width: 160, height: 160 },
         }}
       >
-        <svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 260 260"
-          style={{ transform: "rotate(-90deg)" }}
-        >
-          {/* Define gradient */}
+        <svg width="100%" height="100%" viewBox="0 0 260 260" style={{ transform: "rotate(-90deg)" }}>
           <defs>
-            <linearGradient
-              id="progressGradient"
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="0%"
-              gradientUnits="objectBoundingBox"
-            >
+            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="10%" stopColor="#20A48C" stopOpacity="1" />
               <stop offset="75%" stopColor="#0C3E35" stopOpacity="1" />
               <stop offset="100%" stopColor="#20A48C" stopOpacity="1" />
             </linearGradient>
           </defs>
-
-          {/* Full background circle color 20A48C */}
-          <circle
-            cx="130"
-            cy="130"
-            r={radius}
-            stroke="#20A48C"
-            strokeWidth={strokeWidth}
-            fill="transparent"
-          />
-
-          {/* Animated progress arc with gradient */}
+          <circle cx="130" cy="130" r={radius} stroke="#20A48C" strokeWidth={strokeWidth} fill="transparent" />
           <circle
             cx="130"
             cy="130"
@@ -732,7 +570,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             strokeDashoffset="0"
             strokeLinecap="round"
             style={{
-              // Only apply transition when rendered once
               transition: hasRenderedOnce ? "transform 0.5s ease-out" : "none",
               transform: `rotate(${rotation}deg)`,
               transformOrigin: "center",
@@ -740,21 +577,8 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
           />
         </svg>
 
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-          }}
-        >
-          <Typography
-            variant="h4"
-            fontWeight={700}
-            sx={{
-              fontSize: { xs: "36px", sm: "60px" }, // responsive font size
-            }}
-          >
+        <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
+          <Typography variant="h4" fontWeight={700} sx={{ fontSize: { xs: "36px", sm: "60px" } }}>
             {isPaused ? formatTime(pauseTime) : formatTime(focusTime)}
           </Typography>
           <Typography
@@ -769,7 +593,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
               color: "black",
             }}
           >
-            {"Stay focused"}
+            Stay focused
           </Typography>
           <Typography
             color="text.secondary"
@@ -783,17 +607,12 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
               color: "black",
             }}
           >
-            {"Free 5-minute break after 50 minutes!"}
+            Free 5-minute break after 50 minutes!
           </Typography>
         </Box>
       </Box>
-      <Typography
-        variant="h5"
-        sx={{
-          fontFamily: rootStyle.mainFontFamily,
-          mb: 2,
-        }}
-      >
+
+      <Typography variant="h5" sx={{ fontFamily: rootStyle.mainFontFamily, mb: 2 }}>
         {isPaused ? "Pod Locked" : "Pod Unlocked"}
       </Typography>
 
@@ -801,20 +620,11 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         variant="contained"
         fullWidth
         onClick={handleToggle}
-        sx={{ 
-          mb: 4, 
-          fontWeight: 600, 
-          fontSize: 16,
-          opacity: isThrottled ? 0.6 : 1,
-          cursor: isThrottled ? 'not-allowed' : 'pointer'
-        }}
+        sx={{ mb: 4, fontWeight: 600, fontSize: 16 }}
         startIcon={!isPaused ? <Pause /> : <Play />}
-        disabled={isLoading || isThrottled}
+        disabled={isLoading}
       >
-        {isThrottled 
-          ? "Please wait..." 
-          : (!isPaused ? "Pause Session" : "Resume Session")
-        }
+        {!isPaused ? "Pause Session" : "Resume Session"}
       </Button>
 
       <Button
@@ -838,38 +648,17 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
               borderRadius: 3,
               p: { xs: 1, sm: 2 },
               background: rootStyle.backgroundColor,
-              "@media (max-width:330px)": {
-                width: "calc(100% - 10pt)",
-                margin: "10pt",
-              },
-              "@media (max-width:300px)": {
-                width: "calc(100% - 5pt)",
-                margin: "5pt",
-              },
-              "@media (max-width:280px)": {
-                width: "100%",
-                margin: "2pt",
-              },
+              "@media (max-width:330px)": { width: "calc(100% - 10pt)", margin: "10pt" },
+              "@media (max-width:300px)": { width: "calc(100% - 5pt)", margin: "5pt" },
+              "@media (max-width:280px)": { width: "100%", margin: "2pt" },
             },
           },
         }}
       >
-        <DialogTitle
-          sx={{ textAlign: "center" }}
-        >
-          {"Minimum Amount Required"}
-        </DialogTitle>
+        <DialogTitle sx={{ textAlign: "center" }}>Minimum Amount Required</DialogTitle>
         <DialogContent sx={{ pb: 0, textAlign: "center" }}>
-          <DialogContentText
-            sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}
-          >
-            {`The minimum amount to pay is ${MIN_AMOUNT.toLocaleString(
-              "en-US",
-              LOCAL_CURRENCY_CONFIG
-            )}. Your current calculated amount is ${calculatedAmount.toLocaleString(
-              "en-US",
-              LOCAL_CURRENCY_CONFIG
-            )}. Do you still want to end the session?`}
+          <DialogContentText sx={{ fontSize: 16, color: rootStyle.descriptionColor, mb: 2 }}>
+            {`The minimum amount to pay is ${MIN_AMOUNT.toLocaleString("en-US", LOCAL_CURRENCY_CONFIG)}. Your current calculated amount is ${calculatedAmount.toLocaleString("en-US", LOCAL_CURRENCY_CONFIG)}. Do you still want to end the session?`}
           </DialogContentText>
         </DialogContent>
         <DialogActions
@@ -878,13 +667,9 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             gap: 3,
             display: "flex",
             flexDirection: { xs: "column", sm: "row" },
-            alignItems: "center ",
+            alignItems: "center",
             margin: 0,
-            "@media (max-width:330px)": {
-              "& .MuiButton-root": {
-                padding: "6px 12px", // Smaller padding for buttons
-              },
-            },
+            "@media (max-width:330px)": { "& .MuiButton-root": { padding: "6px 12px" } },
           }}
           disableSpacing={true}
         >
@@ -893,11 +678,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             disabled={isLoading}
             variant="outlined"
             size="small"
-            sx={{
-              py: { xs: 1, sm: 0.5 },
-              textTransform: 'none',
-              margin: 0,
-            }}
+            sx={{ py: { xs: 1, sm: 0.5 }, textTransform: 'none', margin: 0 }}
           >
             Keep session
           </Button>
@@ -907,11 +688,7 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
             disabled={isLoading}
             variant="contained"
             size="small"
-            sx={{
-              py: { xs: 1, sm: 0.5 },
-              textTransform: 'none',
-              margin: 0,
-            }}
+            sx={{ py: { xs: 1, sm: 0.5 }, textTransform: 'none', margin: 0 }}
           >
             End anyway
           </Button>
