@@ -51,19 +51,23 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
   // New states for sync logic
   const [isUserAction, setIsUserAction] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(Date.now());
+  const [localState, setLocalState] = useState<'focus' | 'pause' | null>(null);
 
   const focusInterval = useRef<NodeJS.Timeout | null>(null);
   const pauseInterval = useRef<NodeJS.Timeout | null>(null);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debounced sync function
+  // Debounced sync function - safer approach
   const debouncedSync = useCallback((sessionId: string) => {
     if (syncTimeoutRef.current) {
       clearTimeout(syncTimeoutRef.current);
     }
 
     syncTimeoutRef.current = setTimeout(async () => {
-      if (!isUserAction) { // Only sync when no user action
+      // Only sync if no recent user action (extended to 5 seconds)
+      const timeSinceLastAction = Date.now() - lastSyncTime;
+      if (!isUserAction && timeSinceLastAction > 5000) {
+        console.log("🔄 Safe sync: Updating from server");
         try {
           await loadPauseLogs(sessionId);
           await loadCurrentPause(sessionId);
@@ -71,9 +75,11 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         } catch (error) {
           console.error("Error syncing session data:", error);
         }
+      } else {
+        console.log("🚫 Sync blocked: Recent user action or user action in progress");
       }
-    }, 500); // Debounce 500ms
-  }, [loadPauseLogs, loadCurrentPause, isUserAction]);
+    }, 1000); // Increased debounce to 1 second
+  }, [loadPauseLogs, loadCurrentPause, isUserAction, lastSyncTime]);
 
   useEffect(() => {
     if (session?.start_time) {
@@ -112,6 +118,12 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     const timeout = setTimeout(() => {
       setHasRenderedOnce(true);
     }, 100);
+    
+    // Clear any stale local state when component mounts
+    console.log("🔄 Component mounted - clearing stale local state");
+    setLocalState(null);
+    setIsUserAction(false);
+    
     return () => {
       clearTimeout(timeout);
       if (focusInterval.current) {
@@ -162,42 +174,87 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     };
   }, [isPaused]);
 
-  // Updated useEffect for session status - respect user action
+  // Updated useEffect for session status - safer conflict resolution
   useEffect(() => {
-    // Only update state from server if not user action
-    if (!isUserAction) {
-      if (session?.status === SessionStatusEnum.PAUSING) {
-        setIsPaused(true);
-        if (session.id) {
-          loadCurrentPause(session.id);
-        }
-        // Initialize pauseTime when entering pause state
-        if (session?.start_time) {
-          let totalPauseMs = 0;
-          if (pauseLogs && pauseLogs.length > 0) {
-            for (const log of pauseLogs) {
-              if (log.pause_at && log.resume_at) {
-                const pauseStart = new Date(log.pause_at).getTime();
-                const pauseEnd = new Date(log.resume_at).getTime();
-                totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+    // Priority system: localState > isUserAction > server state
+    if (localState !== null) {
+      // Use local state when available (user just acted)
+      const shouldPause = localState === 'pause';
+      if (isPaused !== shouldPause) {
+        console.log(`🎯 Using local state: ${localState}`);
+        setIsPaused(shouldPause);
+      }
+    } else if (!isUserAction) {
+      // Only update from server if no local state and no user action
+      const timeSinceLastAction = Date.now() - lastSyncTime;
+      if (timeSinceLastAction > 5000) {
+        console.log("🔄 Updating from server state");
+        if (session?.status === SessionStatusEnum.PAUSING) {
+          setIsPaused(true);
+          if (session.id) {
+            loadCurrentPause(session.id);
+          }
+          // Initialize pauseTime when entering pause state
+          if (session?.start_time) {
+            let totalPauseMs = 0;
+            if (pauseLogs && pauseLogs.length > 0) {
+              for (const log of pauseLogs) {
+                if (log.pause_at && log.resume_at) {
+                  const pauseStart = new Date(log.pause_at).getTime();
+                  const pauseEnd = new Date(log.resume_at).getTime();
+                  totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+                }
               }
             }
+            const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
+            setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
           }
-          const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
-          setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
+        } else {
+          setIsPaused(false);
+          setCurrentPause(null);
         }
       } else {
-        setIsPaused(false);
-        setCurrentPause(null);
+        console.log("🚫 Server update blocked: Recent user action");
       }
     }
-  }, [session?.status, session?.id, session?.start_time, pauseLogs, loadCurrentPause, setCurrentPause, isUserAction]);
+  }, [session?.status, session?.id, session?.start_time, pauseLogs, loadCurrentPause, setCurrentPause, isUserAction, localState, lastSyncTime, isPaused]);
 
   useEffect(() => {
     if (session?.id) {
+      console.log("🔄 Session ID changed - loading fresh data");
       loadPauseLogs(session.id);
+      
+      // Force sync with server state when session changes
+      setTimeout(() => {
+        console.log("🎯 Syncing with server state after session change");
+        setLocalState(null); // Clear any local override
+        setIsUserAction(false); // Allow server state to take precedence
+        setLastSyncTime(Date.now());
+      }, 500);
     }
   }, [session?.id, loadPauseLogs]);
+
+  // Force sync with actual server state when session data changes
+  useEffect(() => {
+    if (session?.id && session?.status !== undefined) {
+      // Clear local state override when we get fresh session data
+      const shouldPause = session.status === SessionStatusEnum.PAUSING;
+      
+      console.log(`🎯 Fresh session data: status=${session.status}, shouldPause=${shouldPause}, currentIsPaused=${isPaused}`);
+      
+      // If there's a mismatch and no recent user action, sync with server
+      if (isPaused !== shouldPause && localState === null && !isUserAction) {
+        console.log(`🔄 Syncing UI with server state: ${shouldPause ? 'PAUSE' : 'RESUME'}`);
+        setIsPaused(shouldPause);
+        
+        if (shouldPause && session.id) {
+          loadCurrentPause(session.id);
+        } else {
+          setCurrentPause(null);
+        }
+      }
+    }
+  }, [session?.status, session?.id, isPaused, localState, isUserAction, loadCurrentPause, setCurrentPause]);
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -209,24 +266,34 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Updated visibility change handler
+  // Updated visibility change handler - more conservative
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        console.log("User came back to the tab / screen");
+        console.log("👁️ User came back to the tab / screen");
 
-        // Only sync if it's been a while since last sync (> 5 seconds) and no user action
+        // Clear local state after user returns (allow server sync later)
+        setTimeout(() => {
+          if (!isUserAction) {
+            console.log("🧹 Clearing local state after tab return");
+            setLocalState(null);
+          }
+        }, 2000);
+
+        // Only sync if it's been a while and no recent user action
         const timeSinceLastSync = Date.now() - lastSyncTime;
-        if (session?.id && timeSinceLastSync > 5000 && !isUserAction) {
+        if (session?.id && timeSinceLastSync > 10000 && !isUserAction && localState === null) {
+          console.log("🔄 Syncing after tab return");
           debouncedSync(session.id);
         }
       }
     };
 
     const handleFocus = () => {
-      console.log("Window focused again");
+      console.log("🎯 Window focused again");
       const timeSinceLastSync = Date.now() - lastSyncTime;
-      if (session?.id && timeSinceLastSync > 5000 && !isUserAction) {
+      if (session?.id && timeSinceLastSync > 10000 && !isUserAction && localState === null) {
+        console.log("🔄 Syncing after window focus");
         debouncedSync(session.id);
       }
     };
@@ -241,52 +308,65 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, [session?.id, debouncedSync, lastSyncTime, isUserAction]);
+  }, [session?.id, debouncedSync, lastSyncTime, isUserAction, localState]);
 
-  // Updated handleToggle
+  // Updated handleToggle with safer state management
   const handleToggle = async () => {
     if (!session?.id || isLoading) return;
 
     setIsLoading(true);
     setIsUserAction(true); // Mark as user action
-    console.log("handleToggle: Starting user action");
+    console.log("🎮 handleToggle: Starting user action");
 
     const originalPauseState = isPaused;
+    const newState = isPaused ? 'focus' : 'pause';
+
+    // Set local state immediately for responsive UI
+    setLocalState(newState);
+    setIsPaused(!isPaused);
 
     try {
       if (isPaused) {
         // Resume session
+        console.log("▶️ Resuming session");
         await resume(session.id);
-        setIsPaused(false);
-
-        // Wait a bit for server to update
-        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Wait longer for server to update
+        await new Promise(resolve => setTimeout(resolve, 500));
         await loadPauseLogs(session.id);
 
       } else {
         // Pause session
+        console.log("⏸️ Pausing session");
         await pause(session.id);
-        setIsPaused(true);
-
-        // Wait a bit for server to update
-        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Wait longer for server to update  
+        await new Promise(resolve => setTimeout(resolve, 500));
         await loadCurrentPause(session.id);
       }
 
       setLastSyncTime(Date.now());
+      console.log(`✅ handleToggle: Success - ${newState}`);
 
     } catch (error) {
-      console.error("Error toggling session:", error);
+      console.error("❌ Error toggling session:", error);
       // Revert to original state on error
       setIsPaused(originalPauseState);
+      setLocalState(originalPauseState ? 'pause' : 'focus');
     } finally {
       setIsLoading(false);
 
-      // Reset user action flag after 3 seconds to ensure server sync completes
+      // Keep user action flag longer and clear local state more conservatively
       setTimeout(() => {
         setIsUserAction(false);
-        console.log("handleToggle: User action completed");
-      }, 3000);
+        console.log("🏁 handleToggle: User action flag cleared");
+      }, 5000); // Extended to 5 seconds
+      
+      // Clear local state after longer delay
+      setTimeout(() => {
+        setLocalState(null);
+        console.log("🧹 handleToggle: Local state cleared");
+      }, 10000); // 10 seconds delay
     }
   };
 
