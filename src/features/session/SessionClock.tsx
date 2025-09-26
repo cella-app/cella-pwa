@@ -58,37 +58,64 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
   const userActionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Calculate time based on session data
+  // Initialize time based on session data + localStorage persistence
   useEffect(() => {
-    if (session?.start_time) {
-      const start = new Date(session.start_time).getTime();
-      const now = Date.now();
+    if (session?.start_time && !hasRenderedOnce) {
+      const localKey = `session_time_${session.id}`;
+      const savedTimes = localStorage.getItem(localKey);
+      
+      if (savedTimes) {
+        // Restore from localStorage if available
+        const parsed = JSON.parse(savedTimes);
+        const timeDiff = Math.floor((Date.now() - parsed.timestamp) / 1000);
+        
+        if (parsed.isPaused) {
+          // If was paused, add time difference to pause time
+          setFocusTime(parsed.focusTime);
+          setPauseTime(parsed.pauseTime + timeDiff);
+        } else {
+          // If was running, add time difference to focus time  
+          setFocusTime(parsed.focusTime + timeDiff);
+          setPauseTime(parsed.pauseTime);
+        }
+        
+        console.log('Restored from localStorage:', { 
+          savedFocus: parsed.focusTime, 
+          savedPause: parsed.pauseTime, 
+          timeDiff, 
+          wasPaused: parsed.isPaused 
+        });
+      } else {
+        // Calculate from server data
+        const start = new Date(session.start_time).getTime();
+        const now = Date.now();
 
-      let totalPauseMs = 0;
-      if (pauseLogs && pauseLogs.length > 0) {
-        for (const log of pauseLogs) {
-          if (log.pause_at && log.resume_at) {
-            const pauseStart = new Date(log.pause_at).getTime();
-            const pauseEnd = new Date(log.resume_at).getTime();
-            totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+        let totalPauseMs = 0;
+        if (pauseLogs && pauseLogs.length > 0) {
+          for (const log of pauseLogs) {
+            if (log.pause_at && log.resume_at) {
+              const pauseStart = new Date(log.pause_at).getTime();
+              const pauseEnd = new Date(log.resume_at).getTime();
+              totalPauseMs += Math.max(0, pauseEnd - pauseStart);
+            }
           }
         }
-      }
 
-      if (isPaused && currentPause?.pause_at) {
-        const pauseStart = new Date(currentPause.pause_at).getTime();
-        totalPauseMs += Math.max(0, now - pauseStart);
-      }
+        if (isPaused && currentPause?.pause_at) {
+          const pauseStart = new Date(currentPause.pause_at).getTime();
+          totalPauseMs += Math.max(0, now - pauseStart);
+        }
 
-      const focusSeconds = Math.floor((now - start - totalPauseMs) / 1000);
-      setFocusTime(focusSeconds > 0 ? focusSeconds : 0);
+        const focusSeconds = Math.floor((now - start - totalPauseMs) / 1000);
+        setFocusTime(focusSeconds > 0 ? focusSeconds : 0);
 
-      if (!isPaused) {
         const totalPauseSeconds = Math.floor(totalPauseMs / 1000);
         setPauseTime(totalPauseSeconds > 0 ? totalPauseSeconds : 0);
+
+        console.log('Initial time calculation from server:', { focusSeconds, totalPauseSeconds });
       }
     }
-  }, [session?.start_time, pauseLogs, isPaused, currentPause]);
+  }, [session?.start_time, session?.id, pauseLogs, currentPause, isPaused, hasRenderedOnce]);
 
   // Component initialization
   useEffect(() => {
@@ -109,9 +136,9 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     return () => clearInterval(interval);
   }, [session?.id, isPaused]);
 
-  // Focus time counter
+  // Focus time counter - simple client-side increment
   useEffect(() => {
-    if (!isPaused) {
+    if (!isPaused && hasRenderedOnce) {
       focusInterval.current = setInterval(() => {
         setFocusTime((prev) => prev + 1);
       }, 1000);
@@ -119,11 +146,11 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
       clearInterval(focusInterval.current!);
     }
     return () => clearInterval(focusInterval.current!);
-  }, [isPaused]);
+  }, [isPaused, hasRenderedOnce]);
 
-  // Pause time counter
+  // Pause time counter - simple client-side increment
   useEffect(() => {
-    if (isPaused) {
+    if (isPaused && hasRenderedOnce) {
       pauseInterval.current = setInterval(() => {
         setPauseTime((prev) => prev + 1);
       }, 1000);
@@ -133,7 +160,23 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     return () => {
       if (pauseInterval.current) clearInterval(pauseInterval.current);
     };
-  }, [isPaused]);
+  }, [isPaused, hasRenderedOnce]);
+
+  // Save time to localStorage periodically
+  useEffect(() => {
+    if (!session?.id || !hasRenderedOnce) return;
+    
+    const interval = setInterval(() => {
+      localStorage.setItem(`session_time_${session.id}`, JSON.stringify({
+        focusTime,
+        pauseTime,
+        isPaused,
+        timestamp: Date.now()
+      }));
+    }, 5000); // Save every 5 seconds
+    
+    return () => clearInterval(interval);
+  }, [focusTime, pauseTime, isPaused, session?.id, hasRenderedOnce]);
 
   // Load initial data and set initial pause state
   useEffect(() => {
@@ -344,6 +387,15 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
       const newUIState = !isPaused;
       setIsPaused(newUIState);
 
+      // Immediately save to localStorage on toggle
+      localStorage.setItem(`session_time_${session.id}`, JSON.stringify({
+        focusTime,
+        pauseTime,
+        isPaused: newUIState,
+        timestamp: Date.now()
+      }));
+      console.log('Saved to localStorage on toggle:', { focusTime, pauseTime, newUIState });
+
       // Execute API call
       if (intendedAction === 'resume') {
         console.log("Executing resume...");
@@ -425,6 +477,9 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
         setIsLoading(false);
         setEndSessionButtonText("End Session");
       } else {
+        // Clear time tracking data on session end
+        localStorage.removeItem(`session_time_${session.id}`);
+        
         // Save UI state before navigation
         localStorage.setItem(`session_ui_state_${session.id}`, JSON.stringify({
           isPaused,
@@ -443,6 +498,9 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
   const handleConfirmEndSession = async () => {
     setShowMinAmountPopup(false);
     if (!session?.id) return;
+    
+    // Clear time tracking data on session end
+    localStorage.removeItem(`session_time_${session.id}`);
     
     // Save UI state before navigation
     localStorage.setItem(`session_ui_state_${session.id}`, JSON.stringify({
