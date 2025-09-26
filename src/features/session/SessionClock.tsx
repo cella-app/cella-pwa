@@ -162,21 +162,6 @@ const SessionClock: React.FC<SessionClockProps> = ({ session }) => {
     };
   }, [isPaused, hasRenderedOnce]);
 
-  // Save time to localStorage periodically
-  useEffect(() => {
-    if (!session?.id || !hasRenderedOnce) return;
-    
-    const interval = setInterval(() => {
-      localStorage.setItem(`session_time_${session.id}`, JSON.stringify({
-        focusTime,
-        pauseTime,
-        isPaused,
-        timestamp: Date.now()
-      }));
-    }, 5000); // Save every 5 seconds
-    
-    return () => clearInterval(interval);
-  }, [focusTime, pauseTime, isPaused, session?.id, hasRenderedOnce]);
 
   // Load initial data and set initial pause state
   useEffect(() => {
