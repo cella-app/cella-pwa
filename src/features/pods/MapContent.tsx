@@ -34,7 +34,6 @@ import { LocationData } from "@/shared/data/models/Location";
 import { calculateDistanceNew, getAllowedCenterThreshold } from "@/shared/utils/location";
 import { useEventStore } from '@/features/map/stores/event.store';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
-import MapLoadingIndicator from '@/components/MapLoadingIndicator';
 import { useWorkspacePopup } from '@/hooks/WorkspacePopupContext';
 import { getEnvironmentInfo, getLocateButtonBottomOffset } from '@/shared/utils/positioning';
 // import MobileDebugger from "@/components/LocationDebugger";
@@ -69,7 +68,7 @@ function MapEventHandlers({
     setCurrentMapCenter,
   } = useMapStore();
 
-  const { changeState } = useEventStore()
+  const { changeState, changeStateShowLoader } = useEventStore()
   const { setLoading } = useLoadingStore()
 
   const isUserCenterInValidRange = (
@@ -111,6 +110,7 @@ function MapEventHandlers({
       setCurrentMapCenter(coords);
       setLoading(false);
       changeState(true);
+      changeStateShowLoader(true);
     },
 
     moveend: () => {
@@ -122,8 +122,10 @@ function MapEventHandlers({
 
       if (currentLocation && !isUserCenterInValidRange(currentLocation, coords, radius)) {
         changeState(true);
+        changeStateShowLoader(true);
       } else {
         changeState(false);
+        changeStateShowLoader(false);
       }
 
       console.log("coords", coords);
@@ -261,7 +263,7 @@ export default memo(function MapContent() {
       <MapContainer
         center={DEFAULT_CENTER}
         zoom={15}
-        minZoom={8}
+        minZoom={4}
         maxZoom={25}
         scrollWheelZoom={true}
         zoomControl={false}
@@ -431,7 +433,6 @@ export default memo(function MapContent() {
       </Dialog>
       
       {/* Loading indicator for pin fetching */}
-      <MapLoadingIndicator />
       
       {/* Mobile Debug Overlay - only in development */}
       {/* <MobileDebugger /> */}

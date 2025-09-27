@@ -4,14 +4,17 @@
 import { useLocationTrackingContext } from '@/hooks/LocationTrackingContext';
 import { Loader2 } from 'lucide-react';
 import { useLoadingStore } from '@/features/map/stores/loading.store';
+import { useEventStore } from '@/features/map/stores/event.store';
+
 
 const MapLoadingIndicator = () => {
 	const { pods } = useLocationTrackingContext();
 	const { loading } = useLoadingStore();
+	const { showLoader } = useEventStore();
 
 	// Show loading when fetching OR when pods are cleared but we're still loading
 	// Also show loading briefly when pods array is empty (transitioning to new area)
-	const showLoading = loading;
+	const showLoading = loading && showLoader;
 	const showNoPods = !loading && pods.length === 0;
 	
 	// Enhanced loading message based on pod count
@@ -21,7 +24,10 @@ const MapLoadingIndicator = () => {
 		return `Loading ${pods.length} pods...`;
 	};
 
+	console.warn("showLoading", showLoading, loading, showLoader)
+
 	if (showLoading) {
+		console.warn("showLoading OK")
 		return (
 			<div className="absolute top-4 right-4 z-[1000] bg-white/80 backdrop-blur-sm rounded-full shadow-md px-3 py-2 flex items-center gap-2">
 				<Loader2 className="w-4 h-4 animate-spin text-green-600" />

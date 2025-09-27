@@ -6,16 +6,19 @@ import { useLoadingStore } from '@/features/map/stores/loading.store';
 import { useMapStore } from '@/features/map/stores/map.store';
 import { CircularProgress, Box } from '@mui/material';
 import { rootStyle } from '@/theme';
+import { useEventStore } from '@/features/map/stores/event.store';
 
 const MapLoader = () => {
   const map = useMap();
   const { loading } = useLoadingStore();
+  const { showLoader } = useEventStore();
   const { currentMapCenter } = useMapStore();
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
+  console.warn("check show", loading, showLoader)
   // Update loader position based on map center
   useEffect(() => {
-    if (!map || !loading) return;
+    if (!map || !loading || !showLoader) return;
 
     const updatePosition = () => {
       
@@ -43,9 +46,9 @@ const MapLoader = () => {
       map.off('move', updatePosition);
       map.off('zoom', updatePosition);
     };
-  }, [map, loading, currentMapCenter]);
+  }, [map, loading, currentMapCenter, showLoader]);
 
-  if (!loading) return null;
+  if (!loading || !showLoader) return null;
 
   return (
     <>

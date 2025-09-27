@@ -31,7 +31,7 @@ export function useLocationTracking(
   const { setLocation, currentLocation, lastLocation, setLastLocation } = useLocationStore();
   const { setStateLocationDiffValid } = useMapConditionStore();
   const { pods, setPods } = usePodStore();
-  const { changeState } = useEventStore()
+  const { changeState, changeStateShowLoader } = useEventStore()
   const { setLoading } = useLoadingStore()
   const { currentMapCenter } = useMapStore(); // Get map from store
   
@@ -298,12 +298,13 @@ export function useLocationTracking(
     // Chỉ fetch khi user và center trong phạm vi hợp lệ
     if (isUserCenterInValidRange(currentLocation, currentMapCenter)) {
       changeState(false);
+      changeStateShowLoader(false);
       if (shouldFetchPods(currentMapCenter)) {
         console.log("Fetching pods - user in range with center:", currentMapCenter);
         fetchPodsWithImmediateLoading(currentMapCenter, radius);
       }
     }
-  }, [currentLocation, radius, shouldFetchPods, isUserCenterInValidRange, currentMapCenter, changeState, fetchPodsWithImmediateLoading]);
+  }, [currentLocation, radius, shouldFetchPods, isUserCenterInValidRange, currentMapCenter, changeState, changeStateShowLoader, fetchPodsWithImmediateLoading]);
 
   // LOGIC BỔ SUNG: Khi center thay đổi và trong khoảng hợp lệ với user thì fly về user (với GPS noise filter)
   useEffect(() => {
