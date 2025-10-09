@@ -144,7 +144,7 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
       <Box sx={{
         border: "1px solid",
         borderColor: rootStyle.borderColorMain,
-        borderRadius: '12px',
+        borderRadius: `${rootStyle.borderRadius.md}px`,
         mb: 3,
         boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
       }}>

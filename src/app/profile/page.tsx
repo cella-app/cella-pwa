@@ -328,26 +328,24 @@ export default function ProfilePage() {
               sx={{
                 justifyContent: 'center',
                 gap: 2,
-                pb: { xs: 1.5, sm: 2 },
+                display: "flex",
                 flexDirection: { xs: "column", sm: "row" },
                 alignItems: 'center',
+                margin: 0,
                 "@media (max-width:330px)": {
                   "& .MuiButton-root": {
-                    padding: "6px 12px", // Smaller padding for buttons
+                    padding: "6px 12px",
                   },
                 },
               }}
+              disableSpacing={true}
             >
               <Button
                 onClick={handleCancelDelete}
                 disabled={deleting}
                 variant="outlined"
-                fullWidth
-                sx={{
-                  px: 2,
-                  maxWidth: 180,
-                  minWidth: 125
-                }}
+                size="small"
+                sx={{ py: { xs: 1, sm: 0.5 }, textTransform: 'none', margin: 0 }}
               >
                 Keep session
               </Button>
@@ -356,13 +354,8 @@ export default function ProfilePage() {
                 color="error"
                 disabled={deleting}
                 variant="contained"
-                fullWidth
-                sx={{
-                  px: 2,
-                  background: '#C2412B',
-                  maxWidth: 180,
-                  minWidth: 125
-                }}
+                size="small"
+                sx={{ py: { xs: 1, sm: 0.5 }, textTransform: 'none', margin: 0, background: '#C2412B' }}
               >
                 {deleting ? 'Deleting...' : 'Yes, Delete'}
               </Button>
@@ -407,14 +400,26 @@ export default function ProfilePage() {
               justifyContent: "center",
               gap: 2,
               display: "flex",
-              flexDirection: { xs: "column", md: "row" },
+              flexDirection: { xs: "column", sm: "row" },
               alignItems: "center",
-              // overflow: "hidden",
+              margin: 0,
+              "@media (max-width:330px)": { "& .MuiButton-root": { padding: "6px 12px" } },
             }}
               disableSpacing={true}>
               <Button
+                variant="outlined"
+                onClick={() => {
+                  setEditNameDialogOpen(false);
+                  setFirstName(user?.first_name || '');
+                  setLastName(user?.last_name || '');
+                }}
+                size="small"
+                sx={{ py: { xs: 1, sm: 0.5 }, textTransform: 'none', margin: 0 }}
+              >
+                Cancel
+              </Button>
+              <Button
                 variant="contained"
-                color="primary"
                 onClick={async () => {
                   if (!user) return;
                   setSavingName(true);
@@ -429,29 +434,10 @@ export default function ProfilePage() {
                   }
                 }}
                 disabled={savingName}
-                sx={{
-                  flex: 1,
-                  maxWidth: 180,
-                  minWidth: { xs: "100%", md: 125 },
-                }}
+                size="small"
+                sx={{ py: { xs: 1, sm: 0.5 }, textTransform: 'none', margin: 0 }}
               >
-                Save
-              </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                onClick={() => {
-                  setEditNameDialogOpen(false);
-                  setFirstName(user?.first_name || '');
-                  setLastName(user?.last_name || '');
-                }}
-                sx={{
-                  flex: 1,
-                  maxWidth: 180,
-                  minWidth: { xs: "100%", md: 125 },
-                }}
-              >
-                Cancel
+                {savingName ? 'Saving...' : 'Save'}
               </Button>
             </DialogActions>
           </Dialog>
