@@ -176,11 +176,6 @@ export default function RegisterPage() {
 												aria-label="toggle password visibility"
 												onClick={togglePasswordVisibility}
 												edge="end"
-												sx={{
-													p: 1.5,
-													minWidth: 44,
-													minHeight: 44
-												}}
 											>
 												{showPassword ? <VisibilityOff /> : <Visibility />}
 											</IconButton>

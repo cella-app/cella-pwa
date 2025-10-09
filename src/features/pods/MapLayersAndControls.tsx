@@ -258,12 +258,7 @@ export const MapLayersAndControls = ({
             color="primary"
             className='search-button'
             sx={{
-              boxShadow: 'none',
               maxWidth: "200px",
-              color: 'white',
-              py: 1.5,
-              fontWeight: 600,
-              '&:hover': { boxShadow: 'none' },
             }}
           >
             Search this area

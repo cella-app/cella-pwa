@@ -159,11 +159,6 @@ function LoginForm() {
 												onClick={togglePasswordVisibility}
 												edge="end"
 												aria-label="toggle password visibility"
-												sx={{
-													p: 1.5,
-													minWidth: 44,
-													minHeight: 44
-												}}
 											>
 												{showPassword ? <VisibilityOff /> : <Visibility />}
 											</IconButton>
@@ -177,15 +172,9 @@ function LoginForm() {
 							fullWidth
 							variant="contained"
 							disabled={isLoading}
-							// sx={{
-							// 	mt: 3,
-							// 	py: 1.5,
-							// 	boxShadow: 'none',
-							// 	fontWeight: 600,
-							// 	backgroundColor: "#0C3E2E",
-							// 	"&:hover": { backgroundColor: "#0A2F22", boxShadow: 'none', color: "white" },
-							// 	color:`${isLoading? "gray": "white"}`,
-							// }}
+							sx={{
+								mt: 3,
+							}}
 						>
 							{isLoading ? 'Logging in...' : 'Login'}
 						</Button>
@@ -195,7 +184,7 @@ function LoginForm() {
 							sx={{
 								textAlign: 'center',
 								mt: 3,
-								color: '#333',
+								color: rootStyle.textColor,
 								fontWeight: 400,
 							}}
 						>
@@ -203,7 +192,6 @@ function LoginForm() {
 							<Link
 								href="/auth/register"
 								sx={{
-									color: '#0C3E2E',
 									fontWeight: 600,
 									textDecoration: 'none',
 									'&:hover': { textDecoration: 'underline' },

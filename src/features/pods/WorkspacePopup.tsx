@@ -19,7 +19,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 
 const PopupContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
-  borderRadius: "12px",
+  borderRadius: `${rootStyle.borderRadius.md}px`,
   padding: theme.spacing(2),
   maxWidth: '400px',
   boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
@@ -44,7 +44,7 @@ const PriceServicesRow = styled(Box)(({ theme }) => ({
 }));
 
 const PriceBox = styled(Box)(({ theme }) => ({
-  borderRadius: '20px',
+  borderRadius: `${rootStyle.borderRadius.xl}px`,
   padding: `${theme.spacing(1)} ${theme.spacing(2)}`,
   display: 'inline-block',
   border: `1px solid`,
@@ -55,7 +55,7 @@ const PriceBox = styled(Box)(({ theme }) => ({
 const ServicesContainer = styled(Box)(() => ({
   display: 'flex',
   alignItems: 'center',
-  borderRadius: '20px',
+  borderRadius: `${rootStyle.borderRadius.xl}px`,
   border: `1px solid`,
   borderColor: rootStyle.borderColorMain,
   height: 36,
@@ -358,12 +358,7 @@ export default function WorkspacePopup({
             }
             onClick={reserveNowClick}
             sx={{
-              boxShadow: 'none',
               maxWidth: "200px",
-              color: 'white',
-              py: 1.5,
-              fontWeight: 600,
-              '&:hover': { boxShadow: 'none' },
             }}
           >
             Reserve Now
@@ -380,10 +375,6 @@ export default function WorkspacePopup({
             sx={{
               flex: 1,
               minWidth: 0,
-              fontWeight: 600,
-              borderRadius: '12px',
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' },
             }}
             onClick={unlockClick}
             disabled={isLoading} // Disable when loading
@@ -395,10 +386,6 @@ export default function WorkspacePopup({
             sx={{
               flex: 1,
               minWidth: 0,
-              fontWeight: 600,
-              borderRadius: '12px',
-              boxShadow: 'none',
-              '&:hover': { boxShadow: 'none' },
             }}
             onClick={cancelClick}
             disabled={isLoading} // Disable when loading

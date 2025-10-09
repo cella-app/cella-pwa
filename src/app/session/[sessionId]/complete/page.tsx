@@ -172,7 +172,7 @@ export default function SessionCompletePage() {
   return (
     <Box sx={{
       minHeight: '100vh', // Allow normal scrolling on complete page
-      backgroundColor: '#FCFCF6',
+      backgroundColor: rootStyle.backgroundColor,
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
@@ -219,17 +219,17 @@ export default function SessionCompletePage() {
         width: '100%',
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <AccessTimeIcon sx={{ mr: 1, color: '#185C3C' }} />
+          <AccessTimeIcon sx={{ mr: 1, color: rootStyle.elementColor }} />
           <Typography sx={{ fontSize: "20px", fontWeight: 600, flex: 1 }}>Focus Time</Typography>
           <Typography sx={{ fontSize: "20px", fontWeight: 600 }}>{focusTimeStr}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <LockIcon sx={{ mr: 1, color: '#185C3C' }} />
+          <LockIcon sx={{ mr: 1, color: rootStyle.elementColor }} />
           <Typography sx={{ fontSize: "20px", fontWeight: 600, flex: 1 }}>Status</Typography>
           <Typography sx={{ fontSize: "20px", fontWeight: 600 }}>{billing.status == "available" ? "Locked" : "Unlocked"}</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-          <EuroIcon sx={{ mr: 1, color: '#185C3C' }} />
+          <EuroIcon sx={{ mr: 1, color: rootStyle.elementColor }} />
           <Typography sx={{ fontSize: "20px", fontWeight: 600, flex: 1 }}>Total Cost</Typography>
           <Typography
             sx={{ fontSize: "20px", fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
@@ -246,8 +246,8 @@ export default function SessionCompletePage() {
       </Typography>
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
         {[0, 1, 2, 3, 4].map(idx => (
-          <IconButton key={idx} onClick={() => handleStarClick(idx)} sx={{ p: 1.5, minWidth: 44, minHeight: 44 }}>
-            <StarIcon sx={{ color: idx < rating ? '#185C3C' : '#E0E0E0', fontSize: 32 }} />
+          <IconButton key={idx} onClick={() => handleStarClick(idx)}>
+            <StarIcon sx={{ color: idx < rating ? rootStyle.elementColor : '#E0E0E0', fontSize: 32 }} />
           </IconButton>
         ))}
       </Box>
@@ -306,7 +306,7 @@ export default function SessionCompletePage() {
               "@media (max-width:330px)": {
                 p: 0
               },
-            
+
             },
           },
         }}
@@ -321,8 +321,8 @@ export default function SessionCompletePage() {
           textAlign: 'center',
           py: 2,
           mb: 1,
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
+          borderTopLeftRadius: `${rootStyle.borderRadius.lg}px`,
+          borderTopRightRadius: `${rootStyle.borderRadius.lg}px`,
           width: '100%'
         }}>
           Session Billing Details
@@ -405,9 +405,9 @@ export default function SessionCompletePage() {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ background: rootStyle.backgroundColor, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, justifyContent: 'center' }}>
+        <DialogActions sx={{ background: rootStyle.backgroundColor, borderBottomLeftRadius: `${rootStyle.borderRadius.lg}px`, borderBottomRightRadius: `${rootStyle.borderRadius.lg}px`, justifyContent: 'center' }}>
           <Box sx={{ width: '100%' }}>
-            <Button onClick={handleCloseSummary} sx={{ color: rootStyle.elementColor, fontWeight: 700, width: '100%' }}>Done</Button>
+            <Button onClick={handleCloseSummary} sx={{ color: rootStyle.elementColor, width: '100%' }}>Done</Button>
           </Box>
         </DialogActions>
       </Dialog>

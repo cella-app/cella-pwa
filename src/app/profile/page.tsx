@@ -152,9 +152,6 @@ export default function ProfilePage() {
           sx={{
             background: 'none',
             boxShadow: 'none',
-            p: 1.5,
-            minWidth: '45pt',
-            minHeight: '45pt',
           }}
           aria-label="Back to map"
         >
@@ -168,11 +165,6 @@ export default function ProfilePage() {
           sx={{
             background: 'none',
             boxShadow: 'none',
-            p: 1.5,
-            minWidth: '45pt',
-            minHeight: '45pt',
-            fontSize: '10pt'
-
           }}
           aria-label="Logout"
         >
@@ -267,7 +259,7 @@ export default function ProfilePage() {
                   No card added yet.
                 </Typography>
               )}
-              <IconButton onClick={handleEdit} sx={{ p: 1.5, minWidth: 44, minHeight: 44 }}>
+              <IconButton onClick={handleEdit}>
                 <EditIcon fontSize="small" />
               </IconButton>
             </Box>
@@ -323,7 +315,6 @@ export default function ProfilePage() {
               paper:
               {
                 sx: {
-                  borderRadius: 3,
                   p: { xs: 1, sm: 2 },
                   background: rootStyle.backgroundColor,
                 }
@@ -353,12 +344,7 @@ export default function ProfilePage() {
                 variant="outlined"
                 fullWidth
                 sx={{
-                  borderRadius: 3,
-                  fontWeight: 700,
-                  color: rootStyle.elementColor,
-                  borderColor: rootStyle.elementColor,
                   px: 2,
-                  background: 'transparent',
                   maxWidth: 180,
                   minWidth: 125
                 }}
@@ -372,8 +358,6 @@ export default function ProfilePage() {
                 variant="contained"
                 fullWidth
                 sx={{
-                  borderRadius: 3,
-                  fontWeight: 700,
                   px: 2,
                   background: '#C2412B',
                   maxWidth: 180,
@@ -384,7 +368,7 @@ export default function ProfilePage() {
               </Button>
             </DialogActions>
           </Dialog>
-          <Dialog open={editNameDialogOpen} onClose={() => setEditNameDialogOpen(false)} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { borderRadius: 3, p: { xs: 0, sm: 2 }, background: rootStyle.backgroundColor } } }}>
+          <Dialog open={editNameDialogOpen} onClose={() => setEditNameDialogOpen(false)} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { p: { xs: 0, sm: 2 }, background: rootStyle.backgroundColor } } }}>
             <DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>Update Name</DialogTitle>
             <DialogContent sx={{ paddingTop: "2rem !important", paddingX: { xs: 2 } }}>
               <Stack spacing={2} direction="column" alignItems="center" width="100%">
@@ -449,7 +433,6 @@ export default function ProfilePage() {
                   flex: 1,
                   maxWidth: 180,
                   minWidth: { xs: "100%", md: 125 },
-                  fontWeight: 700
                 }}
               >
                 Save
@@ -466,7 +449,6 @@ export default function ProfilePage() {
                   flex: 1,
                   maxWidth: 180,
                   minWidth: { xs: "100%", md: 125 },
-                  fontWeight: 700
                 }}
               >
                 Cancel
@@ -538,7 +520,7 @@ function ProfilePageSkeleton() {
         <Typography variant="body2">
           <Skeleton variant="text" width={200} />
         </Typography>
-        <IconButton sx={{ p: 1.5, minWidth: 44, minHeight: 44 }}>
+        <IconButton>
           <EditIcon fontSize="small" />
         </IconButton>
       </Box>

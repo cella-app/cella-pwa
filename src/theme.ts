@@ -9,7 +9,24 @@ export const rootStyle = {
 	descriptionColor: "#6B6B6B",
 	titleFontFamily: "Georgia, serif",
 	mainFontFamily: "Inter, sans-serif",
-	borderColorMain: "#c8c6c3"
+	borderColorMain: "#c8c6c3",
+	// Consistent spacing values
+	spacing: {
+		xs: 4,    // 4px
+		sm: 8,    // 8px
+		md: 16,   // 16px
+		lg: 24,   // 24px
+		xl: 32,   // 32px
+	},
+	// Consistent border radius
+	borderRadius: {
+		sm: 8,    // 8px - text fields, small elements
+		md: 12,   // 12px - buttons, cards
+		lg: 16,   // 16px - dialogs, large cards
+		xl: 20,   // 20px - special containers
+	},
+	// Icon button minimum touch target
+	minTouchTarget: 44,  // 44x44pt for accessibility
 }
 
 export default createTheme({
@@ -98,15 +115,19 @@ export default createTheme({
 		MuiButton: {
 			styleOverrides: {
 				root: {
-					borderRadius: '16px',
+					borderRadius: `${rootStyle.borderRadius.md}px`,
 					height: '56px',
 					minWidth: "180px",
 					textTransform: 'none',
 					fontFamily: rootStyle.mainFontFamily,
 					fontSize: '16px',
-					fontWeight: '700',
+					fontWeight: 700,
+					boxShadow: 'none',
 					"&.MuiButton-root": {
 						fontFamily: rootStyle.mainFontFamily,
+					},
+					"&:hover": {
+						boxShadow: 'none',
 					},
 					"@media (max-width:280px)": {
 						height: "48px",
@@ -116,11 +137,16 @@ export default createTheme({
 				},
 				contained: {
 					color: 'white',
+					backgroundColor: rootStyle.elementColor,
 					'&:hover': {
 						backgroundColor: 'transparent',
 						border: "1px solid",
 						borderColor: rootStyle.elementColor,
 						color: rootStyle.elementColor
+					},
+					'&:disabled': {
+						backgroundColor: '#E0E0E0',
+						color: '#9E9E9E',
 					},
 				},
 				outlined: {
@@ -133,6 +159,15 @@ export default createTheme({
 						color: "white"
 					},
 				}
+			},
+		},
+		MuiIconButton: {
+			styleOverrides: {
+				root: {
+					minWidth: rootStyle.minTouchTarget,
+					minHeight: rootStyle.minTouchTarget,
+					padding: 12,
+				},
 			},
 		},
 		MuiTextField: {
@@ -176,7 +211,7 @@ export default createTheme({
 		MuiCard: {
 			styleOverrides: {
 				root: {
-					borderRadius: '16px',
+					borderRadius: `${rootStyle.borderRadius.lg}px`,
 					"@media (max-width:280px)": {
 						padding: "12px",
 					},
@@ -186,10 +221,17 @@ export default createTheme({
 		MuiPaper: {
 			styleOverrides: {
 				root: {
-					borderRadius: '16px',
+					borderRadius: `${rootStyle.borderRadius.lg}px`,
 					"@media (max-width:280px)": {
 						padding: "12px",
 					},
+				},
+			},
+		},
+		MuiDialog: {
+			styleOverrides: {
+				paper: {
+					borderRadius: `${rootStyle.borderRadius.lg}px`,
 				},
 			},
 		},

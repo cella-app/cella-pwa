@@ -112,7 +112,7 @@ export default function SessionCheckoutPage() {
     return (
       <Box sx={{
         minHeight: '100vh',
-        backgroundColor: '#FCFCF6',
+        backgroundColor: rootStyle.backgroundColor,
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -126,7 +126,7 @@ export default function SessionCheckoutPage() {
     return (
       <Box sx={{
         minHeight: '100vh',
-        backgroundColor: '#FCFCF6',
+        backgroundColor: rootStyle.backgroundColor,
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -146,7 +146,7 @@ export default function SessionCheckoutPage() {
   return (
     <Box sx={{
       minHeight: '100vh',
-      backgroundColor: '#FCFCF6',
+      backgroundColor: rootStyle.backgroundColor,
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
@@ -163,9 +163,6 @@ export default function SessionCheckoutPage() {
           left: 20,
           background: 'none',
           boxShadow: 'none',
-          p: 1.5,
-          minWidth: '45pt',
-          minHeight: '45pt',
         }}
         aria-label="Back to session"
       >
@@ -221,7 +218,7 @@ export default function SessionCheckoutPage() {
                   onClick={() => handleToggle(item.key)}
                 >
                   {checked[item.key]
-                    ? <CheckCircleIcon sx={{ color: '#185C3C' }} />
+                    ? <CheckCircleIcon sx={{ color: rootStyle.elementColor }} />
                     : <RadioButtonUncheckedIcon sx={{ color: '#BDBDBD' }} />}
                 </span>
               </Box>
