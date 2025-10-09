@@ -37,6 +37,7 @@ export const getAllowedToGetPodsThreshold = (radius: number): number => {
 	if (radius <= 5000) return 300;  // Doubled from 2500→150 to 5000→300
 	if (radius <= 10000) return 600; // Doubled from 5000→300 to 10000→600
 	if (radius <= 20000) return 1000; // Keep max the same
+	if (radius <= 50000) return 2000; // Keep max the same
 	return 1200;
 };
 
@@ -46,6 +47,7 @@ export const getAllowedCenterThreshold = (radius: number): number => {
 	if (radius <= 5000) return 600;  // Doubled from 2500→300 to 5000→600
 	if (radius <= 10000) return 800; // Doubled from 5000→400 to 10000→800
 	if (radius <= 20000) return 1000; // Keep max the same
+	if (radius <= 50000) return 2000; // Keep max the same
 	return 1000;
 };
 
@@ -56,5 +58,6 @@ export const getNoiseThreshold = (radius: number): number => {
 	if (radius <= 5000) return 120;  // Doubled from 2500→30 to 5000→120
 	if (radius <= 10000) return 160; // Doubled from 5000→40 to 10000→160
 	if (radius <= 20000) return 200; // Keep max the same
-	return 100;
+	if (radius <= 50000) return 500; // Keep max the same
+	return 80;
 }

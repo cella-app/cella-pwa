@@ -246,6 +246,8 @@ export const MapLayersAndControls = ({
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         noWrap={true}
         bounds={[[-90, -180], [90, 180]]}
+        maxNativeZoom={19}
+        maxZoom={20}
       />
 
       {showButtonSearch && (
