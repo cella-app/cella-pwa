@@ -51,10 +51,10 @@ export const getAllowedCenterThreshold = (radius: number): number => {
 
 
 export const getNoiseThreshold = (radius: number): number => {
-	if (radius <= 1200) return 20;  // Doubled from 600→10 to 1200→20
-	if (radius <= 2000) return 40;  // Doubled from 1000→20 to 2000→40
-	if (radius <= 5000) return 60;  // Doubled from 2500→30 to 5000→60
-	if (radius <= 10000) return 80; // Doubled from 5000→40 to 10000→80
-	if (radius <= 20000) return 100; // Keep max the same
+	if (radius <= 1200) return 40;  // Doubled from 600→10 to 1200→40
+	if (radius <= 2000) return 80;  // Doubled from 1000→20 to 2000→80
+	if (radius <= 5000) return 120;  // Doubled from 2500→30 to 5000→120
+	if (radius <= 10000) return 160; // Doubled from 5000→40 to 10000→160
+	if (radius <= 20000) return 200; // Keep max the same
 	return 100;
 }

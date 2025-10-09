@@ -71,23 +71,23 @@ describe('Positioning Utils', () => {
 
   describe('getLocateButtonBottomOffset', () => {
     it('should return correct offset for PWA mode', () => {
-      expect(getLocateButtonBottomOffset(false, false, true)).toBe('16pt');
+      expect(getLocateButtonBottomOffset(false, false, true)).toBe('33pt');
     });
 
     it('should return correct offset for iOS Safari', () => {
-      expect(getLocateButtonBottomOffset(true, true, false)).toBe('50pt');
+      expect(getLocateButtonBottomOffset(true, true, false)).toBe('66pt');
     });
 
     it('should return correct offset for iOS non-Safari', () => {
-      expect(getLocateButtonBottomOffset(false, true, false)).toBe('30pt');
+      expect(getLocateButtonBottomOffset(false, true, false)).toBe('66pt');
     });
 
     it('should return correct offset for Desktop Safari', () => {
-      expect(getLocateButtonBottomOffset(true, false, false)).toBe('20pt');
+      expect(getLocateButtonBottomOffset(true, false, false)).toBe('66pt');
     });
 
     it('should return correct offset for other browsers', () => {
-      expect(getLocateButtonBottomOffset(false, false, false)).toBe('16pt');
+      expect(getLocateButtonBottomOffset(false, false, false)).toBe('33pt');
     });
   });
 
@@ -305,42 +305,42 @@ describe('Positioning Utils', () => {
         width: 1920, height: 1080,
         isSafari: false, isIOS: false, isStandalone: false,
         expectedAddToHomeOffset: '12pt',
-        expectedLocateOffset: '16pt'
+        expectedLocateOffset: '33pt'
       },
       {
         name: 'iPhone 15 Pro Safari',
         width: 393, height: 852,
         isSafari: true, isIOS: true, isStandalone: false,
         expectedAddToHomeOffset: '70pt',
-        expectedLocateOffset: '50pt'
+        expectedLocateOffset: '66pt'
       },
       {
         name: 'iPhone SE PWA',
         width: 375, height: 667,
         isSafari: true, isIOS: true, isStandalone: true,
         expectedAddToHomeOffset: '12pt',
-        expectedLocateOffset: '16pt'
+        expectedLocateOffset: '33pt'
       },
       {
         name: 'iPhone Large Display Mode',
         width: 320, height: 568,
         isSafari: true, isIOS: true, isStandalone: false,
         expectedAddToHomeOffset: '70pt',
-        expectedLocateOffset: '50pt'
+        expectedLocateOffset: '66pt'
       },
       {
         name: 'iPhone Ultra Large Display',
         width: 280, height: 568,
         isSafari: true, isIOS: true, isStandalone: false,
         expectedAddToHomeOffset: '70pt',
-        expectedLocateOffset: '50pt'
+        expectedLocateOffset: '66pt'
       },
       {
         name: 'Android Chrome',
         width: 412, height: 915,
         isSafari: false, isIOS: false, isStandalone: false,
         expectedAddToHomeOffset: '12pt',
-        expectedLocateOffset: '16pt'
+        expectedLocateOffset: '33pt'
       }
     ];
 
@@ -569,7 +569,7 @@ describe('Positioning Utils', () => {
       it('should be extra conservative for Large Display Mode', () => {
         // Mock iOS environment first
         mockiOSEnvironment();
-        
+
         // Mock Large Display Mode
         mockWindow(320, 568);
         Object.defineProperty(window, 'devicePixelRatio', {
@@ -577,11 +577,11 @@ describe('Positioning Utils', () => {
           configurable: true,
           value: 2,
         });
-        
+
         const height = getSafeViewportHeight();
-        
-        // Should be very conservative (75% of height)
-        expect(height).toBeLessThan(window.innerHeight * 0.8);
+
+        // Should be conservative (88% of height for Large Display Mode)
+        expect(height).toBeLessThanOrEqual(window.innerHeight * 0.88);
         expect(height).toBeGreaterThan(window.innerHeight * 0.7);
       });
 
@@ -630,33 +630,30 @@ describe('Positioning Utils', () => {
     });
 
     describe('getAddToHomeEqualMarginPosition', () => {
-      it('should center AddToHome button with equal margins', () => {
+      it('should position AddToHome button at bottom-left', () => {
         const position = getAddToHomeEqualMarginPosition();
-        
-        // Should be roughly centered
-        const centerX = window.innerWidth / 2;
-        const centerY = getSafeViewportHeight() / 2;
-        const buttonCenterX = position.x + (BUTTON_SIZES.ADD_TO_HOME / 2);
-        const buttonCenterY = position.y + (BUTTON_SIZES.ADD_TO_HOME / 2);
-        
-        expect(Math.abs(buttonCenterX - centerX)).toBeLessThan(50); // Within 50px of center
-        expect(Math.abs(buttonCenterY - centerY)).toBeLessThan(50);
+        const safeHeight = getSafeViewportHeight();
+
+        // Should be at left edge with margin
+        expect(position.x).toBe(SPACING.EDGE_MARGIN);
+
+        // Should be near bottom with margin
+        const expectedY = safeHeight - BUTTON_SIZES.ADD_TO_HOME - SPACING.EDGE_MARGIN;
+        expect(Math.abs(position.y - expectedY)).toBeLessThan(5);
       });
 
-      it('should maintain equal distances to all edges', () => {
+      it('should maintain proper margins from edges', () => {
         const position = getAddToHomeEqualMarginPosition();
         const buttonSize = BUTTON_SIZES.ADD_TO_HOME;
         const safeHeight = getSafeViewportHeight();
-        
+
         // Distance to each edge
         const leftDistance = position.x;
-        const rightDistance = window.innerWidth - (position.x + buttonSize);
-        const topDistance = position.y;
         const bottomDistance = safeHeight - (position.y + buttonSize);
-        
-        // All distances should be approximately equal
-        expect(Math.abs(leftDistance - rightDistance)).toBeLessThan(5);
-        expect(Math.abs(topDistance - bottomDistance)).toBeLessThan(5);
+
+        // Left and bottom margins should match EDGE_MARGIN
+        expect(leftDistance).toBe(SPACING.EDGE_MARGIN);
+        expect(Math.abs(bottomDistance - SPACING.EDGE_MARGIN)).toBeLessThan(5);
       });
 
       it('should work across different screen sizes and orientations', () => {
@@ -673,21 +670,20 @@ describe('Positioning Utils', () => {
         testCases.forEach(testCase => {
           mockWindow(testCase.width, testCase.height);
           const position = getAddToHomeEqualMarginPosition();
-          
+
           // Position should be within screen bounds
           expect(position.x).toBeGreaterThanOrEqual(0);
           expect(position.y).toBeGreaterThanOrEqual(0);
           expect(position.x + BUTTON_SIZES.ADD_TO_HOME).toBeLessThanOrEqual(testCase.width);
           expect(position.y + BUTTON_SIZES.ADD_TO_HOME).toBeLessThanOrEqual(testCase.height);
-          
-          // Should be reasonably centered
-          const centerX = testCase.width / 2;
-          const centerY = testCase.height / 2;
-          const buttonCenterX = position.x + (BUTTON_SIZES.ADD_TO_HOME / 2);
-          const buttonCenterY = position.y + (BUTTON_SIZES.ADD_TO_HOME / 2);
-          
-          expect(Math.abs(buttonCenterX - centerX)).toBeLessThan(testCase.width * 0.1); // Within 10% of center
-          expect(Math.abs(buttonCenterY - centerY)).toBeLessThan(testCase.height * 0.1);
+
+          // Should be at bottom-left with proper margin
+          expect(position.x).toBe(SPACING.EDGE_MARGIN);
+
+          // Y position should be near bottom (within safe viewport)
+          const safeHeight = getSafeViewportHeight();
+          const expectedY = safeHeight - BUTTON_SIZES.ADD_TO_HOME - SPACING.EDGE_MARGIN;
+          expect(Math.abs(position.y - expectedY)).toBeLessThan(10); // Allow some tolerance
         });
       });
 

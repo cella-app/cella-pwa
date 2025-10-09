@@ -14,6 +14,7 @@ import { useMapStore } from '@/features/map/stores/map.store';
 const RETRY_DELAY = 500;
 const DEBOUNCE_TIME = 300;
 const FETCH_DEBOUNCE_TIME = 500; // Reduced from 1000ms to 500ms for faster response
+const MAX_GPS_ACCURACY = 50; // Only accept GPS readings with accuracy better than 50 meters
 
 export function useLocationTracking(
   radius: number = 1200, // Doubled from 600 to 1200
@@ -142,11 +143,19 @@ export function useLocationTracking(
   // Handle successful geolocation
   const handleLocationSuccess = useCallback(
     (position: GeolocationPosition) => {
+      // Filter out inaccurate GPS readings to prevent jumpy behavior
+      const accuracy = position.coords.accuracy;
+      if (accuracy > MAX_GPS_ACCURACY) {
+        console.log(`🛰️ GPS reading rejected - poor accuracy: ${accuracy.toFixed(0)}m (max: ${MAX_GPS_ACCURACY}m)`);
+        return; // Ignore inaccurate readings
+      }
+
       const newLocation: LocationData = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       };
 
+      console.log(`🛰️ GPS reading accepted - accuracy: ${accuracy.toFixed(0)}m`);
       setLocation(newLocation);
       setError(null);
 
@@ -232,7 +241,7 @@ export function useLocationTracking(
       handleGeolocationError,
       {
         enableHighAccuracy: true,
-        maximumAge: 0,
+        maximumAge: 5000, // Allow cached position up to 5s to reduce GPS jumping
         timeout: 10000,
       }
     );
@@ -306,14 +315,25 @@ export function useLocationTracking(
     }
   }, [currentLocation, radius, shouldFetchPods, isUserCenterInValidRange, currentMapCenter, changeState, changeStateShowLoader, fetchPodsWithImmediateLoading]);
 
+  // Track last processed center to prevent infinite flyTo loops
+  const lastProcessedCenter = useRef<LocationData | null>(null);
+
   // LOGIC BỔ SUNG: Khi center thay đổi và trong khoảng hợp lệ với user thì fly về user (với GPS noise filter)
   useEffect(() => {
     if (!currentLocation || !currentMapCenter || !map) return;
+
+    // Prevent processing the same center multiple times
+    if (lastProcessedCenter.current &&
+        lastProcessedCenter.current.latitude === currentMapCenter.latitude &&
+        lastProcessedCenter.current.longitude === currentMapCenter.longitude) {
+      return;
+    }
 
     // Khi center thay đổi, nếu nó trong khoảng hợp lệ với user VÀ đủ xa để đáng fly thì fly về user
     if (isUserCenterInValidRange(currentLocation, currentMapCenter)) {
       if (shouldCenterMap(currentLocation, currentMapCenter)) {
         console.log("Center in range with user - flying to user location:", currentLocation);
+        lastProcessedCenter.current = currentMapCenter; // Mark as processed
         try {
           map.flyTo([currentLocation.latitude, currentLocation.longitude], map.getZoom(), {
             duration: 0.5,
@@ -327,9 +347,12 @@ export function useLocationTracking(
         } catch (err) {
           console.error('Error flying to user location:', err);
         }
+      } else {
+        // Update last processed even if we don't fly, to prevent checking again
+        lastProcessedCenter.current = currentMapCenter;
       }
     }
-  }, [currentMapCenter, map, currentLocation, isUserCenterInValidRange, shouldCenterMap, shouldFetchPods, radius, changeState, fetchPodsWithImmediateLoading]);
+  }, [currentMapCenter, map, currentLocation, isUserCenterInValidRange, shouldCenterMap, shouldFetchPods, radius, fetchPodsWithImmediateLoading]);
 
   // Cleanup on unmount
   useEffect(() => {

@@ -1,7 +1,7 @@
 // MapContent.tsx - Simplified version
 "use client";
 
-import { useEffect, useState, useRef, memo } from "react";
+import { useEffect, useState, useRef, memo, useCallback } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -40,10 +40,14 @@ import { getEnvironmentInfo, getLocateButtonBottomOffset } from '@/shared/utils/
 
 function MapInitializer({ mapRef }: { mapRef: React.RefObject<LeafletMapType | null> }) {
   const { setMap } = useMapStore();
+  const isMapInitialized = useRef(false);
 
   useEffect(() => {
-    if (mapRef.current) {
+    // Only set map once to prevent re-initialization
+    if (mapRef.current && !isMapInitialized.current) {
+      console.log("🗺️ MapInitializer - Initializing map once");
       setMap(mapRef.current);
+      isMapInitialized.current = true;
     }
   }, [mapRef, setMap]);
 
@@ -235,6 +239,20 @@ export default memo(function MapContent() {
     setMapLoaded(true);
   }, []);
 
+  // Memoize callback functions to prevent unnecessary re-renders
+  const handlePodSelect = useCallback((pod: PodList) => {
+    setSelectedPod((prev) => {
+      if (!prev || prev.id !== pod.id) {
+        return pod;
+      }
+      return prev;
+    });
+  }, []);
+
+  const handleMapLoad = useCallback(() => {
+    console.log("Map loaded");
+  }, []);
+
   if (!mapLoaded || loadingUser || isPermissionLoading) {
     return (
       <div
@@ -251,12 +269,6 @@ export default memo(function MapContent() {
       </div>
     );
   }
-
-  const handlePodSelect = (pod: PodList) => {
-    if (!selectedPod || selectedPod.id !== pod.id) {
-      setSelectedPod(pod);
-    }
-  };
 
   return (
     <>
@@ -298,7 +310,7 @@ export default memo(function MapContent() {
         {mapRef.current && (
           <MapLayersAndControls
             map={mapRef.current}
-            onMapLoad={() => console.log("Map loaded")}
+            onMapLoad={handleMapLoad}
             onPodSelect={handlePodSelect}
           />
         )}

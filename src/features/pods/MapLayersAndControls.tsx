@@ -41,6 +41,7 @@ export const MapLayersAndControls = ({
   onMapLoad,
   onPodSelect,
 }: MapLayersAndControlsProps) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [myLocationIcon, setMyLocationIcon] = useState<DivIcon | null>(null);
@@ -95,8 +96,13 @@ export const MapLayersAndControls = ({
     }
   }, [isClient]);
 
+  // Use ref to track if initial flyTo has been executed
+  const initialFlyToExecuted = useRef(false);
+
   useEffect(() => {
-    if (isClient && map && currentLocation && !mapLoaded) {
+    // Only execute flyTo once when all conditions are met
+    if (isClient && map && currentLocation && !initialFlyToExecuted.current) {
+      initialFlyToExecuted.current = true;
       map.flyTo(
         [currentLocation.latitude, currentLocation.longitude],
         15,
@@ -107,7 +113,7 @@ export const MapLayersAndControls = ({
       setMapLoaded(true);
       onMapLoad?.();
     }
-  }, [map, currentLocation, mapLoaded, onMapLoad, isClient]);
+  }, [map, currentLocation, isClient, onMapLoad]);
 
   useEffect(() => {
     console.warn("showButtonSearch", showButtonSearch)

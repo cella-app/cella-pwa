@@ -16,29 +16,30 @@ const MapLoader = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
   console.warn("check show", loading, showLoader)
+
   // Update loader position based on map center
   useEffect(() => {
     if (!map || !loading || !showLoader) return;
 
     const updatePosition = () => {
-      
       // Get center coordinates
-      const centerLatLng = currentMapCenter 
+      const centerLatLng = currentMapCenter
         ? { lat: currentMapCenter.latitude, lng: currentMapCenter.longitude }
         : map.getCenter();
-      
+
       // Convert lat/lng to pixel coordinates
       const centerPoint = map.latLngToContainerPoint(centerLatLng);
-      
+
       setPosition({
         x: centerPoint.x,
         y: centerPoint.y
       });
     };
 
+    // Initial position update
     updatePosition();
 
-    // Update position when map moves or zooms
+    // Only attach event listeners once when loader is active
     map.on('move', updatePosition);
     map.on('zoom', updatePosition);
 
@@ -46,7 +47,7 @@ const MapLoader = () => {
       map.off('move', updatePosition);
       map.off('zoom', updatePosition);
     };
-  }, [map, loading, currentMapCenter, showLoader]);
+  }, [map, loading, showLoader]); // Removed currentMapCenter from dependencies
 
   if (!loading || !showLoader) return null;
 
