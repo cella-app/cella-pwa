@@ -122,33 +122,33 @@ export function getLocateButtonPosition(): { bottom: number } {
 	};
 }
 
-// Get AddToHome default positioning - MIDDLE LEFT (center vertically, left edge)
+// Get AddToHome default positioning - BOTTOM LEFT (bottom corner, left edge)
 export function getAddToHomeEqualMarginPosition(): { x: number; y: number } {
 	if (typeof window === "undefined" || !window) {
 		return { x: 300, y: 100 }; // Fallback positioning
 	}
-	
+
 	const buttonSize = BUTTON_SIZES.ADD_TO_HOME;
 	const safeHeight = getSafeViewportHeight();
 	const isLargeDisplay = isLargeDisplayMode();
-	
+
 	// Use consistent margins for equal spacing from all edges
 	let margin: number = SPACING.EDGE_MARGIN; // Base 24px
 	if (isLargeDisplay) {
 		margin = Math.max(margin, window.innerWidth * 0.06); // 6% for Large Display Mode
 	}
-	
-	// MIDDLE-LEFT positioning - center vertically, left edge with margin
+
+	// BOTTOM-LEFT positioning - bottom corner, left edge with margin
 	const x = margin;
-	const y = (safeHeight - buttonSize) / 2; // Center vertically
-	
+	const y = safeHeight - buttonSize - margin; // Position at bottom with margin
+
 	// Ensure button doesn't go off screen
 	const maxX = window.innerWidth - buttonSize - margin;
 	const maxY = safeHeight - buttonSize - margin;
-	
-	return { 
-		x: Math.min(x, maxX), 
-		y: Math.min(y, maxY) 
+
+	return {
+		x: Math.min(x, maxX),
+		y: Math.max(SPACING.VERTICAL_MARGIN, Math.min(y, maxY))
 	};
 }
 
