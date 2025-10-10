@@ -28,6 +28,7 @@ import {
 import { PaymentSetupIntent } from '@/shared/data/models/Payment';
 
 import { STRIPE_PUBLIC_KEY_APP } from '@/shared/config/env';
+import DigitalWalletButton from "./DigitalWalletButton";
 
 // --- Stripe Promise ---
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY_APP);
@@ -73,11 +74,50 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
     cardExpiry: '',
     cardCvc: '',
   });
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
-  const handleElementChange = (elementName: keyof typeof elementErrors) => (
-    event: StripeElementChangeEvent,
-  ) => {
-    setElementErrors((prev) => ({ ...prev, [elementName]: event.error ? event.error.message : '' }));
+  // Fetch SetupIntent client secret on component mount for digital wallets
+  React.useEffect(() => {
+    console.log("MOunting");
+    
+    async function fetchClientSecret() {
+      try {
+        const setupIntent = await paymentApi.getSetupIntent();
+        setClientSecret(setupIntent.client_secret);
+      } catch (err) {
+        console.error("Failed to fetch setup intent:", err);
+        setError("Failed to initialize payment. Please try again.");
+      }
+    }
+    fetchClientSecret();
+  }, []);
+
+  const handleElementChange =
+    (elementName: keyof typeof elementErrors) =>
+    (event: StripeElementChangeEvent) => {
+      setElementErrors((prev) => ({
+        ...prev,
+        [elementName]: event.error ? event.error.message : "",
+      }));
+    };
+
+  const handleDigitalWalletSuccess = () => {
+    setSuccess(true);
+    addAlert({
+      severity: SERVERIFY_ALERT.SUCCESS,
+      message: "Payment method added successfully!",
+    });
+    setTimeout(() => {
+      router.push(from);
+    }, 2000);
+  };
+
+  const handleDigitalWalletError = (errorMessage: string) => {
+    addAlert({
+      severity: SERVERIFY_ALERT.ERROR,
+      message: errorMessage,
+    });
+    setError(errorMessage);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,6 +180,15 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
 
   return (
     <Box>
+      {/* Digital Wallet Button (Apple Pay / Google Pay) */}
+      {clientSecret && (
+        <DigitalWalletButton
+          clientSecret={clientSecret}
+          onSuccess={handleDigitalWalletSuccess}
+          onError={handleDigitalWalletError}
+        />
+      )}
+
       <Box component="form" onSubmit={handleSubmit}>
       <Box sx={{
         border: "1px solid",

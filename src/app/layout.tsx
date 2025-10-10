@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import AddToHomeScreenButton from '@/components/AddToHomeScreenButton';
 import { WorkspacePopupProvider } from '@/hooks/WorkspacePopupContext';
+import GeolocationMock from '@/components/GeolocationMock';
 
 export const metadata: Metadata = {
   title: process.env.NODE_ENV === 'development' ? 'Cella Dev' : 'Cella',
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body suppressHydrationWarning>
+              <GeolocationMock />
               <EmotionRegistry>
                 <ThemeProviderWrapper>
                   <WorkspacePopupProvider>
