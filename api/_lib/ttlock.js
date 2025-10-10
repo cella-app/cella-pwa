@@ -90,17 +90,32 @@ async function ttReq(path, params = {}) {
   return postForm(`${API}${path}`, body);
 }
 
-// Exported API calls
+const MOCK = process.env.MOCK_TTLOCK === "1";
+
 export async function openState(lockId) {
+  if (MOCK) {
+    return { lockId, state: Math.random() > 0.5 ? 1 : 0, mock: true };
+  }
   return ttReq("/v3/lock/queryOpenState", { lockId: Number(lockId) });
 }
 export async function unlock(lockId) {
+  if (MOCK) {
+    return { errcode: 0, action: "unlock", lockId, mock: true };
+  }
   return ttReq("/v3/lock/unlock", { lockId: Number(lockId) });
 }
 export async function lock(lockId) {
+  if (MOCK) {
+    return { errcode: 0, action: "lock", lockId, mock: true };
+  }
   return ttReq("/v3/lock/lock", { lockId: Number(lockId) });
 }
 export async function listLocks() {
+  if (MOCK) {
+    return {
+      list: [{ lockId: 12345678, lockAlias: "Mock Pod", lockMac: "00:11:22" }],
+    };
+  }
   return ttReq("/v3/lock/list", { pageNo: 1, pageSize: 100 });
 }
 
