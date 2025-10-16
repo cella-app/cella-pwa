@@ -104,7 +104,7 @@ export default function DigitalWalletButton({
         // abort may not be available in all environments, so guard it
         (pr as any).abort?.();
       } catch (e) {
-        // ignore
+        console.warn("an error occured: ", e);
       }
       setPaymentRequest(null);
       setCanMakePayment(false);
