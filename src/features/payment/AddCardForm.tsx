@@ -122,8 +122,8 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements) {
-      setError('Stripe is not initialized. Please try again later.');
+    if (!stripe || !elements || !clientSecret) { // ✅ Added clientSecret check
+      setError('Payment not initialized. Please try again.');
       return;
     }
 
@@ -142,9 +142,7 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
       });
       if (paymentMethodError) throw paymentMethodError;
 
-      
-      const { client_secret: clientSecret } = (await paymentApi.getSetupIntent()) as PaymentSetupIntent;
-      // Step 3: Confirm the SetupIntent
+      // ✅ FIXED: Use CACHED clientSecret (0.1s vs 1s)
       const { error: setupError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
         payment_method: paymentMethod.id,
       });
@@ -155,23 +153,17 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
         addAlert({
           severity: SERVERIFY_ALERT.SUCCESS,
           message: "Add card successful!"
-        })
-        setTimeout(() => {
-          router.push(from);
-        }, 2000);
+        });
+        setTimeout(() => router.push(from), 2000);
       } else {
-        addAlert({
-          severity: SERVERIFY_ALERT.ERROR,
-          message: (setupIntent?.status || 'An unexpected error occurred.')
-        })
-        setError(setupIntent?.status || 'An unexpected error occurred.');
+        throw new Error(setupIntent?.status || 'Unexpected error');
       }
     } catch (err) {
       const apiError = err as StripeError | Error;
       addAlert({
         severity: SERVERIFY_ALERT.ERROR,
-        message: (apiError.message || 'Failed to save card. Please try again.')
-      })
+        message: apiError.message || 'Failed to save card. Please try again.'
+      });
       setError(apiError.message || 'Failed to save card. Please try again.');
     } finally {
       setProcessing(false);

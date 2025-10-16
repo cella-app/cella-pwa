@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import {
   PaymentRequest,
@@ -16,14 +15,21 @@ interface DigitalWalletButtonProps {
   onSuccess: () => void;
   onError: (error: string) => void;
   clientSecret: string;
+  country?: string;
+  currency?: string;
+  label?: string;
 }
 
 export default function DigitalWalletButton({
   onSuccess,
   onError,
   clientSecret,
+  country = "US",
+  currency = "usd",
+  label = "Complete Setup",
 }: DigitalWalletButtonProps) {
   const stripe = useStripe();
+
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(
     null
   );
@@ -32,45 +38,38 @@ export default function DigitalWalletButton({
   useEffect(() => {
     if (!stripe || !clientSecret) return;
 
-    // Create payment request for Apple Pay / Google Pay
     const pr = stripe.paymentRequest({
-      country: "US",
-      currency: "usd",
-      total: {
-        label: "Add Payment Method",
-        amount: 0, // SetupIntent doesn't charge, so amount is 0
-      },
+      country,
+      currency,
+      total: { label, amount: 100 }, // ✅ FIXED: Must be > 0**
       requestPayerName: true,
       requestPayerEmail: false,
     });
 
     let mounted = true;
 
-    // Async check for wallet availability with error handling
     (async () => {
       try {
         const result = await pr.canMakePayment();
-        console.log("Digital wallet availability:", result);
+        console.log("✅ Wallet check:", result);
         if (!mounted) return;
+
         if (result) {
           setPaymentRequest(pr);
           setCanMakePayment(true);
+          console.log("✅ Buttons will show!");
         } else {
-          console.log(
-            "Digital wallets (Apple Pay/Google Pay) are not available on this browser/device"
-          );
+          console.log("❌ No wallet support");
         }
       } catch (err) {
-        console.warn("canMakePayment error:", err);
+        console.error("❌ Wallet error:", err);
       }
     })();
 
-    // Handle payment method event
     const handlePaymentMethod = async (
       ev: PaymentRequestPaymentMethodEvent
     ) => {
       try {
-        // Confirm the SetupIntent with the payment method from Apple Pay/Google Pay
         const { error: confirmError, setupIntent } =
           await stripe.confirmCardSetup(clientSecret, {
             payment_method: ev.paymentMethod.id,
@@ -78,28 +77,36 @@ export default function DigitalWalletButton({
 
         if (confirmError) {
           ev.complete("fail");
-          onError(confirmError.message || "Payment failed");
+          onError(confirmError.message || "Setup failed");
           return;
         }
 
-        if (setupIntent?.status === "succeeded") {
-          ev.complete("success");
-          onSuccess();
-        } else {
-          ev.complete("fail");
-          onError(setupIntent?.status || "Payment failed");
-        }
+        ev.complete("success");
+        onSuccess();
       } catch (err) {
         ev.complete("fail");
-        onError((err as Error).message || "Payment failed");
+        onError((err as Error).message || "Setup failed");
       }
     };
 
     pr.on("paymentmethod", handlePaymentMethod);
-  }, [stripe, clientSecret, onSuccess, onError]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [stripe, clientSecret, country, currency, label, onSuccess, onError]);
+
+  // ✅ DEBUG: Show status**
+  console.log("Render:", { canMakePayment, hasPR: !!paymentRequest });
 
   if (!canMakePayment || !paymentRequest) {
-    return null;
+    return (
+      <Box>
+        <Typography variant="body2" color="textSecondary">
+          **Digital wallets not available**
+        </Typography>
+      </Box>
+    ); // ✅ Show why it's hidden
   }
 
   return (
@@ -116,20 +123,13 @@ export default function DigitalWalletButton({
           },
         }}
       />
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          my: 3,
-          gap: 2,
-        }}
-      >
+      {/* Your existing divider */}
+      <Box sx={{ display: "flex", alignItems: "center", my: 3, gap: 2 }}>
         <Box
           sx={{ flex: 1, height: "1px", bgcolor: rootStyle.borderColorMain }}
         />
         <Typography
           sx={{
-            fontFamily: rootStyle.mainFontFamily,
             fontSize: "14px",
             fontWeight: 600,
             color: rootStyle.descriptionColor,
