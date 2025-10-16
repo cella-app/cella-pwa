@@ -1,11 +1,13 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import {
   PaymentRequest,
   PaymentRequestPaymentMethodEvent,
 } from "@stripe/stripe-js";
-import { PaymentRequestButtonElement, useStripe } from "@stripe/react-stripe-js";
+import {
+  PaymentRequestButtonElement,
+  useStripe,
+} from "@stripe/react-stripe-js";
 import { Box, Typography } from "@mui/material";
 import { rootStyle } from "@/theme";
 
@@ -13,74 +15,98 @@ interface DigitalWalletButtonProps {
   onSuccess: () => void;
   onError: (error: string) => void;
   clientSecret: string;
+  country?: string;
+  currency?: string;
+  label?: string;
 }
 
 export default function DigitalWalletButton({
   onSuccess,
   onError,
   clientSecret,
+  country = "US",
+  currency = "usd",
+  label = "Complete Setup",
 }: DigitalWalletButtonProps) {
   const stripe = useStripe();
-  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
+
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(
+    null
+  );
   const [canMakePayment, setCanMakePayment] = useState(false);
 
   useEffect(() => {
     if (!stripe || !clientSecret) return;
 
-    // Create payment request for Apple Pay / Google Pay
     const pr = stripe.paymentRequest({
-      country: "US",
-      currency: "usd",
-      total: {
-        label: "Add Payment Method",
-        amount: 0, // SetupIntent doesn't charge, so amount is 0
-      },
+      country,
+      currency,
+      total: { label, amount: 100 }, // ✅ FIXED: Must be > 0**
       requestPayerName: true,
       requestPayerEmail: false,
     });
 
-    // Check if Apple Pay / Google Pay is available
-    pr.canMakePayment().then((result) => {
-      if (result) {
-        setPaymentRequest(pr);
-        setCanMakePayment(true);
-      }
-    });
+    let mounted = true;
 
-    // Handle payment method event
-    pr.on("paymentmethod", async (ev: PaymentRequestPaymentMethodEvent) => {
+    (async () => {
       try {
-        // Confirm the SetupIntent with the payment method from Apple Pay/Google Pay
-        const { error: confirmError, setupIntent } = await stripe.confirmCardSetup(
-          clientSecret,
-          {
+        const result = await pr.canMakePayment();
+        console.log("✅ Wallet check:", result);
+        if (!mounted) return;
+
+        if (result) {
+          setPaymentRequest(pr);
+          setCanMakePayment(true);
+          console.log("✅ Buttons will show!");
+        } else {
+          console.log("❌ No wallet support");
+        }
+      } catch (err) {
+        console.error("❌ Wallet error:", err);
+      }
+    })();
+
+    const handlePaymentMethod = async (
+      ev: PaymentRequestPaymentMethodEvent
+    ) => {
+      try {
+        const { error: confirmError, setupIntent } =
+          await stripe.confirmCardSetup(clientSecret, {
             payment_method: ev.paymentMethod.id,
-          },
-          { handleActions: false }
-        );
+          });
 
         if (confirmError) {
           ev.complete("fail");
-          onError(confirmError.message || "Payment failed");
+          onError(confirmError.message || "Setup failed");
           return;
         }
 
-        if (setupIntent?.status === "succeeded") {
-          ev.complete("success");
-          onSuccess();
-        } else {
-          ev.complete("fail");
-          onError(setupIntent?.status || "Payment failed");
-        }
+        ev.complete("success");
+        onSuccess();
       } catch (err) {
         ev.complete("fail");
-        onError((err as Error).message || "Payment failed");
+        onError((err as Error).message || "Setup failed");
       }
-    });
-  }, [stripe, clientSecret, onSuccess, onError]);
+    };
+
+    pr.on("paymentmethod", handlePaymentMethod);
+
+    return () => {
+      mounted = false;
+    };
+  }, [stripe, clientSecret, country, currency, label, onSuccess, onError]);
+
+  // ✅ DEBUG: Show status**
+  console.log("Render:", { canMakePayment, hasPR: !!paymentRequest });
 
   if (!canMakePayment || !paymentRequest) {
-    return null;
+    return (
+      <Box>
+        <Typography variant="body2" color="textSecondary">
+          **Digital wallets not available**
+        </Typography>
+      </Box>
+    ); // ✅ Show why it's hidden
   }
 
   return (
@@ -97,18 +123,13 @@ export default function DigitalWalletButton({
           },
         }}
       />
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          my: 3,
-          gap: 2,
-        }}
-      >
-        <Box sx={{ flex: 1, height: "1px", bgcolor: rootStyle.borderColorMain }} />
+      {/* Your existing divider */}
+      <Box sx={{ display: "flex", alignItems: "center", my: 3, gap: 2 }}>
+        <Box
+          sx={{ flex: 1, height: "1px", bgcolor: rootStyle.borderColorMain }}
+        />
         <Typography
           sx={{
-            fontFamily: rootStyle.mainFontFamily,
             fontSize: "14px",
             fontWeight: 600,
             color: rootStyle.descriptionColor,
@@ -116,7 +137,9 @@ export default function DigitalWalletButton({
         >
           or pay with card
         </Typography>
-        <Box sx={{ flex: 1, height: "1px", bgcolor: rootStyle.borderColorMain }} />
+        <Box
+          sx={{ flex: 1, height: "1px", bgcolor: rootStyle.borderColorMain }}
+        />
       </Box>
     </Box>
   );
