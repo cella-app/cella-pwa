@@ -96,19 +96,6 @@ export default function DigitalWalletButton({
     };
 
     pr.on("paymentmethod", handlePaymentMethod);
-
-    // Cleanup to avoid stale handlers or requests if component unmounts or deps change
-    return () => {
-      mounted = false;
-      try {
-        // abort may not be available in all environments, so guard it
-        (pr as any).abort?.();
-      } catch (e) {
-        console.warn("an error occured: ", e);
-      }
-      setPaymentRequest(null);
-      setCanMakePayment(false);
-    };
   }, [stripe, clientSecret, onSuccess, onError]);
 
   if (!canMakePayment || !paymentRequest) {
