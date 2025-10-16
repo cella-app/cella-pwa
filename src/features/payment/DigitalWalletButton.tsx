@@ -70,7 +70,7 @@ export default function DigitalWalletButton({
       ev: PaymentRequestPaymentMethodEvent
     ) => {
       try {
-        const { error: confirmError, setupIntent } =
+        const { error: confirmError } =
           await stripe.confirmCardSetup(clientSecret, {
             payment_method: ev.paymentMethod.id,
           });
