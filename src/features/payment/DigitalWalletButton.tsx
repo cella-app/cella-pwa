@@ -5,7 +5,10 @@ import {
   PaymentRequest,
   PaymentRequestPaymentMethodEvent,
 } from "@stripe/stripe-js";
-import { PaymentRequestButtonElement, useStripe } from "@stripe/react-stripe-js";
+import {
+  PaymentRequestButtonElement,
+  useStripe,
+} from "@stripe/react-stripe-js";
 import { Box, Typography } from "@mui/material";
 import { rootStyle } from "@/theme";
 
@@ -21,7 +24,9 @@ export default function DigitalWalletButton({
   clientSecret,
 }: DigitalWalletButtonProps) {
   const stripe = useStripe();
-  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(
+    null
+  );
   const [canMakePayment, setCanMakePayment] = useState(false);
 
   useEffect(() => {
@@ -39,25 +44,37 @@ export default function DigitalWalletButton({
       requestPayerEmail: false,
     });
 
-    // Check if Apple Pay / Google Pay is available
-    pr.canMakePayment().then((result) => {
-      if (result) {
-        setPaymentRequest(pr);
-        setCanMakePayment(true);
+    let mounted = true;
+
+    // Async check for wallet availability with error handling
+    (async () => {
+      try {
+        const result = await pr.canMakePayment();
+        console.log("Digital wallet availability:", result);
+        if (!mounted) return;
+        if (result) {
+          setPaymentRequest(pr);
+          setCanMakePayment(true);
+        } else {
+          console.log(
+            "Digital wallets (Apple Pay/Google Pay) are not available on this browser/device"
+          );
+        }
+      } catch (err) {
+        console.warn("canMakePayment error:", err);
       }
-    });
+    })();
 
     // Handle payment method event
-    pr.on("paymentmethod", async (ev: PaymentRequestPaymentMethodEvent) => {
+    const handlePaymentMethod = async (
+      ev: PaymentRequestPaymentMethodEvent
+    ) => {
       try {
         // Confirm the SetupIntent with the payment method from Apple Pay/Google Pay
-        const { error: confirmError, setupIntent } = await stripe.confirmCardSetup(
-          clientSecret,
-          {
+        const { error: confirmError, setupIntent } =
+          await stripe.confirmCardSetup(clientSecret, {
             payment_method: ev.paymentMethod.id,
-          },
-          { handleActions: false }
-        );
+          });
 
         if (confirmError) {
           ev.complete("fail");
@@ -76,7 +93,22 @@ export default function DigitalWalletButton({
         ev.complete("fail");
         onError((err as Error).message || "Payment failed");
       }
-    });
+    };
+
+    pr.on("paymentmethod", handlePaymentMethod);
+
+    // Cleanup to avoid stale handlers or requests if component unmounts or deps change
+    return () => {
+      mounted = false;
+      try {
+        // abort may not be available in all environments, so guard it
+        (pr as any).abort?.();
+      } catch (e) {
+        // ignore
+      }
+      setPaymentRequest(null);
+      setCanMakePayment(false);
+    };
   }, [stripe, clientSecret, onSuccess, onError]);
 
   if (!canMakePayment || !paymentRequest) {
@@ -105,7 +137,9 @@ export default function DigitalWalletButton({
           gap: 2,
         }}
       >
-        <Box sx={{ flex: 1, height: "1px", bgcolor: rootStyle.borderColorMain }} />
+        <Box
+          sx={{ flex: 1, height: "1px", bgcolor: rootStyle.borderColorMain }}
+        />
         <Typography
           sx={{
             fontFamily: rootStyle.mainFontFamily,
@@ -116,7 +150,9 @@ export default function DigitalWalletButton({
         >
           or pay with card
         </Typography>
-        <Box sx={{ flex: 1, height: "1px", bgcolor: rootStyle.borderColorMain }} />
+        <Box
+          sx={{ flex: 1, height: "1px", bgcolor: rootStyle.borderColorMain }}
+        />
       </Box>
     </Box>
   );
