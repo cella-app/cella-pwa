@@ -265,7 +265,9 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
               }}
             />
           </Box>
-          {elementErrors.cardNumber && (
+        </Box>
+
+        {elementErrors.cardNumber && (
             <Typography variant="caption" color="error" sx={{ display: 'block' }}>
               {elementErrors.cardNumber}
             </Typography>
@@ -280,7 +282,7 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
               {elementErrors.cardExpiry}
             </Typography>
           )}
-        </Box>
+          
         <Button
           type="submit"
           fullWidth
