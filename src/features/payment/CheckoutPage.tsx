@@ -16,7 +16,7 @@ const CheckoutPage = () => {
         if (!stripe || !elements) {
             return;
         }
-
+    
         try {
             // First submit the form
             const { error: submitError } = await elements.submit();
@@ -24,35 +24,34 @@ const CheckoutPage = () => {
                 setErrorMessage(submitError.message);
                 return;
             }
-
-            // Create PaymentIntent on the server
+    
             const { client_secret: clientSecret } = await paymentApi.getSetupIntent();
-
-            // Confirm the PaymentIntent
-            const { error: paymentError } = await stripe.confirmPayment({
+    
+            // Confirm the SetupIntent
+            console.log("confirming setup");
+            
+            const { error: setupError } = await stripe.confirmSetup({
                 elements,
                 clientSecret,
                 confirmParams: {
                     return_url: `${window.location.origin}/payment/success`,
                 },
             });
-
-            if (paymentError) {
+    
+            if (setupError) {
                 addAlert({
                     severity: SERVERIFY_ALERT.ERROR,
-                    message: paymentError.message || 'An error occurred during payment.',
+                    message: setupError.message || 'An error occurred while saving your payment method.',
                 });
-                setErrorMessage(paymentError.message);
+                setErrorMessage(setupError.message);
             } else {
                 addAlert({
                     severity: SERVERIFY_ALERT.SUCCESS,
-                    message: 'Payment successful!',
+                    message: 'Payment method saved successfully!',
                 });
-                // Payment successful - the UI will automatically close with success animation
-                // and customer will be redirected to return_url
             }
         } catch (err) {
-            console.error('Payment error:', err);
+            console.error('Setup error:', err);
             addAlert({
                 severity: SERVERIFY_ALERT.ERROR,
                 message: 'An unexpected error occurred.',
