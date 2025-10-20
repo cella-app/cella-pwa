@@ -28,26 +28,7 @@ import {
 import { STRIPE_PUBLIC_KEY_APP } from '@/shared/config/env';
 import CheckoutPage from './CheckoutPage';
 
-// --- Stripe Promise ---
-const stripePromise = loadStripe(STRIPE_PUBLIC_KEY_APP);
-
-const defaultOptions: StripeElementsOptions = {
-  mode: 'setup',
-  currency: 'eur',
-  paymentMethodTypes: ['card', 'link'],
-  appearance: {
-    theme: 'stripe',
-    variables: {
-      colorPrimary: '#0570de',
-      colorBackground: '#ffffff',
-      colorText: '#30313d',
-      colorDanger: '#df1b41',
-      fontFamily: 'system-ui, sans-serif',
-      spacingUnit: '6px',
-      borderRadius: '4px',
-    },
-  },
-};
+// Stripe element styling options
 
 const stripeElementOptions = {
   style: {
@@ -94,8 +75,7 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
 
   // Fetch SetupIntent client secret on component mount for digital wallets
   React.useEffect(() => {
-    console.log("MOunting");
-    
+  
     async function fetchClientSecret() {
       try {
         const setupIntent = await paymentApi.getSetupIntent();
@@ -327,9 +307,5 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
 
 // --- Wrapper Component ---
 export default function AddCardFormMui({ onSkip, }: { onSkip?: () => void }) {
-  return (
-    <Elements stripe={stripePromise} options={defaultOptions}>
-      <AddCardInner onSkip={onSkip} />
-    </Elements>
-  );
+  return <AddCardInner onSkip={onSkip} />;
 }
