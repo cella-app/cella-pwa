@@ -25,15 +25,11 @@ import {
   Typography,
 } from '@mui/material';
 
-import { PaymentSetupIntent } from '@/shared/data/models/Payment';
-
 import { STRIPE_PUBLIC_KEY_APP } from '@/shared/config/env';
-import DigitalWalletButton from "./DigitalWalletButton";
 import CheckoutPage from './CheckoutPage';
 
 // --- Stripe Promise ---
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY_APP);
-
 
 const defaultOptions: StripeElementsOptions = {
   mode: 'setup',
@@ -121,7 +117,7 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
       }));
     };
 
-  const handleDigitalWalletSuccess = () => {
+ /*  const handleDigitalWalletSuccess = () => {
     setSuccess(true);
     addAlert({
       severity: SERVERIFY_ALERT.SUCCESS,
@@ -138,7 +134,7 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
       message: errorMessage,
     });
     setError(errorMessage);
-  };
+  }; */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,136 +188,127 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
 
   return (
     <Box>
-      {/* Digital Wallet Button (Apple Pay / Google Pay) */}
-      {/* {clientSecret && (
-        <DigitalWalletButton
-          clientSecret={clientSecret}
-          onSuccess={handleDigitalWalletSuccess}
-          onError={handleDigitalWalletError}
-        />
-      )} */}
-
       <Box component="form" onSubmit={handleSubmit}>
         <CheckoutPage />
 
-      <Box sx={{
-        border: "1px solid",
-        borderColor: rootStyle.borderColorMain,
-        borderRadius: `${rootStyle.borderRadius.md}px`,
-        mb: 3,
-        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
-      }}>
-        {/* Card Number Field */}
-        <Box
-          sx={{
-            borderBottom: "1px solid",
-            borderColor: rootStyle.borderColorMain,
-            flex: 1,
-            px: 2,
-            py: 1.5,
-            ...commonBoxInputStyle
-          }}
-        >
-          <CardNumberElement
-            options={{
-              ...stripeElementOptions,
-              placeholder: 'Card Number',
-            }}
-            onChange={handleElementChange('cardNumber')}
-          />
-        </Box>
-
-        {/* Expiry and CVC Row */}
-        <Box sx={{ display: 'flex'}}>
-          {/* Expiry Date */}
+        <Box sx={{
+          border: "1px solid",
+          borderColor: rootStyle.borderColorMain,
+          borderRadius: `${rootStyle.borderRadius.md}px`,
+          mb: 3,
+          boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
+        }}>
+          {/* Card Number Field */}
           <Box
             sx={{
-              flex: 6,
+              borderBottom: "1px solid",
+              borderColor: rootStyle.borderColorMain,
+              flex: 1,
               px: 2,
               py: 1.5,
               ...commonBoxInputStyle
             }}
           >
-            <CardExpiryElement
+            <CardNumberElement
               options={{
                 ...stripeElementOptions,
-                placeholder: 'MM/YY',
+                placeholder: 'Card Number',
               }}
-              onChange={handleElementChange('cardExpiry')}
+              onChange={handleElementChange('cardNumber')}
             />
           </Box>
 
+          {/* Expiry and CVC Row */}
+          <Box sx={{ display: 'flex' }}>
+            {/* Expiry Date */}
+            <Box
+              sx={{
+                flex: 6,
+                px: 2,
+                py: 1.5,
+                ...commonBoxInputStyle
+              }}
+            >
+              <CardExpiryElement
+                options={{
+                  ...stripeElementOptions,
+                  placeholder: 'MM/YY',
+                }}
+                onChange={handleElementChange('cardExpiry')}
+              />
+            </Box>
+
+            <Box
+              sx={{
+                flex: 4,
+                borderLeft: '1px solid',
+                borderColor: rootStyle.borderColorMain,
+                ...commonBoxInputStyle,
+                px: 2,
+                py: 1.5,
+              }}
+            >
+              <CardCvcElement
+                options={{
+                  ...stripeElementOptions,
+                  placeholder: 'CVC',
+                }}
+                onChange={handleElementChange('cardCvc')}
+              />
+            </Box>
+          </Box>
+
+          {/* Name on Card */}
           <Box
             sx={{
-              flex: 4,
-              borderLeft: '1px solid',
+              borderTop: "1px solid",
               borderColor: rootStyle.borderColorMain,
-              ...commonBoxInputStyle,
               px: 2,
-              py: 1.5,
+              py: 0.5,
+              ...commonBoxInputStyle,
             }}
           >
-            <CardCvcElement
-              options={{
-                ...stripeElementOptions,
-                placeholder: 'CVC',
+            <TextField
+              fullWidth
+              placeholder="Name on Card"
+              variant="standard"
+              value={nameOnCard}
+              onChange={(e) => setNameOnCard(e.target.value)}
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  ...stripeElementOptions.style.base,
+                  '& input': {
+                    padding: '8px 0',
+                  },
+                },
               }}
-              onChange={handleElementChange('cardCvc')}
             />
           </Box>
+          {elementErrors.cardNumber && (
+            <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+              {elementErrors.cardNumber}
+            </Typography>
+          )}
+          {elementErrors.cardCvc && (
+            <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+              {elementErrors.cardCvc}
+            </Typography>
+          )}
+          {elementErrors.cardExpiry && (
+            <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+              {elementErrors.cardExpiry}
+            </Typography>
+          )}
         </Box>
-
-        {/* Name on Card */}
-        <Box
-          sx={{
-            borderTop: "1px solid",
-            borderColor: rootStyle.borderColorMain,
-            px: 2,
-            py: 0.5,
-            ...commonBoxInputStyle,
-          }}
-        >
-          <TextField
-            fullWidth
-            placeholder="Name on Card"
-            variant="standard"
-            value={nameOnCard}
-            onChange={(e) => setNameOnCard(e.target.value)}
-            InputProps={{
-              disableUnderline: true,
-              sx: {
-                ...stripeElementOptions.style.base,
-                '& input': {
-                  padding: '8px 0',
-                },
-              },
-            }}
-          />
-        </Box>
-        {elementErrors.cardNumber && (
-          <Typography variant="caption" color="error" sx={{display: 'block' }}>
-            {elementErrors.cardNumber}
-          </Typography>
-        )}
-        {elementErrors.cardCvc && (
-          <Typography variant="caption" color="error" sx={{display: 'block' }}>
-            {elementErrors.cardCvc}
-          </Typography>
-        )}
-        {elementErrors.cardExpiry && (
-          <Typography variant="caption" color="error" sx={{ display: 'block' }}>
-            {elementErrors.cardExpiry}
-          </Typography>
-        )}
-      </Box>
         <Button
-        type="submit"
-        fullWidth
-        variant="contained"
-        size="large"
-        disabled={processing || success || !stripe || !elements}
-      >
-        {processing ? <CircularProgress size={24} color="inherit" /> : 'Save Card'}
+          type="submit"
+          fullWidth
+          variant="contained"
+          size="large"
+          disabled={processing || success || !stripe || !elements}
+        >
+          {processing ? <CircularProgress size={24} color="inherit" /> : 'Save Card'}
         </Button>
       </Box>
       <Button
