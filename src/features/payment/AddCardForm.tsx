@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { loadStripe, StripeElementChangeEvent, StripeError } from '@stripe/stripe-js';
+import { loadStripe, StripeElementChangeEvent, StripeElementsOptions, StripeError } from '@stripe/stripe-js';
 import {
   Elements,
   CardNumberElement,
@@ -29,9 +29,29 @@ import { PaymentSetupIntent } from '@/shared/data/models/Payment';
 
 import { STRIPE_PUBLIC_KEY_APP } from '@/shared/config/env';
 import DigitalWalletButton from "./DigitalWalletButton";
+import CheckoutPage from './CheckoutPage';
 
 // --- Stripe Promise ---
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY_APP);
+
+
+const defaultOptions: StripeElementsOptions = {
+  mode: 'setup',
+  currency: 'eur',
+  paymentMethodTypes: ['card', 'link'],
+  appearance: {
+    theme: 'stripe',
+    variables: {
+      colorPrimary: '#0570de',
+      colorBackground: '#ffffff',
+      colorText: '#30313d',
+      colorDanger: '#df1b41',
+      fontFamily: 'system-ui, sans-serif',
+      spacingUnit: '6px',
+      borderRadius: '4px',
+    },
+  },
+};
 
 const stripeElementOptions = {
   style: {
@@ -173,15 +193,17 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
   return (
     <Box>
       {/* Digital Wallet Button (Apple Pay / Google Pay) */}
-      {clientSecret && (
+      {/* {clientSecret && (
         <DigitalWalletButton
           clientSecret={clientSecret}
           onSuccess={handleDigitalWalletSuccess}
           onError={handleDigitalWalletError}
         />
-      )}
+      )} */}
 
       <Box component="form" onSubmit={handleSubmit}>
+        <CheckoutPage />
+
       <Box sx={{
         border: "1px solid",
         borderColor: rootStyle.borderColorMain,
@@ -319,7 +341,7 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
 // --- Wrapper Component ---
 export default function AddCardFormMui({ onSkip, }: { onSkip?: () => void }) {
   return (
-    <Elements stripe={stripePromise}>
+    <Elements stripe={stripePromise} options={defaultOptions}>
       <AddCardInner onSkip={onSkip} />
     </Elements>
   );
