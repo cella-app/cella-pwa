@@ -8,23 +8,20 @@ import { useEffect } from 'react';
  */
 export default function GeolocationMock() {
   useEffect(() => {
-   /*  // Only run in browser and development mode
+    // Only run in browser and development mode
     if (process.env.NODE_ENV !== 'development') {
       return;
-    } */
+    }
 
-    console.log('🗺️ Geolocation Mock: Initializing with Sydney coordinates');
+    console.log('🗺️ Geolocation Mock: Initializing with Germany (mock) coordinates');
 
     // Store original geolocation API
     const originalGeolocation = navigator.geolocation;
 
-    // Mock position for Sydney, Australia
     const mockPosition: GeolocationPosition = {
       coords: {
         latitude: 52.4704,
         longitude: 13.4606,
-        /* latitude: -33.8688,
-        longitude: 151.2093, */
         accuracy: 10, // Good accuracy to pass the MAX_GPS_ACCURACY filter
         altitude: null,
         altitudeAccuracy: null,
@@ -110,6 +107,5 @@ export default function GeolocationMock() {
     };
   }, []);
 
-  // This component doesn't render anything
   return null;
 }
