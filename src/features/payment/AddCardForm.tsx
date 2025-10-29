@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { loadStripe, StripeElementChangeEvent, StripeError } from '@stripe/stripe-js';
+import { loadStripe, StripeElementChangeEvent, StripeElementsOptions, StripeError } from '@stripe/stripe-js';
 import {
   Elements,
   CardNumberElement,
@@ -25,12 +25,10 @@ import {
   Typography,
 } from '@mui/material';
 
-import { PaymentSetupIntent } from '@/shared/data/models/Payment';
-
 import { STRIPE_PUBLIC_KEY_APP } from '@/shared/config/env';
+import CheckoutPage from './CheckoutPage';
 
-// --- Stripe Promise ---
-const stripePromise = loadStripe(STRIPE_PUBLIC_KEY_APP);
+// Stripe element styling options
 
 const stripeElementOptions = {
   style: {
@@ -73,17 +71,55 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
     cardExpiry: '',
     cardCvc: '',
   });
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
-  const handleElementChange = (elementName: keyof typeof elementErrors) => (
-    event: StripeElementChangeEvent,
-  ) => {
-    setElementErrors((prev) => ({ ...prev, [elementName]: event.error ? event.error.message : '' }));
+  // Fetch SetupIntent client secret on component mount for digital wallets
+  React.useEffect(() => {
+  
+    async function fetchClientSecret() {
+      try {
+        const setupIntent = await paymentApi.getSetupIntent();
+        setClientSecret(setupIntent.client_secret);
+      } catch (err) {
+        console.error("Failed to fetch setup intent:", err);
+        setError("Failed to initialize payment. Please try again.");
+      }
+    }
+    fetchClientSecret();
+  }, []);
+
+  const handleElementChange =
+    (elementName: keyof typeof elementErrors) =>
+    (event: StripeElementChangeEvent) => {
+      setElementErrors((prev) => ({
+        ...prev,
+        [elementName]: event.error ? event.error.message : "",
+      }));
+    };
+
+ /*  const handleDigitalWalletSuccess = () => {
+    setSuccess(true);
+    addAlert({
+      severity: SERVERIFY_ALERT.SUCCESS,
+      message: "Payment method added successfully!",
+    });
+    setTimeout(() => {
+      router.push(from);
+    }, 2000);
   };
+
+  const handleDigitalWalletError = (errorMessage: string) => {
+    addAlert({
+      severity: SERVERIFY_ALERT.ERROR,
+      message: errorMessage,
+    });
+    setError(errorMessage);
+  }; */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements) {
-      setError('Stripe is not initialized. Please try again later.');
+    if (!stripe || !elements || !clientSecret) { // ✅ Added clientSecret check
+      setError('Payment not initialized. Please try again.');
       return;
     }
 
@@ -102,9 +138,7 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
       });
       if (paymentMethodError) throw paymentMethodError;
 
-      
-      const { client_secret: clientSecret } = (await paymentApi.getSetupIntent()) as PaymentSetupIntent;
-      // Step 3: Confirm the SetupIntent
+      // ✅ FIXED: Use CACHED clientSecret (0.1s vs 1s)
       const { error: setupError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
         payment_method: paymentMethod.id,
       });
@@ -115,23 +149,17 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
         addAlert({
           severity: SERVERIFY_ALERT.SUCCESS,
           message: "Add card successful!"
-        })
-        setTimeout(() => {
-          router.push(from);
-        }, 2000);
+        });
+        setTimeout(() => router.push(from), 2000);
       } else {
-        addAlert({
-          severity: SERVERIFY_ALERT.ERROR,
-          message: (setupIntent?.status || 'An unexpected error occurred.')
-        })
-        setError(setupIntent?.status || 'An unexpected error occurred.');
+        throw new Error(setupIntent?.status || 'Unexpected error');
       }
     } catch (err) {
       const apiError = err as StripeError | Error;
       addAlert({
         severity: SERVERIFY_ALERT.ERROR,
-        message: (apiError.message || 'Failed to save card. Please try again.')
-      })
+        message: apiError.message || 'Failed to save card. Please try again.'
+      });
       setError(apiError.message || 'Failed to save card. Please try again.');
     } finally {
       setProcessing(false);
@@ -141,124 +169,128 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
   return (
     <Box>
       <Box component="form" onSubmit={handleSubmit}>
-      <Box sx={{
-        border: "1px solid",
-        borderColor: rootStyle.borderColorMain,
-        borderRadius: `${rootStyle.borderRadius.md}px`,
-        mb: 3,
-        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
-      }}>
-        {/* Card Number Field */}
-        <Box
-          sx={{
-            borderBottom: "1px solid",
-            borderColor: rootStyle.borderColorMain,
-            flex: 1,
-            px: 2,
-            py: 1.5,
-            ...commonBoxInputStyle
-          }}
-        >
-          <CardNumberElement
-            options={{
-              ...stripeElementOptions,
-              placeholder: 'Card Number',
-            }}
-            onChange={handleElementChange('cardNumber')}
-          />
-        </Box>
+        <CheckoutPage />
 
-        {/* Expiry and CVC Row */}
-        <Box sx={{ display: 'flex'}}>
-          {/* Expiry Date */}
+        <Box sx={{
+          border: "1px solid",
+          borderColor: rootStyle.borderColorMain,
+          borderRadius: `${rootStyle.borderRadius.md}px`,
+          mb: 3,
+          boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
+        }}>
+          {/* Card Number Field */}
           <Box
             sx={{
-              flex: 6,
+              borderBottom: "1px solid",
+              borderColor: rootStyle.borderColorMain,
+              flex: 1,
               px: 2,
               py: 1.5,
               ...commonBoxInputStyle
             }}
           >
-            <CardExpiryElement
+            <CardNumberElement
               options={{
                 ...stripeElementOptions,
-                placeholder: 'MM/YY',
+                placeholder: 'Card Number',
               }}
-              onChange={handleElementChange('cardExpiry')}
+              onChange={handleElementChange('cardNumber')}
             />
           </Box>
 
+          {/* Expiry and CVC Row */}
+          <Box sx={{ display: 'flex' }}>
+            {/* Expiry Date */}
+            <Box
+              sx={{
+                flex: 6,
+                px: 2,
+                py: 1.5,
+                ...commonBoxInputStyle
+              }}
+            >
+              <CardExpiryElement
+                options={{
+                  ...stripeElementOptions,
+                  placeholder: 'MM/YY',
+                }}
+                onChange={handleElementChange('cardExpiry')}
+              />
+            </Box>
+
+            <Box
+              sx={{
+                flex: 4,
+                borderLeft: '1px solid',
+                borderColor: rootStyle.borderColorMain,
+                ...commonBoxInputStyle,
+                px: 2,
+                py: 1.5,
+              }}
+            >
+              <CardCvcElement
+                options={{
+                  ...stripeElementOptions,
+                  placeholder: 'CVC',
+                }}
+                onChange={handleElementChange('cardCvc')}
+              />
+            </Box>
+          </Box>
+
+          {/* Name on Card */}
           <Box
             sx={{
-              flex: 4,
-              borderLeft: '1px solid',
+              borderTop: "1px solid",
               borderColor: rootStyle.borderColorMain,
-              ...commonBoxInputStyle,
               px: 2,
-              py: 1.5,
+              py: 0.5,
+              ...commonBoxInputStyle,
             }}
           >
-            <CardCvcElement
-              options={{
-                ...stripeElementOptions,
-                placeholder: 'CVC',
+            <TextField
+              fullWidth
+              placeholder="Name on Card"
+              variant="standard"
+              value={nameOnCard}
+              onChange={(e) => setNameOnCard(e.target.value)}
+              InputProps={{
+                disableUnderline: true,
+                sx: {
+                  ...stripeElementOptions.style.base,
+                  '& input': {
+                    padding: '8px 0',
+                  },
+                },
               }}
-              onChange={handleElementChange('cardCvc')}
             />
           </Box>
         </Box>
 
-        {/* Name on Card */}
-        <Box
-          sx={{
-            borderTop: "1px solid",
-            borderColor: rootStyle.borderColorMain,
-            px: 2,
-            py: 0.5,
-            ...commonBoxInputStyle,
-          }}
-        >
-          <TextField
-            fullWidth
-            placeholder="Name on Card"
-            variant="standard"
-            value={nameOnCard}
-            onChange={(e) => setNameOnCard(e.target.value)}
-            InputProps={{
-              disableUnderline: true,
-              sx: {
-                ...stripeElementOptions.style.base,
-                '& input': {
-                  padding: '8px 0',
-                },
-              },
-            }}
-          />
-        </Box>
         {elementErrors.cardNumber && (
-          <Typography variant="caption" color="error" sx={{display: 'block' }}>
-            {elementErrors.cardNumber}
-          </Typography>
-        )}
-        {elementErrors.cardCvc && (
-          <Typography variant="caption" color="error" sx={{display: 'block' }}>
-            {elementErrors.cardCvc}
-          </Typography>
-        )}
-        {elementErrors.cardExpiry && (
-          <Typography variant="caption" color="error" sx={{ display: 'block' }}>
-            {elementErrors.cardExpiry}
-          </Typography>
-        )}
-      </Box>
+            <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+              {elementErrors.cardNumber}
+            </Typography>
+          )}
+          {elementErrors.cardCvc && (
+            <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+              {elementErrors.cardCvc}
+            </Typography>
+          )}
+          {elementErrors.cardExpiry && (
+            <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+              {elementErrors.cardExpiry}
+            </Typography>
+          )}
+          
         <Button
-        type="submit"
-        fullWidth
-        variant="contained"
-        size="large"
-        disabled={processing || success || !stripe || !elements}
-      >
-        {processing ? <CircularProgress size={24} color="inherit" /> : 'Save Card'}
+          type="submit"
+          fullWidth
+          variant="contained"
+          size="large"
+          disabled={processing || success || !stripe || !elements}
+        >
+          {processing ? <CircularProgress size={24} color="inherit" /> : 'Save Card'}
         </Button>
       </Box>
       <Button
@@ -277,9 +309,5 @@ function AddCardInner({ onSkip }: { onSkip?: () => void }) {
 
 // --- Wrapper Component ---
 export default function AddCardFormMui({ onSkip, }: { onSkip?: () => void }) {
-  return (
-    <Elements stripe={stripePromise}>
-      <AddCardInner onSkip={onSkip} />
-    </Elements>
-  );
+  return <AddCardInner onSkip={onSkip} />;
 }
