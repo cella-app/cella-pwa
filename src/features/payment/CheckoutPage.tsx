@@ -65,6 +65,9 @@ const CheckoutPage = () => {
 
             <ExpressCheckoutElement
                 onConfirm={onConfirm}
+                options={{
+                    paymentMethodOrder: ['apple_pay', 'google_pay'],
+                }}
             />
 
             {errorMessage && (
