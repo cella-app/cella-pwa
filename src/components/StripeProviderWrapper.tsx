@@ -12,7 +12,6 @@ const stripePromise = loadStripe(STRIPE_PUBLIC_KEY_APP);
 const defaultOptions: StripeElementsOptions = {
   mode: 'setup',
   currency: 'eur',
-  paymentMethodTypes: ['card'],
   appearance: {
     theme: 'stripe',
     variables: {
