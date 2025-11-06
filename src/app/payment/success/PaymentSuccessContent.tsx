@@ -21,19 +21,43 @@ export default function PaymentSuccessContent() {
       }
 
       // Retrieve the client secrets
-      const clientSecret = searchParams?.get('payment_intent_client_secret');
-      const setupIntent = searchParams?.get('setup_intent');
-      const paymentIntent = searchParams?.get('payment_intent');
+      const paymentIntentClientSecret = searchParams?.get('payment_intent_client_secret');
+      const setupIntentClientSecret = searchParams?.get('setup_intent_client_secret');
+      const paymentIntentId = searchParams?.get('payment_intent');
 
-      if (!clientSecret && !setupIntent && !paymentIntent) {
-        router.push('/');
+      if (!paymentIntentClientSecret && !setupIntentClientSecret && !paymentIntentId) {
+        router.push('/workspace/discovery');
         return;
       }
 
       try {
-        if (clientSecret) {
+        if (setupIntentClientSecret) {
+          // Handle SetupIntent (card saving) - prioritize this since it's most common
+          const { setupIntent: si } = await stripe.retrieveSetupIntent(setupIntentClientSecret);
+          if (!si) {
+            throw new Error('Setup intent not found');
+          }
+
+          if (si.status === 'succeeded') {
+            addAlert({
+              severity: SERVERIFY_ALERT.SUCCESS,
+              message: 'Card saved successfully!',
+            });
+            setTimeout(() => {
+              router.push('/workspace/discovery');
+            }, 2000);
+          } else {
+            addAlert({
+              severity: SERVERIFY_ALERT.ERROR,
+              message: 'Failed to save card. Please try again.',
+            });
+            setTimeout(() => {
+              router.push('/workspace/discovery');
+            }, 2000);
+          }
+        } else if (paymentIntentClientSecret) {
           // Retrieve the PaymentIntent
-          const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
+          const { paymentIntent } = await stripe.retrievePaymentIntent(paymentIntentClientSecret);
           if (!paymentIntent) {
             throw new Error('Payment intent not found');
           }
@@ -53,19 +77,52 @@ export default function PaymentSuccessContent() {
                 severity: SERVERIFY_ALERT.INFO,
                 message: 'Payment is still processing.',
               });
+              setTimeout(() => {
+                router.push('/workspace/discovery');
+              }, 3000);
               break;
             case 'requires_payment_method':
               addAlert({
                 severity: SERVERIFY_ALERT.ERROR,
                 message: 'Payment failed. Please try another payment method.',
               });
+              setTimeout(() => {
+                router.push('/workspace/discovery');
+              }, 2000);
               break;
             default:
               addAlert({
                 severity: SERVERIFY_ALERT.ERROR,
                 message: 'Something went wrong.',
               });
+              setTimeout(() => {
+                router.push('/workspace/discovery');
+              }, 2000);
               break;
+          }
+        } else if (paymentIntentId) {
+          // Handle paymentIntent ID parameter
+          const { paymentIntent: pi } = await stripe.retrievePaymentIntent(paymentIntentId);
+          if (!pi) {
+            throw new Error('Payment intent not found');
+          }
+
+          if (pi.status === 'succeeded') {
+            addAlert({
+              severity: SERVERIFY_ALERT.SUCCESS,
+              message: 'Payment successful!',
+            });
+            setTimeout(() => {
+              router.push('/workspace/discovery');
+            }, 2000);
+          } else {
+            addAlert({
+              severity: SERVERIFY_ALERT.ERROR,
+              message: 'Payment failed. Please try again.',
+            });
+            setTimeout(() => {
+              router.push('/workspace/discovery');
+            }, 2000);
           }
         }
       } catch (err) {
@@ -74,6 +131,9 @@ export default function PaymentSuccessContent() {
           severity: SERVERIFY_ALERT.ERROR,
           message: 'An error occurred while checking payment status.',
         });
+        setTimeout(() => {
+          router.push('/workspace/discovery');
+        }, 2000);
       }
     }
 
