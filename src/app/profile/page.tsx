@@ -247,16 +247,31 @@ export default function ProfilePage() {
                 justifyContent: "center",
                 gap: 1,
                 mb: 2,
+                flexWrap: "wrap",
               }}
             >
               <CreditCardIcon fontSize="small" />
-              {paymentMethods.length > 0 ? paymentMethods.map(pm => (
-                <Typography key={pm.pm_id} variant="body2">
-                  {pm.type} •••• {pm.last4} (exp: {pm.exp_month}/{pm.exp_year})
-                </Typography>
-              )) : (
+              {paymentMethods.length > 0 ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                  {paymentMethods.map(pm => {
+                    const displayLabel = pm.type === 'card'
+                      ? `Card •••• ${pm.last4} (exp: ${pm.exp_month}/${pm.exp_year})`
+                      : pm.type === 'apple_pay'
+                      ? 'Apple Pay'
+                      : pm.type === 'google_pay'
+                      ? 'Google Pay'
+                      : `${pm.type} ${pm.last4 ? `•••• ${pm.last4}` : ''}`;
+
+                    return (
+                      <Typography key={pm.pm_id} variant="body2">
+                        {displayLabel}
+                      </Typography>
+                    );
+                  })}
+                </Box>
+              ) : (
                 <Typography variant="body2" color="text.secondary">
-                  No card added yet.
+                  No payment method added yet.
                 </Typography>
               )}
               <IconButton onClick={handleEdit}>
