@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { rootStyle } from '@/theme';
 import { PaymentMethod } from '@/shared/data/models/Payment';
-import { getPaymentMethodIcon, getPaymentMethodLabel } from "@/app/profile/page";
+import { getPaymentMethodIcon, getPaymentMethodLabel } from '@/shared/utils/payment';
 
 interface SelectDefaultPaymentDialogProps {
   open: boolean;

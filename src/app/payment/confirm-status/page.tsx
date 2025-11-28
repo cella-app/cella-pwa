@@ -9,8 +9,7 @@ import { useStripe } from '@stripe/react-stripe-js';
 import { userAlertStore, SERVERIFY_ALERT } from '@/features/alert/stores/alert.store';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
-export default function PaymentSuccessPage() {
-
+function PaymentSuccessContent() {
   const stripe = useStripe();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -143,7 +142,28 @@ export default function PaymentSuccessPage() {
     verifyPayment();
   }, [stripe, searchParams, router, addAlert]);
 
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        gap: 2,
+        p: 3,
+      }}
+    >
+      <CheckCircleIcon color="success" sx={{ fontSize: 64 }} />
+      <Typography variant="h5" align="center">
+        Confirming status...
+      </Typography>
+      <CircularProgress size={24} />
+    </Box>
+  );
+}
 
+export default function PaymentSuccessPage() {
   return (
     <Suspense
       fallback={
@@ -159,24 +179,7 @@ export default function PaymentSuccessPage() {
         </Box>
       }
     >
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          gap: 2,
-          p: 3,
-        }}
-      >
-        <CheckCircleIcon color="success" sx={{ fontSize: 64 }} />
-        <Typography variant="h5" align="center">
-          Confirming status...
-        </Typography>
-        <CircularProgress size={24} />
-      </Box>
-
+      <PaymentSuccessContent />
     </Suspense>
   );
 }
