@@ -30,7 +30,7 @@ const CheckoutPage = () => {
                 elements,
                 clientSecret,
                 confirmParams: {
-                    return_url: `${window.location.origin}/payment/constatus`,
+                    return_url: `${window.location.origin}/payment/confirm-status`,
                 },
             });
 
