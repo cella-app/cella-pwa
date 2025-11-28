@@ -383,7 +383,7 @@ export default function ProfilePage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 1,
+                gap: 2,
                 my: 4,
                 flexWrap: "wrap",
               }}
@@ -396,11 +396,11 @@ export default function ProfilePage() {
                       <Typography key={pm.pm_id} variant="body2">
                         {getPaymentMethodLabel(pm)} {pm.type === 'card' ? `(exp: ${pm.exp_month}/${pm.exp_year})` : ''}
                       </Typography>
-                      {userDefaultPayment?.id === pm.id && <Tooltip title="Default payment">
+                      {/* {userDefaultPayment?.id === pm.id && <Tooltip title="Default payment">
                         <IconButton sx={{ py: 0, minHeight: 0, height: "fit-content", cursor: "default", ml: 'auto' }} disableFocusRipple disableRipple >
                           <CheckCircleIcon fontSize="small" />
                         </IconButton>
-                      </Tooltip>}
+                      </Tooltip>} */}
                     </Box>
                   ))}
                 </Box>
@@ -412,17 +412,19 @@ export default function ProfilePage() {
 
               <Tooltip title="Add payment method">
                 <IconButton onClick={handleEdit}>
-                  <AddCircleOutlineRoundedIcon fontSize="small" />
+                  <EditIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              {paymentMethods.length > 0 && (
+
+              {/*  {paymentMethods.length > 0 && (
                 <Tooltip title={userDefaultPayment?.id ? "Change default" : "Select default"}>
                   <IconButton onClick={handleChangeDefault}>
                     <SwapVerticalCircleIcon />
                   </IconButton>
                 </Tooltip>
-              )}
+              )} */}
             </Box>
+            
             <Card
               sx={{
                 border: `1px solid ${rootStyle.borderColorMain}`,
