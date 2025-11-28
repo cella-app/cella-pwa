@@ -53,9 +53,10 @@ function PaymentSuccessContent() {
               severity: SERVERIFY_ALERT.ERROR,
               message: 'Failed to save card. Please try again.',
             });
+
+            router.push('/payment/add-to-card?frm=/profile');
           }
 
-          router.push('/payment/add-to-card?frm=/profile');
 
         } else if (paymentIntentClientSecret) {
           // Retrieve the PaymentIntent
