@@ -3,11 +3,17 @@ export interface PaymentSetupIntent {
 }
 
 export interface PaymentMethod {
-	pm_id: string;
-	last4: string;
+	brand: string;
+	date_created: string | null;
+	date_updated: string | null;
+	detail: Record<string, any>;
 	exp_month: number;
-	type: string
 	exp_year: number;
+	id: string;
+	last4: string;
+	pm_id: string;
+	type: string;
+	user: string;
 }
 
 export interface Billing {

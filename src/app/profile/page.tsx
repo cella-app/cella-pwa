@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { setUser as setUserStorage } from "@/shared/utils/auth";
 import { useRouter } from "next/navigation";
 import { User } from "@/shared/data/models/User";
@@ -11,11 +11,17 @@ import {
   CardContent,
   Avatar,
   IconButton,
+  Tooltip,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SwapVerticalCircleIcon from '@mui/icons-material/SwapVerticalCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
+import AppleIcon from '@mui/icons-material/Apple';
+import GoogleIcon from '@mui/icons-material/Google';
 import { rootStyle } from '@/theme';
 import { logOutAction } from "@/features/auth/auth.action"
 import { paymentApi } from '@/shared/api/payment.api';
@@ -25,13 +31,88 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import SelectDefaultPaymentDialog from '@/components/SelectDefaultPaymentDialog';
+import EditProfileNameDialog from '@/components/EditProfileNameDialog';
 import { updateAvatarWithDelete, getMe, updateInfo } from '@/features/me/me.action';
-import TextField from '@mui/material/TextField';
-import Stack from '@mui/material/Stack';
 import { userAlertStore, SERVERIFY_ALERT } from '@/features/alert/stores/alert.store';
 import { Skeleton } from '@mui/material';
 
 type UserWithAvatarUrl = User & { avatar_url?: string };
+
+// mock payment is an actual response from BE
+const mockPayment:PaymentMethod = {
+  "brand": "visa",
+  "date_created": null,
+  "date_updated": null,
+  "detail": {
+      "brand": "visa",
+      "checks": {
+          "address_line1_check": "pass",
+          "address_postal_code_check": "pass",
+          "cvc_check": null
+      },
+      "country": "US",
+      "display_brand": "visa",
+      "exp_month": 12,
+      "exp_year": 2027,
+      "fingerprint": "sEYcX0BemlmSwMaw",
+      "funding": "credit",
+      "generated_from": null,
+      "last4": "4242",
+      "networks": {
+          "available": [
+              "visa"
+          ],
+          "preferred": null
+      },
+      "regulated_status": "unregulated",
+      "three_d_secure_usage": {
+          "supported": true
+      },
+      "wallet": {
+          "dynamic_last4": "4242",
+          "google_pay": {},
+          "type": "google_pay"
+      }
+  },
+  "exp_month": 12,
+  "exp_year": 2027,
+  "id": "696931b9-8caf-41cc-b1a5-c9ffb249d250",
+  "last4": "4242",
+  "pm_id": "pm_1SQ41uP8gyJCOQi4dCs3xiDy",
+  "type": "card",
+  "user": "785d2d7c-990a-4cf2-9c3a-b2e43980ac67"
+}
+
+// Helper functions for payment method display
+export const getPaymentMethodLabel = (pm: PaymentMethod): string => {
+  const walletType = pm.detail?.wallet?.type;
+  const isGooglePayCard = pm.type === 'card' && walletType === 'google_pay';
+  const isApplePayCard = pm.type === 'card' && walletType === 'apple_pay';
+
+  if (isGooglePayCard) {
+    return `Google Pay (${pm.brand ? pm.brand.charAt(0).toUpperCase() + pm.brand.slice(1) : 'Visa'} •••• ${pm.last4})`;
+  }
+  if (isApplePayCard) {
+    return `Apple Pay (${pm.brand ? pm.brand.charAt(0).toUpperCase() + pm.brand.slice(1) : 'Visa'} •••• ${pm.last4})`;
+  }
+  if (pm.type === 'apple_pay') return 'Apple Pay';
+  if (pm.type === 'google_pay') return 'Google Pay';
+  return `${pm.brand ? pm.brand.charAt(0).toUpperCase() + pm.brand.slice(1) : 'Card'} •••• ${pm.last4}`;
+};
+
+export const getPaymentMethodIcon = (pm: PaymentMethod, size: number = 28) => {
+  const walletType = pm.detail?.wallet?.type;
+  const isGooglePayCard = pm.type === 'card' && walletType === 'google_pay';
+  const isApplePayCard = pm.type === 'card' && walletType === 'apple_pay';
+  const iconProps = { fontSize: size, mr: size > 20 ? 2 : 1 };
+
+  if (isGooglePayCard) return <GoogleIcon sx={{ ...iconProps, color: '#4285F4' }} />;
+  if (isApplePayCard) return <AppleIcon sx={{ ...iconProps, color: rootStyle.textColor }} />;
+  if (pm.type === 'apple_pay') return <AppleIcon sx={{ ...iconProps, color: rootStyle.textColor }} />;
+  if (pm.type === 'google_pay') return <GoogleIcon sx={{ ...iconProps, color: '#4285F4' }} />;
+  return <CreditCardIcon sx={{ ...iconProps, color: rootStyle.elementColor }} />;
+};
 
 export default function ProfilePage() {
   const [user, setUser] = useState<UserWithAvatarUrl | null>(null);
@@ -47,6 +128,10 @@ export default function ProfilePage() {
   const { addAlert } = userAlertStore();
   const [savingName, setSavingName] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectDefaultDialogOpen, setSelectDefaultDialogOpen] = useState(false);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null);
+  const [settingDefault, setSettingDefault] = useState(false);
+  const [defaultPaymentMethodId, setDefaultPaymentMethodId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchUser() {
@@ -64,15 +149,28 @@ export default function ProfilePage() {
     }
     fetchUser();
     paymentApi.getPaymentMethod().then((data) => {
+      console.log("data", data);
+
       if (Array.isArray(data)) {
         setPaymentMethods(data);
+        if (data.length > 0) {
+          setDefaultPaymentMethodId(data[0].id);
+          setSelectedPaymentMethodId(data[0].id);
+        }
       } else if (data) {
         setPaymentMethods([data]);
+        setDefaultPaymentMethodId(data.id);
+        setSelectedPaymentMethodId(data.id);
       }
     }).catch(() => setPaymentMethods([]));
   }, []);
 
-  const handleDeleteAccount = async () => {
+  const userDefaultPayment = useMemo(() => {
+    if (!defaultPaymentMethodId) return null;
+    return paymentMethods.find(pm => pm.id === defaultPaymentMethodId) || null;
+  }, [paymentMethods, defaultPaymentMethodId]);
+
+  const handleDeleteAccount =  () => {
     setDeleteDialogOpen(true);
   };
 
@@ -103,7 +201,47 @@ export default function ProfilePage() {
 
   const handleEdit = () => {
     router.push('/payment/add-to-card?frm=/profile')
-    router.push('/payment/add-to-card?frm=/profile')
+  };
+ 
+  const handleChangeDefault = () => {
+    setSelectedPaymentMethodId(defaultPaymentMethodId);
+    setSelectDefaultDialogOpen(true);
+  };
+
+  const mockSetDefaultPaymentMethod = async (paymentMethodId: string): Promise<void> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        setDefaultPaymentMethodId(paymentMethodId);
+        resolve();
+      }, 700);
+    });
+  };
+
+  const handleConfirmSetDefault = async () => {
+    if (!selectedPaymentMethodId) return;
+
+    setSettingDefault(true);
+    try {
+      await mockSetDefaultPaymentMethod(selectedPaymentMethodId);
+      setSelectDefaultDialogOpen(false);
+      addAlert({
+        severity: SERVERIFY_ALERT.SUCCESS,
+        message: 'Default payment method updated successfully'
+      });
+    } catch (err) {
+      console.error(err);
+      addAlert({
+        severity: SERVERIFY_ALERT.ERROR,
+        message: 'Failed to update default payment method'
+      });
+    } finally {
+      setSettingDefault(false);
+    }
+  };
+
+  const handleCancelSelectDefault = () => {
+    setSelectDefaultDialogOpen(false);
+    setSelectedPaymentMethodId(defaultPaymentMethodId);
   };
 
   const handleAvatarClick = () => {
@@ -245,39 +383,48 @@ export default function ProfilePage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 1,
-                mb: 2,
+                gap: 2,
+                my: 4,
                 flexWrap: "wrap",
               }}
             >
-              <CreditCardIcon fontSize="small" />
               {paymentMethods.length > 0 ? (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                  {paymentMethods.map(pm => {
-                    const displayLabel = pm.type === 'card'
-                      ? `Card •••• ${pm.last4} (exp: ${pm.exp_month}/${pm.exp_year})`
-                      : pm.type === 'apple_pay'
-                      ? 'Apple Pay'
-                      : pm.type === 'google_pay'
-                      ? 'Google Pay'
-                      : `${pm.type} ${pm.last4 ? `•••• ${pm.last4}` : ''}`;
-
-                    return (
+                  {paymentMethods.map(pm => (
+                    <Box key={pm.id} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      {getPaymentMethodIcon(pm, 18)}
                       <Typography key={pm.pm_id} variant="body2">
-                        {displayLabel}
+                        {getPaymentMethodLabel(pm)} {pm.type === 'card' ? `(exp: ${pm.exp_month}/${pm.exp_year})` : ''}
                       </Typography>
-                    );
-                  })}
+                      {/* {userDefaultPayment?.id === pm.id && <Tooltip title="Default payment">
+                        <IconButton sx={{ py: 0, minHeight: 0, height: "fit-content", cursor: "default", ml: 'auto' }} disableFocusRipple disableRipple >
+                          <CheckCircleIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>} */}
+                    </Box>
+                  ))}
                 </Box>
               ) : (
                 <Typography variant="body2" color="text.secondary">
                   No payment method added yet.
                 </Typography>
               )}
-              <IconButton onClick={handleEdit}>
-                <EditIcon fontSize="small" />
-              </IconButton>
+
+              <Tooltip title="Add payment method">
+                <IconButton onClick={handleEdit}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+
+              {/*  {paymentMethods.length > 0 && (
+                <Tooltip title={userDefaultPayment?.id ? "Change default" : "Select default"}>
+                  <IconButton onClick={handleChangeDefault}>
+                    <SwapVerticalCircleIcon />
+                  </IconButton>
+                </Tooltip>
+              )} */}
             </Box>
+            
             <Card
               sx={{
                 border: `1px solid ${rootStyle.borderColorMain}`,
@@ -376,86 +523,42 @@ export default function ProfilePage() {
               </Button>
             </DialogActions>
           </Dialog>
-          <Dialog open={editNameDialogOpen} onClose={() => setEditNameDialogOpen(false)} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { p: { xs: 0, sm: 2 }, background: rootStyle.backgroundColor } } }}>
-            <DialogTitle sx={{ fontWeight: 700, fontSize: 24, pb: 0, textAlign: 'center' }}>Update Name</DialogTitle>
-            <DialogContent sx={{ paddingTop: "2rem !important", paddingX: { xs: 2 } }}>
-              <Stack spacing={2} direction="column" alignItems="center" width="100%">
-                <TextField
-                  size="medium"
-                  variant="outlined"
-                  label="First Name"
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  fullWidth
-                  slotProps={{
-                    input: {
-                      style: { fontSize: 18 }
-                    }
-                  }}
-                  autoFocus
-                  sx={{ minWidth: { xs: "100%", lg: 125 }, }}
-                />
-                <TextField
-                  size="medium"
-                  variant="outlined"
-                  label="Last Name"
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                  fullWidth
-                  slotProps={{
-                    input: {
-                      style: { fontSize: 18 }
-                    }
-                  }}
-                  sx={{ minWidth: { xs: "100%", lg: 125 }, }}
-                />
-              </Stack>
-            </DialogContent>
-            <DialogActions sx={{
-              justifyContent: "center",
-              gap: 2,
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: "center",
-              margin: 0,
-              "@media (max-width:330px)": { "& .MuiButton-root": { padding: "6px 12px" } },
+          <EditProfileNameDialog
+            open={editNameDialogOpen}
+            onClose={() => {
+              setEditNameDialogOpen(false);
+              setFirstName(user?.first_name || '');
+              setLastName(user?.last_name || '');
             }}
-              disableSpacing={true}>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setEditNameDialogOpen(false);
-                  setFirstName(user?.first_name || '');
-                  setLastName(user?.last_name || '');
-                }}
-                size="small"
-                sx={{ py: { xs: 1, sm: 0.5 }, textTransform: 'none', margin: 0 }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                onClick={async () => {
-                  if (!user) return;
-                  setSavingName(true);
-                  try {
-                    const updated = await updateInfo(user, firstName, lastName);
-                    setUser(updated);
-                    setEditNameDialogOpen(false);
-                  } catch {
-                    // alert handled by alertStore
-                  } finally {
-                    setSavingName(false);
-                  }
-                }}
-                disabled={savingName}
-                size="small"
-                sx={{ py: { xs: 1, sm: 0.5 }, textTransform: 'none', margin: 0 }}
-              >
-                {savingName ? 'Saving...' : 'Save'}
-              </Button>
-            </DialogActions>
-          </Dialog>
+            onConfirm={async () => {
+              if (!user) return;
+              setSavingName(true);
+              try {
+                const updated = await updateInfo(user, firstName, lastName);
+                setUser(updated);
+                setEditNameDialogOpen(false);
+              } catch {
+                // alert handled by alertStore
+              } finally {
+                setSavingName(false);
+              }
+            }}
+            firstName={firstName}
+            lastName={lastName}
+            onFirstNameChange={setFirstName}
+            onLastNameChange={setLastName}
+            loading={savingName}
+          />
+          <SelectDefaultPaymentDialog
+            open={selectDefaultDialogOpen}
+            onClose={handleCancelSelectDefault}
+            onConfirm={handleConfirmSetDefault}
+            paymentMethods={paymentMethods}
+            selectedPaymentMethodId={selectedPaymentMethodId}
+            defaultPaymentMethodId={defaultPaymentMethodId}
+            loading={settingDefault}
+            onPaymentMethodSelect={setSelectedPaymentMethodId}
+          />
         </>}
     </Box>
   );

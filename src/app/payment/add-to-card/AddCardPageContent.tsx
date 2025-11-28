@@ -29,15 +29,15 @@ export default function AddCardPageContent() {
 			}}
 		>
 			<Typography variant="h4" fontWeight={700} mb={2} sx={{
-				fontSize: "36px",
+				fontSize: "31px",
 				fontFamily: rootStyle.titleFontFamily
 			}}>
-				Add Your Card
+				Add Your Payment Method
 			</Typography>
 			<Typography
 				fontWeight={700} mb={2} sx={{
 					maxWidth: "300px",
-					fontSize: "20px",
+					fontSize: "18px",
 				}}
 			>
 				{"You'll only be charged after your session ends."}
