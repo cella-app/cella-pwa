@@ -16,28 +16,25 @@ const CheckoutPage = () => {
         if (!stripe || !elements) {
             return;
         }
-    
+
         try {
-            // First submit the form
             const { error: submitError } = await elements.submit();
             if (submitError) {
                 setErrorMessage(submitError.message);
                 return;
             }
-    
+
             const { client_secret: clientSecret } = await paymentApi.getSetupIntent();
-    
-            // Confirm the SetupIntent
-            console.log("confirming setup");
-            
+
             const { error: setupError } = await stripe.confirmSetup({
                 elements,
                 clientSecret,
                 confirmParams: {
-                    return_url: `${window.location.origin}/payment/success`,
+                    return_url: `${window.location.origin}/payment/constatus`,
                 },
             });
-    
+
+            // this conditional shouldn't run but is left here as an edge case or debugging purpose
             if (setupError) {
                 addAlert({
                     severity: SERVERIFY_ALERT.ERROR,
@@ -80,3 +77,4 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage
+
