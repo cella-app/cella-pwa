@@ -6,7 +6,7 @@ export interface PaymentMethod {
 	brand: string;
 	date_created: string | null;
 	date_updated: string | null;
-	detail: Record<string, any>;
+	detail: Record<string, unknown>;
 	exp_month: number;
 	exp_year: number;
 	id: string;

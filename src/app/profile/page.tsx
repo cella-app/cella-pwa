@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 import { setUser as setUserStorage } from "@/shared/utils/auth";
 import { useRouter } from "next/navigation";
 import { User } from "@/shared/data/models/User";
@@ -16,9 +16,6 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import SwapVerticalCircleIcon from '@mui/icons-material/SwapVerticalCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AppleIcon from '@mui/icons-material/Apple';
 import GoogleIcon from '@mui/icons-material/Google';
@@ -38,51 +35,6 @@ import { userAlertStore, SERVERIFY_ALERT } from '@/features/alert/stores/alert.s
 import { Skeleton } from '@mui/material';
 
 type UserWithAvatarUrl = User & { avatar_url?: string };
-
-// mock payment is an actual response from BE
-const mockPayment:PaymentMethod = {
-  "brand": "visa",
-  "date_created": null,
-  "date_updated": null,
-  "detail": {
-      "brand": "visa",
-      "checks": {
-          "address_line1_check": "pass",
-          "address_postal_code_check": "pass",
-          "cvc_check": null
-      },
-      "country": "US",
-      "display_brand": "visa",
-      "exp_month": 12,
-      "exp_year": 2027,
-      "fingerprint": "sEYcX0BemlmSwMaw",
-      "funding": "credit",
-      "generated_from": null,
-      "last4": "4242",
-      "networks": {
-          "available": [
-              "visa"
-          ],
-          "preferred": null
-      },
-      "regulated_status": "unregulated",
-      "three_d_secure_usage": {
-          "supported": true
-      },
-      "wallet": {
-          "dynamic_last4": "4242",
-          "google_pay": {},
-          "type": "google_pay"
-      }
-  },
-  "exp_month": 12,
-  "exp_year": 2027,
-  "id": "696931b9-8caf-41cc-b1a5-c9ffb249d250",
-  "last4": "4242",
-  "pm_id": "pm_1SQ41uP8gyJCOQi4dCs3xiDy",
-  "type": "card",
-  "user": "785d2d7c-990a-4cf2-9c3a-b2e43980ac67"
-}
 
 // Helper functions for payment method display
 export const getPaymentMethodLabel = (pm: PaymentMethod): string => {
@@ -165,11 +117,6 @@ export default function ProfilePage() {
     }).catch(() => setPaymentMethods([]));
   }, []);
 
-  const userDefaultPayment = useMemo(() => {
-    if (!defaultPaymentMethodId) return null;
-    return paymentMethods.find(pm => pm.id === defaultPaymentMethodId) || null;
-  }, [paymentMethods, defaultPaymentMethodId]);
-
   const handleDeleteAccount =  () => {
     setDeleteDialogOpen(true);
   };
@@ -201,11 +148,6 @@ export default function ProfilePage() {
 
   const handleEdit = () => {
     router.push('/payment/add-to-card?frm=/profile')
-  };
- 
-  const handleChangeDefault = () => {
-    setSelectedPaymentMethodId(defaultPaymentMethodId);
-    setSelectDefaultDialogOpen(true);
   };
 
   const mockSetDefaultPaymentMethod = async (paymentMethodId: string): Promise<void> => {
